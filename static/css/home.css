@@ -1,0 +1,266 @@
+body {
+    background-color: #222222;
+    color: whitesmoke;
+}
+
+.check-label {
+    font-size: 8px;
+    text-align: center;
+}
+
+.show-hide {
+    display: none;
+    background-color: #282828;
+}
+
+.flex-container {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    background-color: #282828;
+    gap: 12px;
+}
+
+.video-selector {
+
+}
+
+.always-vis-container {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title-and-desc {
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0, 0, 0); /* Fallback color */
+    background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modal-content {
+    background-color: rgb(0, 0, 0);
+    color: white;
+    margin: 15% auto; /* 15% from the top and centered */
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+
+/* The Close Button */
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.main-flex-column {
+    display: flex;
+    justify-content: center;
+    background-color: #282828;
+    width: 80%;
+    min-width: 80%;
+}
+
+.flex-container-vert {
+    display: flex;
+    flex-direction: column;
+    background-color: #282828;
+}
+
+.body-parent {
+    display: flex;
+    background-color: #222222;
+    justify-content: center;
+}
+
+.grey-text {
+    color: grey;
+}
+
+.white-text {
+    font-weight: bold;
+    color: white;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(34, 34, 34, 0.9);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.loading-content {
+    text-align: center;
+    color: whitesmoke;
+}
+
+.loading-spinner {
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 1rem;
+}
+
+.loading-text {
+    font-size: 1.2rem;
+    margin-top: 1rem;
+}
+
+.loading-subtext {
+    font-size: 0.9rem;
+    color: #aaa;
+    margin-top: 0.5rem;
+}
+
+/* Fade in/out animations */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.fade-out {
+    animation: fadeOut 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+/* Content container for smooth transitions */
+.content-container {
+    transition: opacity 0.3s ease;
+}
+
+.content-loading {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Pagination improvements */
+.pagination .page-link {
+    background-color: #282828;
+    border-color: #444;
+    color: whitesmoke;
+}
+
+.pagination .page-link:hover {
+    background-color: #444;
+    border-color: #666;
+    color: white;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.pagination .page-item.disabled .page-link {
+    background-color: #282828;
+    border-color: #444;
+    color: #666;
+}
+
+/* Per page select styling */
+#form-select {
+    background-color: #282828;
+    border-color: #444;
+    color: whitesmoke;
+}
+
+#form-select:focus {
+    background-color: #282828;
+    border-color: #0d6efd;
+    color: whitesmoke;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+#form-select option {
+    background-color: #282828;
+    color: whitesmoke;
+}
+
+/* Badge styling */
+.badge {
+    margin: 2px;
+    font-size: 0.75em;
+}
+
+/* Video thumbnail styling */
+.video-thumbnail {
+    border-radius: 4px;
+    max-width: 120px;
+    max-height: 90px;
+    object-fit: cover;
+}
+
+/* Language selector improvements */
+.language-selector:disabled {
+    opacity: 0.5;
+}
+
+.language-label.disabled {
+    opacity: 0.5;
+    text-decoration: line-through;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .main-flex-column {
+        width: 95%;
+    }
+    
+    .flex-container {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .always-vis-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .title-and-desc {
+        width: 100%;
+    }
+    
+    .video-thumbnail {
+        max-width: 100px;
+        max-height: 75px;
+    }
+}
