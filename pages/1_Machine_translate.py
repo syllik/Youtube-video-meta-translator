@@ -8,7 +8,11 @@ from streamlit_app import render_common_page_context
 from ui.feedback import render_feedback
 from ui.machine_controls import render_machine_controls
 from ui.pagination import render_pagination
-from ui.video_list import render_video_list
+from ui.video_list import (
+    render_video_list,
+    stateful_checkbox_kwargs,
+    sync_visible_checkbox_state,
+)
 
 
 def get_machine_translation_service(session_state, youtube_service):
@@ -54,17 +58,27 @@ def render_machine_page() -> None:
 
     state = init_machine_state(st.session_state)
     if context.selection.limit == "all":
+        visible_ids = tuple(video.id for video in context.page.videos)
         previous_select_all = bool(state.get("select_all_channel"))
         select_all_channel = st.checkbox(
-            "Select all channel videos",
-            value=bool(state.get("select_all_channel")),
-            key="machine-select-all-channel",
+            **stateful_checkbox_kwargs(
+                st.session_state,
+                "machine-select-all-channel",
+                "Select all channel videos",
+                bool(state.get("select_all_channel")),
+            )
         )
         state["select_all_channel"] = select_all_channel
         if previous_select_all and not select_all_channel:
             state["selected_video_ids"] = set()
+            sync_visible_checkbox_state(st.session_state, visible_ids, set())
         if select_all_channel:
-            state["selected_video_ids"] = {video.id for video in context.page.videos}
+            state["selected_video_ids"] = set(visible_ids)
+            sync_visible_checkbox_state(
+                st.session_state,
+                visible_ids,
+                state["selected_video_ids"],
+            )
 
     language_options = context.service.code_to_name
     options, clicked = render_machine_controls(
@@ -77,6 +91,7 @@ def render_machine_page() -> None:
         video.id for video in context.page.videos
     }:
         state["select_all_channel"] = False
+        st.session_state["machine-select-all-channel"] = False
     render_pagination(context.selection, context.channel.total_videos, st.query_params)
 
     if clicked:

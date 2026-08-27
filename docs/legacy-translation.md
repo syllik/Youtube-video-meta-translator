@@ -1,11 +1,11 @@
-# 🔁 Machine translation / Машинный перевод
+# 🔁 Machine translation
 
 Use this guide when you want automatic title and description translation
 instead of prepared JSON.
 
 ⬅️ [Back to documentation](README.md) · ➡️ [Troubleshooting](troubleshooting.md)
 
-## 🧭 Safe first test / Первый безопасный тест
+## 🧭 Safe first test
 
 Before translating a whole channel:
 

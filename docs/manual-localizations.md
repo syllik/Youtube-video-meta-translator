@@ -1,14 +1,14 @@
-# 🧩 Manual localizations / Ручные локализации
+# 🧩 Manual localizations
 
 Use this workflow when translations are already prepared and you want to
 review them before publishing to YouTube.
 
 ⬅️ [Back to documentation](README.md) · ➡️ [Troubleshooting](troubleshooting.md)
 
-## 🎯 Workflow / Сценарий
+## 🎯 Workflow
 
 ```text
-Select one video
+Click Select on one video card
       ↓
 Paste localization JSON
       ↓
@@ -24,7 +24,8 @@ generate translations, process subtitles, or publish audio localization.
 
 ## 1️⃣ Select a video
 
-Choose one video in the **Manual** selector. The app uses the YouTube video ID,
+Click **Select** on one video card in the list. The selected card changes to
+**Selected** so the active video is clear. The app uses the YouTube video ID,
 not the title, as the API identifier.
 
 ## 2️⃣ Paste JSON
@@ -64,11 +65,10 @@ validation request performs no `videos.update` request.
 ## 4️⃣ Publish changes
 
 Click **Publish changes** only after checking the report and seeing the valid
-status. The button is bound to the selected single video. Switching the Manual
-radio to another video automatically invalidates the previous result and
-revalidates the same JSON for the new video. The publish request validates the
-JSON again and fetches the latest YouTube video state before building one
-merged update.
+status. The button is bound to the selected single video. Clicking **Select**
+on another video automatically invalidates the previous result and revalidates
+the same JSON for the new video. The publish request validates the JSON again
+and fetches the latest YouTube video state before building one merged update.
 
 Existing localizations omitted from the submitted JSON are preserved:
 
@@ -80,7 +80,7 @@ result:    de updated, es added, fr/ja/ru preserved
 
 An unchanged submission does not create an unnecessary YouTube write.
 
-## ✅ Input rules / Правила ввода
+## ✅ Input rules
 
 - The root must be a non-empty JSON object.
 - Every language key must be supported by the app.

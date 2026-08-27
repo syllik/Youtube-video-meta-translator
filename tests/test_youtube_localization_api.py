@@ -5,6 +5,34 @@ from youtube_account import YoutubeApi, YoutubeVideoNotFoundError
 
 
 class YoutubeLocalizationApiTests(unittest.TestCase):
+    def test_video_page_reads_default_language_from_video_resource(self):
+        account = object.__new__(YoutubeApi)
+        account.youtube = Mock()
+        account.uploads_id = "uploads-1"
+        account.youtube.playlistItems.return_value.list.return_value.execute.return_value = {
+            "items": [{
+                "snippet": {
+                    "title": "Title",
+                    "description": "Description",
+                    "resourceId": {"videoId": "video-1"},
+                    "thumbnails": {"default": {"url": "thumb"}},
+                }
+            }]
+        }
+        account.youtube.videos.return_value.list.return_value.execute.return_value = {
+            "items": [{
+                "snippet": {"defaultLanguage": "en"},
+                "localizations": {"de": {"title": "DE", "description": "DE"}},
+            }]
+        }
+
+        page = account.fetch_video_page(10)
+
+        self.assertEqual(page["videos"][0].default_language_code, "en")
+        account.youtube.videos.return_value.list.assert_called_once_with(
+            part="snippet,localizations", id="video-1"
+        )
+
     def test_get_video_with_localizations_requests_both_required_parts(self):
         account = object.__new__(YoutubeApi)
         account.youtube = Mock()

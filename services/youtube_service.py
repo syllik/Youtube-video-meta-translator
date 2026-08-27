@@ -85,6 +85,7 @@ class YoutubeService:
                 description=str(video.get("description", "")),
                 thumbnail_url=str(video.get("thumbnail_url", "")),
                 current_language_codes=tuple(video.get("current_language_codes", ())),
+                default_language_code=video.get("default_language_code"),
             )
         return VideoSummary(
             id=str(video.id),
@@ -92,4 +93,5 @@ class YoutubeService:
             description=str(video.description),
             thumbnail_url=str(video.thumbnail_url),
             current_language_codes=tuple(video.current_languages),
+            default_language_code=getattr(video, "default_language_code", None),
         )

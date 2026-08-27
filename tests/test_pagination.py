@@ -1,9 +1,13 @@
 import unittest
+import inspect
+from pathlib import Path
 
+from ui.channel_header import render_channel_header
 from ui.pagination import (
     PaginationSelection,
     canonical_pagination_query,
     page_bounds,
+    page_size_options,
     parse_pagination_query,
 )
 
@@ -30,6 +34,21 @@ class PaginationTests(unittest.TestCase):
         self.assertEqual(page_bounds(2, 10, 117), (10, 20))
         self.assertEqual(page_bounds(12, 10, 117), (110, 117))
         self.assertEqual(page_bounds(1, "all", 117), (0, 117))
+
+    def test_page_size_options_keep_the_requested_small_set(self):
+        self.assertEqual(page_size_options(), (10, 20, 50, "all"))
+
+    def test_channel_header_owns_page_size_control_inputs(self):
+        parameters = inspect.signature(render_channel_header).parameters
+        self.assertIn("selection", parameters)
+        self.assertIn("query_params", parameters)
+        source = Path("ui/channel_header.py").read_text()
+        self.assertLess(
+            source.index('st.button("Refresh list"'),
+            source.index("render_page_size_control(selection, query_params)"),
+        )
+        pagination_source = Path("ui/pagination.py").read_text()
+        self.assertIn("on_change=_update_page_size_query", pagination_source)
 
 
 if __name__ == "__main__":

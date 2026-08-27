@@ -1,176 +1,172 @@
 # YouTube language catalog
 
-Эта отдельная папка содержит небольшой вспомогательный инструмент для
-получения актуального списка языков, которые YouTube показывает как языки
-приложения. Список не захардкожен: при каждом запуске выполняется официальный
-запрос YouTube Data API v3 `i18nLanguages.list`.
+This folder contains a small helper tool that fetches the current list of
+languages exposed by YouTube. The list is not hard-coded: every run calls the
+official YouTube Data API v3 `i18nLanguages.list` endpoint.
 
-Инструмент нужен для ручного сценария локализации видео:
+The tool supports the manual video-localization workflow:
 
-1. получить свежие BCP-47-коды языков YouTube;
-2. передать эти коды вместе с исходными `title` и `description` в систему
-   генерации переводов;
-3. вставить полученный JSON в веб-приложение;
-4. проверить preview и опубликовать локализации видео в YouTube.
+1. fetch fresh YouTube BCP-47 language codes;
+2. pass the codes and the source `title` and `description` to a translation
+   generation system;
+3. paste the resulting JSON into the web application;
+4. review the preview and publish the video localizations to YouTube.
 
-Сам скрипт не переводит текст и не публикует видео. Он только обновляет
-каталог языков, чтобы система генерации использовала список, актуальный на
-момент запуска.
+The script does not translate text or publish videos. It only refreshes the
+language catalog so a generation system can use the current list.
 
-## Что создаётся
+## Generated file
 
-После успешного запуска появляется файл:
+After a successful run, the tool creates:
 
 ```text
 data/youtube-languages.json
 ```
 
-В нём сохраняются:
+The file contains:
 
-- `code` — значение `item.snippet.hl`;
-- `name` — название из `item.snippet.name` на русском языке;
-- `id` — значение `item.id`;
-- `count` — фактическое количество элементов;
-- `fetchedAt` — UTC-время получения каталога.
+- `code` — the value of `item.snippet.hl`;
+- `name` — the value of `item.snippet.name`;
+- `id` — the value of `item.id`;
+- `count` — the actual number of returned items;
+- `fetchedAt` — the UTC time when the catalog was fetched.
 
-Пример одной записи:
+Example record:
 
 ```json
 {
   "code": "en",
-  "name": "Английский",
+  "name": "English",
   "id": "en"
 }
 ```
 
-## Подготовка
+## Setup
 
-В проекте уже используется `python-dotenv`, поэтому ключ можно положить в
-корневой `.env`:
+The project already uses `python-dotenv`, so the key can be stored in the
+project root `.env` file:
 
 ```dotenv
-YOUTUBE_API_KEY=ваш_api_key
+YOUTUBE_API_KEY=your_api_key
 ```
 
-`.env` не добавляется в Git. Ключ не записывается в JSON и не выводится в
-терминал.
+`.env` is excluded from Git. The key is not written to the JSON file or
+printed to the terminal.
 
-## Запуск
+## Run the catalog tool
 
-Из корня проекта:
+From the project root:
 
 ```bash
 source .venv/bin/activate
 YOUTUBE_API_KEY=xxx npm run youtube:languages
 ```
 
-Если ключ записан в `.env`, достаточно:
+If the key is already in `.env`, run:
 
 ```bash
 npm run youtube:languages
 ```
 
-При успехе скрипт выводит фактическое количество языков, например:
+On success, the script prints the actual number of languages:
 
 ```text
 Fetched 85 YouTube languages -> data/youtube-languages.json
 ```
 
-Число в сообщении не фиксировано и берётся из свежего ответа API. Если ключ
-не задан, файл не создаётся и существующий файл не перезаписывается.
+The number is read from the latest API response and is not fixed. If the key
+is missing, the file is not created and an existing file is not overwritten.
 
-## Рабочий flow локализации
+## Localization workflow
 
-### 1. Обновить каталог языков
+### 1. Refresh the catalog
 
-Запустите скрипт непосредственно перед подготовкой нового набора переводов.
-Не используйте старый список кодов из памяти или из отдельного статического
-файла как источник истины.
+Run the script immediately before preparing a new translation set. Do not use
+an old list from memory or a separate static file as the source of truth.
 
-### 2. Подготовить исходный текст
+### 2. Prepare the source text
 
-Выберите видео в веб-приложении и подготовьте исходные `title` и
-`description`. Если человек проверяет содержание вручную, можно дать системе
-одно или два исходных описания на языках, которыми он хорошо владеет
-(например, на русском и английском). Это помогает проверить смысл, имена,
-термины и контекст, но не превращает исходные тексты в статический список
-языков.
+Select a video in the web application and prepare its `title` and
+`description`. A second source-language version can be supplied to a reviewer
+or generation system when it helps verify meaning, names, terminology, and
+context.
 
-### 3. Передать каталог и prompt системе генерации
+### 3. Provide the catalog to the generation system
 
-Передайте системе:
+Provide the system with:
 
-- исходные `title` и `description`;
-- файл `data/youtube-languages.json` или его массив `languages`;
-- prompt ниже.
+- the source `title` and `description`;
+- `data/youtube-languages.json` or its `languages` array;
+- the prompt below.
 
-В prompt нужно явно потребовать перевод по смыслу, а не пословную замену.
-Ключами результата должны быть именно BCP-47-коды из поля `code`, а не
-переведённые названия языков.
+The prompt must request meaning-based translation instead of word-for-word
+replacement. The result keys must be the BCP-47 codes from `code`, not the
+translated language names.
 
-Готовый prompt-шаблон:
+Prompt template:
 
 ```text
-Ты — редактор локализаций YouTube.
+You are a YouTube localization editor.
 
-Исходное название видео:
+Source video title:
 <SOURCE_TITLE>
 
-Исходное описание видео:
+Source video description:
 <SOURCE_DESCRIPTION>
 
-Дополнительный проверочный вариант на знакомом языке (необязательно):
+Optional second source-language version for verification:
 <SECOND_SOURCE_LANGUAGE_AND_TEXT>
 
-Ниже приложен актуальный файл data/youtube-languages.json. Переведи название
-и описание по смыслу на каждый язык из массива languages.
+The current data/youtube-languages.json file is attached below. Translate the
+title and description by meaning for every language in the languages array.
 
-Правила:
-1. Сохраняй исходный смысл, факты, тон, призыв к действию, имена, названия
-   брендов, URL, хэштеги и технические обозначения.
-2. Не переводи механически слово в слово: используй естественную формулировку
-   для носителя целевого языка.
-3. Для каждого элемента используй точное значение languages[].code как ключ
-   результата. Не придумывай коды и не используй languages[].name вместо кода.
-4. Верни один JSON-объект без Markdown, комментариев и пояснений в формате:
+Rules:
+1. Preserve the source meaning, facts, tone, calls to action, names, brand
+   names, URLs, hashtags, and technical notation.
+2. Do not translate mechanically word for word. Use natural wording for a
+   native speaker of the target language.
+3. Use the exact languages[].code value as the result key for every item. Do
+   not invent codes and do not use languages[].name as a key.
+4. Return one JSON object without Markdown, comments, or explanations:
    {
      "<language-code>": {
        "title": "...",
        "description": "..."
      }
    }
-5. Не добавляй поля кроме title и description.
-6. Не пропускай языки из массива languages.
-7. Сохраняй переносы строк внутри JSON корректно и верни валидный JSON.
-8. Проверь, что title не длиннее 100 символов, а description не длиннее
-   5000 символов.
+5. Do not add fields other than title and description.
+6. Do not omit languages from the languages array.
+7. Preserve line breaks correctly inside valid JSON.
+8. Keep title at or below 100 characters and description at or below 5,000
+   characters.
 
-Выводи только JSON-объект.
+Return only the JSON object.
 ```
 
-Перед отправкой результата в приложение проверь, что JSON действительно
-содержит объект локализаций, а не обёртку вроде `{"languages": [...]}`.
+Before sending the result to the application, verify that it is a localization
+object and not a wrapper such as `{"languages": [...]}`.
 
-### 4. Вернуть JSON в веб-приложение
+### 4. Paste JSON into the web application
 
-1. Откройте веб-приложение и выберите нужное видео через **Manual**.
-2. Вставьте JSON-объект локализаций в поле **Localizations JSON**.
-3. Нажмите **Validate and preview**.
-4. Проверьте добавленные, изменённые, неизменённые и ошибочные языки.
-5. Нажмите **Publish changes** только после проверки preview.
+1. Open the web application and choose the **Manual translate** page.
+2. Click **Select** on the required video card.
+3. Paste the localization object into **Localizations JSON**.
+4. Click **Preview changes**.
+5. Review added, changed, unchanged, and invalid languages.
+6. Click **Publish changes** only after reviewing the preview.
 
-Веб-приложение повторно получает текущее состояние видео перед публикацией и
-объединяет переданные локализации с уже существующими. Поэтому языки,
-которых нет в переданном JSON, не удаляются. Будут обновлены локали,
-переданные в JSON и разрешённые YouTube/API-проверками приложения.
+The web application fetches the current video state again before publishing and
+merges the submitted localizations with existing ones. Languages omitted from
+the submitted JSON are therefore preserved. Only localizations included in the
+JSON and accepted by the YouTube/API validation are updated.
 
-Минимальный формат для веб-приложения:
+Minimal application format:
 
 ```json
 {
   "de": {
-    "title": "Переведённое название",
-    "description": "Переведённое описание"
+    "title": "Translated title",
+    "description": "Translated description"
   },
   "fr": {
     "title": "Titre traduit",
@@ -179,13 +175,13 @@ Fetched 85 YouTube languages -> data/youtube-languages.json
 }
 ```
 
-## Безопасность и ошибки
+## Security and errors
 
-- API key читается только из `YOUTUBE_API_KEY` или `.env`.
-- При ошибке Google API выводятся HTTP status и безопасное сообщение Google,
-  но не ключ.
-- При malformed response без `items` JSON не записывается.
-- Скрипт использует только свежий ответ `i18nLanguages.list`; статический
-  массив языков в нём отсутствует.
-- YouTube ограничивает длину локализованных `title` и `description`; preview
-  веб-приложения нужно проверять до публикации.
+- The API key is read only from `YOUTUBE_API_KEY` or `.env`.
+- Google API errors may show an HTTP status and a safe Google message, but
+  never the key.
+- A malformed response without `items` does not overwrite the JSON file.
+- The script uses the fresh `i18nLanguages.list` response and does not embed a
+  static language array.
+- YouTube limits localized `title` and `description` length; review the web
+  application preview before publishing.

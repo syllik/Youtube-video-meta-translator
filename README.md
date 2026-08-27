@@ -11,10 +11,10 @@ You can choose between two workflows:
   and Google Translation fallback.
 
 The two workflows are deliberately separate. Machine translation uses
-checkboxes for batch work; manual translation uses one radio-selected video
-and an explicit preview-before-publish flow.
+checkboxes for batch work; manual translation uses a `Select` button on each
+video card and an explicit preview-before-publish flow.
 
-## 🧭 Start here / Начните здесь
+## 🧭 Start here
 
 👉 **[Open the documentation hub](docs/README.md)** to choose a path.
 
@@ -32,7 +32,7 @@ The emoji markers are navigation hints: `🚀` means start, `🔐` means
 credentials, `🧩` means manual editing, `🔁` means machine translation, and
 `🆘` means help.
 
-## ⚡ Quick start / Быстрый запуск
+## ⚡ Quick start
 
 From the project folder:
 
@@ -57,10 +57,10 @@ python -m pip install --only-binary=grpcio -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-## ✅ Before publishing / Перед публикацией
+## ✅ Before publishing
 
 1. Start with one non-critical video.
-2. Open **Manual translate** from the navigation and choose one video.
+2. Open **Manual translate** from the navigation and click **Select** on one video.
 3. Paste JSON, validate it, and click **Preview changes**.
 4. Check that the report shows the expected `added`, `changed`, and
    `unchanged` entries.

@@ -125,7 +125,7 @@ def render_common_page_context(mode: str):
         st.session_state["common.active_limit"] = None
         st.rerun()
 
-    render_channel_header(channel, refresh)
+    render_channel_header(channel, refresh, normalized, st.query_params)
     return CommonPageContext(service, channel, page, normalized)
 
 

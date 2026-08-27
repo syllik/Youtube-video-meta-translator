@@ -307,7 +307,8 @@ git commit -m "refactor: add Streamlit YouTube service boundary"
 - `parse_pagination_query(params: Mapping[str, str]) -> PaginationSelection` parses and normalizes `page`/`limit`.
 - `canonical_pagination_query(selection: PaginationSelection) -> Dict[str, str]` returns `{"page": "...", "limit": "..."}`.
 - `page_bounds(page: int, limit: PageLimit, total_videos: int) -> Tuple[int, int]` returns the displayed inclusive/exclusive range.
-- `render_pagination(selection: PaginationSelection, total_videos: int, query_params: MutableMapping[str, str]) -> None` renders summary, page selector, previous/next buttons, and writes canonical query parameters.
+- `render_page_size_control(selection: PaginationSelection, query_params: MutableMapping[str, str]) -> None` renders the page-size selector near the channel actions and writes the canonical `page=1`/`limit` query parameters.
+- `render_pagination(selection: PaginationSelection, total_videos: int, query_params: MutableMapping[str, str]) -> None` renders the range summary, page selector, previous/next buttons, and writes canonical page query parameters.
 - `load_video_page(service: YoutubeService, state: MutableMapping[str, Any], selection: PaginationSelection) -> YouTubePage` resolves YouTube page tokens and stores results in common state.
 - `reset_video_cache(state: MutableMapping[str, Any]) -> None` clears only common page data and cursor maps.
 
@@ -480,8 +481,9 @@ Each video row must render:
 ```
 
 For `machine`, use checkboxes keyed as `machine-video-{video_id}` and provide
-`Select all visible`. For `manual`, use one radio group keyed as
-`manual-video-{video_id}` and return exactly one selected ID. Keep the list
+`Select all visible`. For `manual`, use one `Select`/`Selected` button per
+video card keyed as `manual-video-{video_id}` and return exactly one selected ID.
+Keep the list
 visible on both pages and do not show an inline manual editor in the list.
 
 Use `st.columns` with a narrower selector/thumbnail column and a flexible text
@@ -680,7 +682,7 @@ git commit -m "refactor: isolate machine translation workflow"
 - `set_manual_json(session_state: MutableMapping[str, Any], raw_json: str) -> None` clears preview state whenever the raw JSON changes.
 - `manual_preview_is_current(state: Mapping[str, Any]) -> bool` compares the selected video and raw JSON fingerprint with the stored preview.
 - `manual_can_publish(state: Mapping[str, Any]) -> bool` enables publish only for a current valid preview with changes.
-- `render_manual_editor(...) -> None` renders the JSON editor, local validation, preview report, and publish action only after a radio-selected video exists.
+- `render_manual_editor(...) -> None` renders the JSON editor, local validation, preview report, and publish action only after a video is selected with its card button.
 
 - [ ] **Step 1: Write failing manual state tests**
 
@@ -772,8 +774,9 @@ def manual_fingerprint(video_id, raw_json):
     return (video_id, hashlib.sha256(raw_json.encode("utf-8")).hexdigest())
 ```
 
-When no radio is selected, show selection guidance and do not render the
-textarea. When a radio is selected, render the textarea and local validation.
+When no video is selected, show selection guidance and do not render the
+textarea. When a video is selected with its card button, render the textarea
+and local validation.
 The user must click `Preview changes` to fetch YouTube state; this prevents an
 API request on every keystroke. After preview, show:
 
@@ -813,7 +816,7 @@ git commit -m "refactor: isolate manual localization workflow"
 
 **Interfaces:**
 - `render_machine_page() -> None` composes common bootstrap, machine controls, shared video list, and shared pagination.
-- `render_manual_page() -> None` composes common bootstrap, manual radio list, manual editor, and shared pagination.
+- `render_manual_page() -> None` composes common bootstrap, manual card-button list, manual editor, and shared pagination.
 - `render_common_page_context(mode: str) -> CommonPageContext` loads the channel and current page exactly once per rerun.
 
 - [ ] **Step 1: Add page-content contract tests**
@@ -891,7 +894,7 @@ Render in this order:
 ```text
 Manual translate title and explanation
 channel header
-shared video list with one radio group
+shared video list with card-level Select/Selected buttons
 if no selected ID: show “Select one video to begin”
 else render manual JSON editor and local validation
 if Preview changes was clicked: show fresh diff/preserved summary
@@ -922,7 +925,7 @@ Verify manually with mocked or configured local credentials:
 1. The root navigation exposes only Machine translate and Manual translate.
 2. The initial URL resolves to `page=1&limit=10`.
 3. The machine page shows checkboxes and machine controls only.
-4. The manual page shows radios and the editor only after selection.
+4. The manual page shows card-level Select/Selected buttons and the editor only after selection.
 5. Changing to `limit=20` rewrites the URL to `page=1&limit=20`.
 6. Moving to page 2 shows `Videos 21–40 of ...` for limit 20 and no stale page-1 rows.
 7. Switching pages preserves the URL position but does not submit state from the other mode.
@@ -1063,7 +1066,7 @@ Check the final app against this table:
 | Choose page 2 | URL keeps `limit=20`; range shows 21–40; no stale rows |
 | Choose `all` | URL uses `limit=all`; all videos load only after explicit action |
 | Switch to Machine translate | Checkboxes and machine controls only |
-| Switch to Manual translate | Radios and manual editor only |
+| Switch to Manual translate | Select/Selected buttons and manual editor only |
 | Change machine page selection | Manual preview state remains untouched |
 | Change manual video | JSON preview is invalidated; publish disabled |
 | Edit manual JSON | Preview is invalidated; YouTube is not called until Preview |

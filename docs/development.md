@@ -1,4 +1,4 @@
-# 🛠️ Development / Разработка
+# 🛠️ Development
 
 Use this guide when changing the project or checking a local checkout without
 calling the live YouTube API.

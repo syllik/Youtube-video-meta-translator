@@ -9,6 +9,22 @@ from models import PageLimit
 ALLOWED_LIMITS = (10, 20, 50, "all")
 
 
+def page_size_options():
+    return ALLOWED_LIMITS
+
+
+def _update_page_size_query(
+    query_params: MutableMapping[str, str],
+    widget_key: str,
+) -> None:
+    import streamlit as st
+
+    chosen_limit = st.session_state[widget_key]
+    query_params.update(
+        canonical_pagination_query(PaginationSelection(1, chosen_limit))
+    )
+
+
 @dataclass(frozen=True)
 class PaginationSelection:
     page: int
@@ -56,36 +72,44 @@ def page_bounds(page: int, limit: PageLimit, total_videos: int) -> Tuple[int, in
     return min(start, max(0, total_videos)), min(start + int(limit), max(0, total_videos))
 
 
+def render_page_size_control(
+    selection: PaginationSelection,
+    query_params: MutableMapping[str, str],
+) -> None:
+    """Render the page-size selector in the channel controls."""
+    import streamlit as st
+
+    labels = {
+        10: "10 videos",
+        20: "20 videos",
+        50: "50 videos",
+        "all": "All videos",
+    }
+    widget_key = "common-pagination-limit-select-{}".format(selection.limit)
+    options = list(page_size_options())
+    st.selectbox(
+        "Videos per page",
+        options,
+        index=options.index(selection.limit),
+        format_func=lambda limit: labels[limit],
+        key=widget_key,
+        on_change=_update_page_size_query,
+        args=(query_params, widget_key),
+    )
+
+
 def render_pagination(
     selection: PaginationSelection,
     total_videos: int,
     query_params: MutableMapping[str, str],
 ) -> None:
-    """Render the page-size and page controls backed by URL parameters."""
+    """Render the range summary and page controls backed by URL parameters."""
     import streamlit as st
 
     current = PaginationSelection(
         page=min(selection.page, total_pages(selection.limit, total_videos)),
         limit=selection.limit,
     )
-    limit_labels = {
-        10: "10 videos",
-        20: "20 videos",
-        50: "50 videos",
-        "all": "All videos",
-    }
-    chosen_limit = st.selectbox(
-        "Videos per page",
-        list(ALLOWED_LIMITS),
-        format_func=lambda limit: limit_labels[limit],
-        key="common-pagination-limit-select-{}".format(current.limit),
-    )
-    if chosen_limit != current.limit:
-        query_params.update(
-            canonical_pagination_query(PaginationSelection(1, chosen_limit))
-        )
-        st.rerun()
-
     start, end = page_bounds(current.page, current.limit, total_videos)
     if current.limit == "all":
         st.caption("All videos loaded · {} total".format(total_videos))
@@ -114,7 +138,6 @@ def render_pagination(
             "Page",
             pages,
             index=pages.index(current.page),
-            label_visibility="collapsed",
             key="common-pagination-page-select-{}".format(current.page),
         )
         if chosen_page != current.page:

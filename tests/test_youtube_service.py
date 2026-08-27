@@ -39,6 +39,25 @@ class YoutubeServiceTests(unittest.TestCase):
         self.assertEqual(result.videos[0].id, "video-1")
         self.assertEqual(result.videos[0].current_language_codes, ("de",))
 
+    def test_video_summary_preserves_default_language(self):
+        account = Mock()
+        account.fetch_video_page.return_value = {
+            "videos": [{
+                "id": "video-1",
+                "title": "Same title",
+                "description": "Description",
+                "thumbnail_url": "thumb",
+                "current_language_codes": ["de"],
+                "default_language_code": "en",
+            }],
+            "next_page_token": None,
+        }
+        service = YoutubeService(account)
+
+        result = service.fetch_video_page(10)
+
+        self.assertEqual(result.videos[0].default_language_code, "en")
+
 
 if __name__ == "__main__":
     unittest.main()
