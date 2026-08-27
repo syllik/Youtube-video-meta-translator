@@ -8,6 +8,7 @@ from language_catalog import (
 )
 from llm_localization_package import (
     LlmResponseError,
+    LlmTranslationProgress,
     build_llm_output_schema,
     build_llm_translation_package,
     build_llm_translation_prompt,
@@ -114,7 +115,7 @@ class LlmLocalizationPackageTests(unittest.TestCase):
             self.expected_next_ten_codes,
         )
 
-    def test_package_uses_video_default_fields_and_existing_localizations(self):
+    def test_package_uses_video_default_fields_without_existing_localizations(self):
         package = build_llm_translation_package(
             self.video_resource, self.catalog, self.catalog.languages[:2]
         )
@@ -128,7 +129,7 @@ class LlmLocalizationPackageTests(unittest.TestCase):
                 "defaultLanguage": "en",
             },
         )
-        self.assertEqual(package["existingLocalizations"]["de"]["title"], "Wasserfall")
+        self.assertNotIn("existingLocalizations", package)
         self.assertEqual(
             [item["code"] for item in package["languages"]], ["code-0", "code-1"]
         )
@@ -148,7 +149,7 @@ class LlmLocalizationPackageTests(unittest.TestCase):
         prompt = build_llm_translation_prompt(package)
 
         self.assertIn("source.title", prompt)
-        self.assertIn("existingLocalizations", prompt)
+        self.assertNotIn("existingLocalizations", prompt)
         self.assertIn("directly by the exact language codes", prompt)
         self.assertIn("Do not return a wrapper", prompt)
         self.assertNotIn("downloadable file", prompt.lower())
@@ -161,6 +162,13 @@ class LlmLocalizationPackageTests(unittest.TestCase):
         self.assertFalse(schema["additionalProperties"])
         self.assertEqual(set(schema["properties"]), {"en-GB", "sr-Latn"})
         self.assertFalse(schema["properties"]["en-GB"]["additionalProperties"])
+
+    def test_next_selection_rejects_non_positive_batch_sizes(self):
+        progress = LlmTranslationProgress(0, 0, ())
+
+        for batch_size in (0, -1):
+            with self.assertRaises(ValueError):
+                select_next_llm_languages(progress, batch_size=batch_size)
 
     def test_output_parser_rejects_wrapper_missing_and_extra_codes(self):
         valid = json.dumps(

@@ -101,25 +101,6 @@ def _video_source(video_resource: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _existing_localizations(video_resource: Mapping[str, Any]) -> Dict[str, Dict[str, str]]:
-    raw_localizations = video_resource.get("localizations") or {}
-    if not isinstance(raw_localizations, Mapping):
-        raise LlmResponseError("YouTube video resource localizations must be an object")
-
-    existing = {}
-    for language_code, value in raw_localizations.items():
-        if not isinstance(language_code, str) or not isinstance(value, Mapping):
-            continue
-        title = value.get("title")
-        description = value.get("description")
-        if isinstance(title, str) and isinstance(description, str):
-            existing[language_code] = {
-                "title": title,
-                "description": description,
-            }
-    return existing
-
-
 def build_llm_translation_package(
     video_resource: Mapping[str, Any],
     catalog: YouTubeLanguageCatalog,
@@ -129,7 +110,6 @@ def build_llm_translation_package(
     selected_languages = tuple(languages if languages is not None else catalog.languages)
     return {
         "source": _video_source(video_resource),
-        "existingLocalizations": _existing_localizations(video_resource),
         "languages": [
             {"id": language.id, "code": language.code, "name": language.name}
             for language in selected_languages
@@ -156,9 +136,7 @@ def build_llm_translation_prompt(package: Mapping[str, Any]) -> str:
     return """Translate the selected YouTube video's metadata for every language in the input JSON.
 
 Use source.title and source.description as the primary source. Use
-source.defaultLanguage when it is available. Existing entries in
-existingLocalizations are context only: keep useful terminology and style
-consistent, but translate the current source meaning accurately.
+source.defaultLanguage when it is available.
 
 Output rules:
 1. Return one JSON object keyed directly by the exact language codes from the
