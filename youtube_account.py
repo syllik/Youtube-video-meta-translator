@@ -6,6 +6,7 @@ import google_auth_oauthlib
 import googleapiclient.errors
 import google.auth.exceptions
 from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
@@ -13,12 +14,49 @@ from googleapiclient.discovery import build
 scopes = ["https://www.googleapis.com/auth/youtube"]
 api_service_name = "youtube"
 api_version = "v3"
+TOKEN_FILE = "token.json"
+LEGACY_TOKEN_FILE = "token.pickle"
+
+
+class YoutubeVideoNotFoundError(ValueError):
+    """Raised when a requested video id has no unique YouTube resource."""
+
+
+class _RestrictedCredentialUnpickler(pickle.Unpickler):
+    """Load only the OAuth credential class from the legacy token cache."""
+
+    _allowed_globals = {
+        ("google.oauth2.credentials", "Credentials"): Credentials,
+    }
+
+    def find_class(self, module, name):
+        try:
+            return self._allowed_globals[(module, name)]
+        except KeyError:
+            raise pickle.UnpicklingError(
+                "Legacy token contains an unsupported serialized object"
+            ) from None
+
+
+def _load_legacy_credentials(token_file):
+    credentials = _RestrictedCredentialUnpickler(token_file).load()
+    if not isinstance(credentials, Credentials):
+        raise pickle.UnpicklingError(
+            "Legacy token does not contain OAuth credentials"
+        )
+    return credentials
+
+
+def _http_error_reason(error, fallback="youtubeApiError"):
+    details = getattr(error, "error_details", None) or []
+    if details and isinstance(details[0], dict):
+        return details[0].get("reason") or fallback
+    return fallback
 
 
 class YoutubeApi:
     def __init__(self):
         self.credentials = None
-        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
         self.page_videos = []
         self.all_videos_cache = []  # Cache for when ALL option is selected
         self.youtube = None
@@ -35,6 +73,7 @@ class YoutubeApi:
         self.errorStr = ''
         self.total_video_count = 0
         self.allowed_languages = []
+        self.localization_read_errors = set()
         
         self.code_to_name = {
             "af": "Afrikaans",
@@ -127,23 +166,60 @@ class YoutubeApi:
 
     def check_credentials(self):
         """Check and refresh OAuth credentials"""
-        if os.path.exists('token.pickle'):
-            with open("token.pickle", "rb") as token:
-                self.credentials = pickle.load(token)
+        credentials_need_save = False
+
+        if os.path.exists(TOKEN_FILE):
+            try:
+                os.chmod(TOKEN_FILE, 0o600)
+                self.credentials = Credentials.from_authorized_user_file(
+                    TOKEN_FILE, scopes=scopes
+                )
+            except (OSError, TypeError, ValueError):
+                self.credentials = None
+
+        if self.credentials is None and os.path.exists(LEGACY_TOKEN_FILE):
+            try:
+                os.chmod(LEGACY_TOKEN_FILE, 0o600)
+                with open(LEGACY_TOKEN_FILE, "rb") as token:
+                    self.credentials = _load_legacy_credentials(token)
+                credentials_need_save = True
+            except (
+                AttributeError,
+                EOFError,
+                ImportError,
+                OSError,
+                ValueError,
+                pickle.UnpicklingError,
+            ):
+                self.credentials = None
+
         if not self.credentials or not self.credentials.valid:
             if self.credentials and self.credentials.expired and self.credentials.refresh_token:
                 try:
                     self.credentials.refresh(Request())
+                    credentials_need_save = True
                 except google.auth.exceptions.RefreshError:
                     self.credentials = None
             if not self.credentials:
                 # Get credentials and create an API client
                 flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
                     client_secrets_file="config/account_client_secrets_main.json", scopes=scopes)
-                flow.run_local_server(port=8080, prompt='consent', authorization_prompt_message='')
+                previous_transport_setting = os.environ.get("OAUTHLIB_INSECURE_TRANSPORT")
+                os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+                try:
+                    flow.run_local_server(port=8080, prompt='consent', authorization_prompt_message='')
+                finally:
+                    if previous_transport_setting is None:
+                        os.environ.pop("OAUTHLIB_INSECURE_TRANSPORT", None)
+                    else:
+                        os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = previous_transport_setting
                 self.credentials = flow.credentials
-                with open("token.pickle", "wb") as token_file:
-                    pickle.dump(self.credentials, token_file)
+                credentials_need_save = True
+
+        if credentials_need_save:
+            with open(TOKEN_FILE, "w", encoding="utf-8") as token_file:
+                token_file.write(self.credentials.to_json())
+            os.chmod(TOKEN_FILE, 0o600)
 
     # --- NUEVO MÉTODO AÑADIDO ---
     def clear_video_cache(self):
@@ -151,6 +227,7 @@ class YoutubeApi:
         self.page_videos = []
         self.all_videos_cache = []
         self.page_tokens = {} # Important to reset this as well
+        self.localization_read_errors.clear()
         print("In-memory video cache cleared.")
     # --- FIN DEL NUEVO MÉTODO ---
 
@@ -184,7 +261,12 @@ class YoutubeApi:
 
     def set_video_page(self, page):
         """Load videos for a specific page on demand"""
-        # Only fetch if the cache for the current page is empty
+        # A page cache belongs to one page. Keep the existing cache behavior
+        # for repeated requests, but do not show the previous page after
+        # navigation.
+        if self.results_per_page != -1 and self.current_page != page:
+            self.page_videos = []
+
         if not self.page_videos:
             self.current_page = page
             if self.results_per_page == -1:  # "ALL" option
@@ -338,8 +420,10 @@ class YoutubeApi:
             
             video = results['items'][0]
             
-            if 'defaultLanguage' not in video['snippet']:
-                video['snippet']['defaultLanguage'] = 'en'
+            if not video['snippet'].get('defaultLanguage'):
+                self.errorStr = 'defaultLanguageNotSet'
+                print(f"Video '{default_title}' has no default language")
+                return
                 
             if 'localizations' not in video:
                 video['localizations'] = {}
@@ -358,6 +442,26 @@ class YoutubeApi:
             self.errorStr = e.error_details[0]['reason']
             print(f"Error updating video: {e.error_details}")
 
+    def get_video_with_localizations(self, video_id):
+        """Fetch one complete video resource for preview or publishing."""
+        results = self.youtube.videos().list(
+            part='snippet,localizations',
+            id=video_id
+        ).execute()
+        items = results.get('items', [])
+        if len(items) != 1:
+            raise YoutubeVideoNotFoundError(
+                "YouTube returned no unique video for the requested id"
+            )
+        return items[0]
+
+    def update_video_localizations(self, payload):
+        """Publish one already-merged localization update."""
+        return self.youtube.videos().update(
+            part='snippet,localizations',
+            body=payload
+        ).execute()
+
     def get_video_localizations(self, video_id):
         """Get existing localizations for a video"""
         try:
@@ -370,15 +474,16 @@ class YoutubeApi:
                 return []
             
             localizations = list(results['items'][0].get('localizations', {}).keys())
-            
-            for i in range(len(localizations)):
-                if 'en-' in localizations[i]:
-                    localizations[i] = "en"
-                    
-            return list(set(localizations))
+
+            return list(dict.fromkeys(localizations))
             
         except googleapiclient.errors.HttpError as e:
             print(f"Error getting localizations for video {video_id}: {e}")
+            self.errorStr = _http_error_reason(e)
+            self.localization_read_errors = getattr(
+                self, "localization_read_errors", set()
+            )
+            self.localization_read_errors.add(str(video_id))
             return []
 
 

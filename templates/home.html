@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
 </head>
 <body>
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-U1DAWAznBHeqEIlVSCgzq+c9gqGAJn5c/t99JyeKa9xxaYpSvHU5awsuZVVFIhvj"
         crossorigin="anonymous"></script>
@@ -45,6 +44,33 @@
                 </div>
             </div>
 
+            <!-- Manual JSON Localization Editor -->
+            <section id="manual-localization-editor" class="manual-localization-editor"
+                     aria-labelledby="manual-editor-title" hidden>
+                <div class="white-text" id="manual-editor-title">Manual JSON localizations</div>
+                <p class="grey-text manual-editor-help">
+                    This form is linked to the selected Manual video. Paste prepared localization JSON;
+                    validation runs automatically after every change. Existing languages omitted from the JSON are preserved.
+                </p>
+                <label class="white-text" for="localizations-json">Localizations JSON</label>
+                <textarea id="localizations-json" class="form-control" rows="12"
+                          placeholder='{
+  "de": {
+    "title": "German title",
+    "description": "German description"
+  }
+                }'></textarea>
+                <div class="manual-editor-actions">
+                    <button class="btn btn-primary" id="publish-localizations-btn" type="button" disabled>
+                        Publish changes
+                    </button>
+                </div>
+                <div id="manual-validation-status" class="manual-validation-status" role="status" aria-live="polite">
+                    Paste JSON to validate.
+                </div>
+                <div id="localization-report" class="localization-report" aria-live="polite"></div>
+            </section>
+
             <!-- Video Selection Controls -->
             <div class="flex-container" style="margin-top: 10px;">
                 <span>
@@ -75,7 +101,14 @@
                 {% for video in page_videos %}
                     <li>
                         <div class="flex-container">
-                            <input type="checkbox" class="form-check-input video-selector"/>
+                            <input type="checkbox" class="form-check-input video-selector"
+                                   data-video-id="{{ video.id }}"/>
+                            <label class="manual-video-choice">
+                                <input type="radio" class="form-check-input manual-video-selector"
+                                       name="manual-video" value="{{ video.id }}"
+                                       data-video-title="{{ video.video_title }}"/>
+                                <span>Manual</span>
+                            </label>
                             <img src="{{ video.thumbnail_url }}" alt="Video thumbnail" style="max-width: 120px; max-height: 90px;">
                             <div class="always-vis-container" onclick="showHideLanguages(this)">
                                 <div class="title-and-desc">
@@ -233,12 +266,21 @@
     const trimCheck = document.getElementById("trim");
     const deepLCheck = document.getElementById("useDeepL");
     const loadingOverlay = document.getElementById("loading-overlay");
+    const manualEditor = document.getElementById("manual-localization-editor");
+    const localizationsJson = document.getElementById("localizations-json");
+    const publishLocalizationsBtn = document.getElementById("publish-localizations-btn");
+    const manualValidationStatus = document.getElementById("manual-validation-status");
+    const localizationReport = document.getElementById("localization-report");
 
     // Global variables
     let videoSelectors, languageSelectors, languageLabels, videoTitles;
+    let manualVideoSelectors;
     let allPageVideosSelected = false;
     let allLanguagesSelected = false;
     let allChannelVideosSelected = false;
+    let latestManualValidation = null;
+    let manualValidationTimer = null;
+    let manualValidationSequence = 0;
 
     document.addEventListener("DOMContentLoaded", function() {
         // Initialize selectors
@@ -246,6 +288,7 @@
         languageSelectors = Array.from(document.getElementsByClassName("language-selector"));
         languageLabels = Array.from(document.getElementsByClassName("language-label"));
         videoTitles = Array.from(document.getElementsByClassName("video-title"));
+        manualVideoSelectors = Array.from(document.getElementsByClassName("manual-video-selector"));
 
         // Initialize form select with current value
         formSelect.selectedIndex = {{ per_page_index }};
@@ -254,6 +297,11 @@
         addLanguageBtn.addEventListener('click', onAddLanguageClick);
         formSelect.addEventListener('change', () => changePerPage(formSelect.selectedIndex));
         overwriteCheck.addEventListener('change', onOverwriteChange);
+        manualVideoSelectors.forEach(selector => {
+            selector.addEventListener('change', handleManualVideoChange);
+        });
+        localizationsJson.addEventListener('input', scheduleManualValidation);
+        publishLocalizationsBtn.addEventListener('click', publishManualLocalizations);
         closeModalSpan.addEventListener('click', () => addLanguagePopup.style.display = "none");
         window.addEventListener('click', (event) => {
             if (event.target === addLanguagePopup) {
@@ -273,6 +321,242 @@
             });
         });
     });
+
+    function clearLocalizationReport() {
+        while (localizationReport.firstChild) {
+            localizationReport.removeChild(localizationReport.firstChild);
+        }
+    }
+
+    function addLocalizationReportText(text, className) {
+        const element = document.createElement('div');
+        element.textContent = text;
+        if (className) element.className = className;
+        localizationReport.appendChild(element);
+        return element;
+    }
+
+    function addLocalizationReportSection(title) {
+        const section = document.createElement('section');
+        section.className = 'localization-report-section';
+        const heading = document.createElement('h3');
+        heading.textContent = title;
+        section.appendChild(heading);
+        localizationReport.appendChild(section);
+        return section;
+    }
+
+    function setManualValidationStatus(message, className = '') {
+        manualValidationStatus.textContent = message;
+        manualValidationStatus.className = `manual-validation-status ${className}`.trim();
+    }
+
+    function invalidateManualValidation() {
+        latestManualValidation = null;
+        publishLocalizationsBtn.disabled = true;
+        clearLocalizationReport();
+    }
+
+    function getManualVideoId() {
+        const selected = document.querySelector('.manual-video-selector:checked');
+        return selected ? selected.value : '';
+    }
+
+    function handleManualVideoChange() {
+        manualEditor.hidden = !getManualVideoId();
+        scheduleManualValidation();
+    }
+
+    function requestManualLocalizations(url, videoId, rawJson) {
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                video_id: videoId,
+                localizations_json: rawJson
+            })
+        }).then(async response => {
+            let data = {};
+            try {
+                data = await response.json();
+            } catch (error) {
+                data = {};
+            }
+            if (!response.ok && response.status !== 422) {
+                throw new Error(data.error || 'Localization request failed.');
+            }
+            return data;
+        });
+    }
+
+    function renderLocalizationReport(data) {
+        clearLocalizationReport();
+        if (data.error) {
+            addLocalizationReportText(data.error, 'localization-report-error');
+            return;
+        }
+
+        const summary = data.summary || { added: 0, changed: 0, unchanged: 0 };
+        addLocalizationReportText(
+            `${summary.added} added · ${summary.changed} changed · ${summary.unchanged} unchanged`,
+            'localization-summary'
+        );
+
+        const entries = data.languages || [];
+        if (entries.length > 0) {
+            const changesSection = addLocalizationReportSection('Localization changes');
+            entries.forEach(entry => {
+                const row = document.createElement('div');
+                row.className = `localization-report-row status-${entry.status}`;
+                const label = document.createElement('div');
+                label.textContent = `${entry.language} — ${entry.status}`;
+                row.appendChild(label);
+                const details = document.createElement('pre');
+                details.textContent = `Before: ${JSON.stringify(entry.before)}\nAfter: ${JSON.stringify(entry.after)}`;
+                row.appendChild(details);
+                changesSection.appendChild(row);
+            });
+        }
+
+        const errors = data.errors || [];
+        if (errors.length > 0) {
+            const errorsSection = addLocalizationReportSection('Invalid entries');
+            errors.forEach(error => {
+                const path = error.path || 'document';
+                addLocalizationReportText(`${path}: ${error.message}`, 'localization-report-error');
+                errorsSection.appendChild(localizationReport.lastChild);
+            });
+        }
+
+        const preserved = data.preserved_language_codes || [];
+        const preservedSection = addLocalizationReportSection('Preserved existing languages');
+        preservedSection.appendChild(document.createTextNode(
+            preserved.length > 0 ? preserved.join(', ') : 'None'
+        ));
+
+        if (data.wrote) {
+            addLocalizationReportText('Localization changes published successfully.', 'localization-report-success');
+        }
+    }
+
+    function scheduleManualValidation() {
+        invalidateManualValidation();
+        manualValidationSequence += 1;
+        const sequence = manualValidationSequence;
+        clearTimeout(manualValidationTimer);
+
+        const videoId = getManualVideoId();
+        manualEditor.hidden = !videoId;
+        if (!videoId) {
+            setManualValidationStatus('Select a Manual video to show this form.');
+            return;
+        }
+
+        const rawJson = localizationsJson.value;
+        if (!rawJson.trim()) {
+            setManualValidationStatus('Paste JSON to validate.');
+            return;
+        }
+
+        setManualValidationStatus('Validating JSON…', 'pending');
+        manualValidationTimer = setTimeout(
+            () => runManualValidation(sequence, videoId, rawJson),
+            350
+        );
+    }
+
+    async function runManualValidation(sequence, videoId, rawJson) {
+        try {
+            const data = await requestManualLocalizations('/api/localizations/preview', videoId, rawJson);
+            if (
+                sequence !== manualValidationSequence
+                || getManualVideoId() !== videoId
+                || localizationsJson.value !== rawJson
+            ) {
+                return;
+            }
+
+            renderLocalizationReport(data);
+            if (data.valid) {
+                latestManualValidation = { videoId: videoId, rawJson: rawJson };
+                publishLocalizationsBtn.disabled = false;
+                const summary = data.summary || {};
+                const hasChanges = (summary.added || 0) + (summary.changed || 0) > 0;
+                setManualValidationStatus(
+                    hasChanges
+                        ? 'JSON is valid. Changes are ready to publish.'
+                        : 'JSON is valid. No changes were found.',
+                    'valid'
+                );
+            } else {
+                setManualValidationStatus('JSON is invalid. Fix the errors below.', 'invalid');
+            }
+        } catch (error) {
+            if (sequence !== manualValidationSequence) return;
+            clearLocalizationReport();
+            addLocalizationReportText(error.message, 'localization-report-error');
+            setManualValidationStatus('Validation could not be completed.', 'invalid');
+        } finally {
+            if (sequence === manualValidationSequence) {
+                manualValidationTimer = null;
+            }
+        }
+    }
+
+    async function publishManualLocalizations() {
+        const videoId = getManualVideoId();
+        const rawJson = localizationsJson.value;
+        if (
+            !videoId
+            || !latestManualValidation
+            || latestManualValidation.videoId !== videoId
+            || latestManualValidation.rawJson !== rawJson
+        ) {
+            scheduleManualValidation();
+            return;
+        }
+
+        publishLocalizationsBtn.disabled = true;
+        localizationsJson.disabled = true;
+        manualVideoSelectors.forEach(selector => {
+            selector.disabled = true;
+        });
+        setManualValidationStatus('Publishing changes…', 'pending');
+        try {
+            const data = await requestManualLocalizations(
+                '/api/localizations/publish', videoId, rawJson
+            );
+            renderLocalizationReport(data);
+            if (data.valid) {
+                latestManualValidation = { videoId: videoId, rawJson: rawJson };
+                publishLocalizationsBtn.disabled = false;
+                setManualValidationStatus(
+                    data.wrote
+                        ? 'Changes published successfully.'
+                        : 'JSON is valid. No changes were found.',
+                    'valid'
+                );
+                if (data.wrote) {
+                    setTimeout(() => window.location.reload(), 700);
+                }
+            } else {
+                latestManualValidation = null;
+                setManualValidationStatus('JSON is invalid. Fix the errors below.', 'invalid');
+            }
+        } catch (error) {
+            clearLocalizationReport();
+            addLocalizationReportText(error.message, 'localization-report-error');
+            setManualValidationStatus('Publishing failed. Review the error and try again.', 'invalid');
+        } finally {
+            localizationsJson.disabled = false;
+            manualVideoSelectors.forEach(selector => {
+                selector.disabled = false;
+            });
+        }
+    }
 
     async function onAddLanguageClick() {
         const selectedCount = videoSelectors.filter(s => s.checked).length;
@@ -303,7 +587,7 @@
         const overwrite = overwriteCheck.checked;
 
         try {
-            const data = await postData('/languages', { num: numSelected, vidNames: selectedVideos });
+            const data = await postData('/languages', { num: numSelected, vidIds: selectedVideos });
             const existingLanguages = data['current_languages'] || [];
 
             for (let i = 0; i < languageLabels.length; i++) {
@@ -376,7 +660,13 @@
         if (response.redirected) {
             return { redirected: true, url: response.url };
         }
-        return response.json();
+        const responseData = await response.json();
+        if (!response.ok) {
+            const error = new Error(responseData.error || 'Request failed.');
+            error.data = responseData;
+            throw error;
+        }
+        return responseData;
     }
 
     function onClickTranslate() {
@@ -395,19 +685,13 @@
         errorPopUpContent.innerHTML = '';
         progressContent.innerHTML = `Translating ${selectedVideos.length} video(s) to ${selectedLanguages.length} language(s)...`;
 
-        const options = {
-            url: '/',
-            method: 'POST',
-            data: {
-                selected_videos: selectedVideos,
-                selected_languages: selectedLanguages,
-                use_deepL: deepLCheck.checked,
-                overwrite: overwriteCheck.checked,
-                trim_checked: trimCheck.checked
-            },
-        };
-
-        axios(options).then(() => {
+        postData('/', {
+            selected_videos: selectedVideos,
+            selected_languages: selectedLanguages,
+            use_deepL: deepLCheck.checked,
+            overwrite: overwriteCheck.checked,
+            trim_checked: trimCheck.checked
+        }).then(() => {
             progressDoneBtn.style.display = 'block';
             progressSpinner.style.display = 'none';
             fetch("/error")
@@ -417,7 +701,10 @@
             console.error('Translation error:', error);
             progressDoneBtn.style.display = 'block';
             progressSpinner.style.display = 'none';
-            errorPopUpContent.innerHTML = 'An error occurred. Check the browser console.';
+            const message = error.data && error.data.error
+                ? error.data.error
+                : 'An error occurred. Check the browser console.';
+            errorPopUpContent.innerText = message;
         });
     }
 
@@ -429,13 +716,13 @@
     function getSelectedVideos() {
         let vids = [];
         if (allChannelVideosSelected) {
-            {% for video_title in all_videos %}
-                vids.push("{{ video_title|replace({'"': '\\"', "'": "\\'"}) }}");
+            {% for video in all_videos %}
+                vids.push({{ video.id|tojson }});
             {% endfor %}
         } else {
             for (let i = 0; i < videoSelectors.length; i++) {
                 if (videoSelectors[i].checked) {
-                    vids.push(videoTitles[i].innerText);
+                    vids.push(videoSelectors[i].dataset.videoId);
                 }
             }
         }

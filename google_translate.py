@@ -5,6 +5,10 @@ from google.oauth2 import service_account
 from google.auth.exceptions import DefaultCredentialsError
 
 
+class TranslationError(RuntimeError):
+    """Raised when Google Cloud Translation cannot produce a translation."""
+
+
 class TranslateApi:
     """Google Cloud Translation API wrapper"""
     
@@ -72,11 +76,14 @@ class TranslateApi:
             text (str): Text to translate
             
         Returns:
-            str: Translated text, or original text if translation fails
+            str: Translated text
+
+        Raises:
+            TranslationError: If the provider cannot return a translation
         """
         if not self.translate_client:
             print("Warning: Translation client not available")
-            return text
+            raise TranslationError("Google Translate client is unavailable")
             
         if not text or not text.strip():
             return text
@@ -93,17 +100,23 @@ class TranslateApi:
                 target_language=target_language
             )
             
-            translated_text = result.get("translatedText", text)
+            translated_text = result.get("translatedText")
+            if not isinstance(translated_text, str) or not translated_text:
+                raise TranslationError("Google Translate returned no translated text")
             
             # Log successful translation
             print(f"Translated to {target_language}: '{text[:50]}...' -> '{translated_text[:50]}...'")
             
             return translated_text
             
+        except TranslationError:
+            raise
         except Exception as e:
             print(f"Error translating text to {target_language}: {e}")
             print(f"Original text: {text[:100]}...")
-            return text  # Return original text if translation fails
+            raise TranslationError(
+                "Google Translate request failed for {}".format(target_language)
+            ) from e
 
     def is_language_supported(self, language_code):
         """
@@ -159,7 +172,7 @@ class TranslateApi:
         """
         if not self.translate_client:
             print("Warning: Translation client not available for batch translation")
-            return texts
+            raise TranslationError("Google Translate client is unavailable")
             
         translated_texts = []
         

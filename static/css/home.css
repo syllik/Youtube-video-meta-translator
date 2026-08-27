@@ -25,6 +25,124 @@ body {
 
 }
 
+.manual-localization-editor {
+    margin: 24px 0 16px 23px;
+    padding: 16px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background-color: #242424;
+}
+
+.manual-editor-help {
+    margin: 8px 0 12px;
+}
+
+#localizations-json {
+    margin-top: 6px;
+    background-color: #171717;
+    border-color: #555;
+    color: whitesmoke;
+    font-family: monospace;
+}
+
+#localizations-json:focus {
+    background-color: #171717;
+    border-color: #0d6efd;
+    color: whitesmoke;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.manual-editor-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.manual-validation-status {
+    min-height: 1.4em;
+    margin-top: 8px;
+    color: #aaa;
+}
+
+.manual-validation-status.pending {
+    color: #e0c46c;
+}
+
+.manual-validation-status.valid {
+    color: #7ee2a8;
+}
+
+.manual-validation-status.invalid {
+    color: #ff8b8b;
+}
+
+.manual-video-choice {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #aaa;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.localization-report {
+    margin-top: 16px;
+}
+
+.localization-summary {
+    color: white;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+
+.localization-report-section {
+    margin-top: 12px;
+}
+
+.localization-report-section h3 {
+    color: white;
+    font-size: 1rem;
+    margin-bottom: 6px;
+}
+
+.localization-report-row {
+    margin: 5px 0;
+    padding: 7px 9px;
+    border-left: 4px solid #666;
+    background-color: #2c2c2c;
+}
+
+.localization-report-row pre {
+    margin: 5px 0 0;
+    color: #c7c7c7;
+    font-family: monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.status-added {
+    border-left-color: #36c275;
+}
+
+.status-changed {
+    border-left-color: #e0a72f;
+}
+
+.status-unchanged {
+    border-left-color: #777;
+}
+
+.localization-report-error {
+    color: #ff8b8b;
+    margin: 4px 0;
+}
+
+.localization-report-success {
+    color: #7ee2a8;
+    font-weight: bold;
+    margin-top: 12px;
+}
+
 .always-vis-container {
     display: flex;
     width: 100%;
