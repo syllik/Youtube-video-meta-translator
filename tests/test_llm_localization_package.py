@@ -7,7 +7,10 @@ from language_catalog import (
 )
 from llm_localization_package import (
     LlmTranslationProgress,
+    build_llm_translation_package,
+    build_llm_translation_prompt,
     calculate_llm_translation_progress,
+    parse_llm_upload_json,
     select_next_llm_languages,
 )
 
@@ -84,6 +87,110 @@ class LlmLocalizationPackageTests(unittest.TestCase):
         for batch_size in (0, -1):
             with self.assertRaises(ValueError):
                 select_next_llm_languages(progress, batch_size=batch_size)
+
+    def test_package_contains_only_default_source_and_targets(self):
+        languages = (
+            YouTubeLanguage("code-0", "code-0", "Zulu"),
+            YouTubeLanguage("code-1", "code-1", "English"),
+        )
+        package = build_llm_translation_package(
+            self.video_resource, languages
+        )
+
+        self.assertEqual(package["source"]["title"], "Waterfall")
+        self.assertEqual(package["source"]["description"], "Wind above the falls.")
+        self.assertNotIn("existingLocalizations", package)
+        self.assertEqual(package["expectedLanguageCodes"], ["code-0", "code-1"])
+        self.assertEqual(package["expectedCount"], 2)
+
+    def test_prompt_requires_downloadable_direct_json(self):
+        languages = (
+            YouTubeLanguage("code-0", "code-0", "Zulu"),
+            YouTubeLanguage("code-1", "code-1", "English"),
+        )
+        package = build_llm_translation_package(
+            self.video_resource, languages
+        )
+        prompt = build_llm_translation_prompt(package)
+
+        self.assertIn("downloadable", prompt.lower())
+        self.assertIn("expectedLanguageCodes", prompt)
+        self.assertIn("Do not return a wrapper", prompt)
+        self.assertNotIn("existingLocalizations", prompt)
+
+    def test_prompt_serializes_unicode_without_ascii_escaping(self):
+        video_resource = {
+            "snippet": {"title": "Водопад", "description": "Ветер над водопадом."}
+        }
+        package = build_llm_translation_package(
+            video_resource, (YouTubeLanguage("uk", "uk", "Ukrainian"),)
+        )
+
+        prompt = build_llm_translation_prompt(package)
+
+        self.assertIn("Водопад", prompt)
+        self.assertNotIn("\\u0412", prompt)
+
+    def test_upload_parser_requires_exact_target_codes(self):
+        valid = (
+            '{"en-GB":{"title":"British","description":"Text"},'
+            '"sr-Latn":{"title":"Serbian","description":"Text"}}'
+        )
+        self.assertTrue(parse_llm_upload_json(valid, ("en-GB", "sr-Latn")).is_valid)
+
+        missing = '{"en-GB":{"title":"British","description":"Text"}}'
+        wrapper = '{"languages":{"sr-Latn":{"title":"Serbian","description":"Text"}}}'
+        self.assertFalse(
+            parse_llm_upload_json(missing, ("en-GB", "sr-Latn")).is_valid
+        )
+        self.assertFalse(
+            parse_llm_upload_json(wrapper, ("en-GB", "sr-Latn")).is_valid
+        )
+
+    def test_upload_parser_canonicalizes_casefolded_codes(self):
+        parsed = parse_llm_upload_json(
+            '{"EN-gb":{"title":"British","description":"Text"}}',
+            ("en-GB",),
+        )
+
+        self.assertEqual(tuple(parsed.entries), ("en-GB",))
+
+    def test_upload_parser_rejects_invalid_json(self):
+        parsed = parse_llm_upload_json('{"en-GB":', ("en-GB",))
+
+        self.assertFalse(parsed.is_valid)
+        self.assertIn("Invalid JSON", parsed.issues[0].message)
+
+    def test_upload_parser_rejects_extra_fields_and_unknown_codes(self):
+        extra_field = '{"en-GB":{"title":"British","description":"Text","note":"extra"}}'
+        unknown_code = '{"fr":{"title":"French","description":"Texte"}}'
+
+        self.assertFalse(parse_llm_upload_json(extra_field, ("en-GB",)).is_valid)
+        self.assertFalse(parse_llm_upload_json(unknown_code, ("en-GB",)).is_valid)
+
+    def test_upload_parser_rejects_missing_title_or_description(self):
+        missing_title = '{"en-GB":{"description":"Text"}}'
+        missing_description = '{"en-GB":{"title":"British"}}'
+
+        self.assertFalse(parse_llm_upload_json(missing_title, ("en-GB",)).is_valid)
+        self.assertFalse(
+            parse_llm_upload_json(missing_description, ("en-GB",)).is_valid
+        )
+
+    def test_upload_parser_rejects_over_limit_fields(self):
+        title_too_long = '{{"en-GB":{{"title":"{}","description":"Text"}}}}'.format(
+            "t" * 101
+        )
+        description_too_long = (
+            '{{"en-GB":{{"title":"British","description":"{}"}}}}'.format(
+                "d" * 5001
+            )
+        )
+
+        self.assertFalse(parse_llm_upload_json(title_too_long, ("en-GB",)).is_valid)
+        self.assertFalse(
+            parse_llm_upload_json(description_too_long, ("en-GB",)).is_valid
+        )
 
 
 if __name__ == "__main__":
