@@ -2,7 +2,7 @@
 
 Start with the symptom that matches what you see. Most setup problems come
 from an inactive virtual environment, an incorrect credential filename, or the
-wrong local port.
+wrong local port or an incomplete OAuth setup.
 
 ⬅️ [Back to documentation](README.md) · ➡️ [Security](security.md)
 
@@ -50,21 +50,25 @@ See [Configuration](configuration.md) for the complete OAuth setup.
 For an External test app, add the Google account you are using to **Google
 Auth Platform → Audience → Test users**. Authorize with that same account.
 
-## 🌐 The browser shows `403` at `127.0.0.1:5000`
+## 🌐 The browser does not show Streamlit
 
-That is the wrong port. Open:
+Start the app from the project root:
 
 ```text
-http://127.0.0.1:5001
+streamlit run streamlit_app.py
 ```
 
-Port `5000` may belong to another macOS service; this app uses `5001`.
+The default local address is:
+
+```text
+http://127.0.0.1:8501
+```
 
 ## 🔄 The browser does not open after Google login
 
 Complete the Google authorization page opened by the app and wait for the
-terminal to finish the callback on port `8080`. Keep the terminal running and
-open port `5001` only after Flask has started.
+terminal to finish the callback on port `8080`. Keep the Streamlit process
+running while using the app.
 
 ## 🔗 `redirect_uri_mismatch`
 
@@ -73,14 +77,13 @@ The OAuth client was probably created as a Web application. Create a new
 
 ## 🚪 `Address already in use`
 
-Another program is using port `5001`. Change the final line of `app.py`:
+Another program is using port `8501`. Start Streamlit on another port:
 
-```python
-app.run(debug=False, host='127.0.0.1', port=5001)
+```bash
+streamlit run streamlit_app.py --server.port 8502
 ```
 
-For example, use `5002`, restart the app, and open
-`http://127.0.0.1:5002`.
+Then open `http://127.0.0.1:8502`.
 
 ## 🎬 Videos do not appear
 
@@ -107,7 +110,7 @@ Check that `.env` is in the project root, not in `config/`, and contains:
 DEEPL_API_KEY=your-real-key
 ```
 
-Restart `python app.py` after changing `.env`.
+Restart `streamlit run streamlit_app.py` after changing `.env`.
 
 ## ✂️ Translations are skipped or trimmed
 

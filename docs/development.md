@@ -9,24 +9,27 @@ calling the live YouTube API.
 
 ```text
 Youtube-video-meta-translator/
-├── app.py                           # Flask routes and application wiring
+├── streamlit_app.py                 # Streamlit entry point and common bootstrap
+├── pages/                           # Machine and manual workflow pages
+├── services/                        # YouTube, machine, and manual boundaries
+├── state/                           # Common, machine, and manual session state
+├── ui/                              # Shared and mode-specific widgets
+├── models.py                        # Shared immutable data models
 ├── youtube_account.py               # YouTube OAuth, listing, publishing
 ├── localizations.py                 # JSON validation, diff, and merge logic
-├── localization_service.py          # Automatic validation/publish orchestration
+├── localization_service.py          # Pure manual validation/publish orchestration
 ├── google_translate.py              # Google Cloud Translation wrapper
 ├── requirements.txt                 # Python dependencies
 ├── tests/                           # Credential-free automated tests
-├── templates/                       # Flask HTML templates
-├── static/css/                      # Application styles
 ├── docs/                            # User and project documentation
 ├── config/                          # Local credentials; never commit
 ├── .env                             # Optional local DeepL key; never commit
 └── token.json                       # Local OAuth session; generated locally
 ```
 
-The legacy provider modules remain because the automatic translation workflow
-is still supported. The manual editor is implemented separately so its
-validation and merge logic can be tested without credentials.
+The provider module remains because machine translation is still supported.
+The manual editor is implemented separately so its validation and merge logic
+can be tested without credentials.
 
 ## 🧪 Run automated tests
 
@@ -43,7 +46,7 @@ external channel.
 ## 🧹 Run local checks
 
 ```bash
-python -m compileall -q app.py google_translate.py youtube_account.py localizations.py localization_service.py youtube_languages tests
+python -m compileall -q streamlit_app.py pages models.py services state ui google_translate.py youtube_account.py localizations.py localization_service.py youtube_languages tests
 git diff --check
 git diff --cached --check
 python -m pip check
@@ -54,11 +57,11 @@ success result is `No broken requirements found.`
 
 ## 🧩 Manual editor boundaries
 
-- Automatic validation uses the read-only preview endpoint and never writes.
+- Local JSON validation runs before preview; preview never writes.
 - Publish validates again, refetches current state, and performs at most one
   update for one video.
 - Existing localizations omitted from the submitted JSON are preserved.
-- The legacy translation flow and provider code are kept separate.
+- Machine translation and manual localization code are kept separate.
 
 Read the [manual editor context](manual-localization-editor-context.md) for the
 full product constraints and review checklist.

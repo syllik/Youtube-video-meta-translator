@@ -442,6 +442,32 @@ class YoutubeApi:
             self.errorStr = e.error_details[0]['reason']
             print(f"Error updating video: {e.error_details}")
 
+    def fetch_video_page(self, limit, page_token=None):
+        """Fetch one playlist page for the Streamlit service boundary."""
+        max_results = 50 if limit == "all" else int(limit)
+        videos_response = self.youtube.playlistItems().list(
+            playlistId=self.uploads_id,
+            part='snippet',
+            maxResults=max_results,
+            pageToken=page_token
+        ).execute()
+
+        videos = []
+        for item in videos_response.get("items", []):
+            video_id = item["snippet"]["resourceId"]["videoId"]
+            videos.append(Video(
+                item["snippet"]["title"],
+                video_id,
+                item["snippet"]["description"],
+                item["snippet"]["thumbnails"]["default"]["url"],
+                self.get_video_localizations(video_id),
+            ))
+
+        return {
+            "videos": videos,
+            "next_page_token": videos_response.get("nextPageToken"),
+        }
+
     def get_video_with_localizations(self, video_id):
         """Fetch one complete video resource for preview or publishing."""
         results = self.youtube.videos().list(

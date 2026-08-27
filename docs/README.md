@@ -11,8 +11,8 @@ what you want to do, then follow the numbered steps inside it.
 | --- | --- | --- |
 | 🚀 | [Getting started / Быстрый старт](getting-started.md) | You are installing the project or launching it for the first time. |
 | 🔐 | [Configuration / Настройка](configuration.md) | You need Google Cloud, OAuth, DeepL, or Google Translate credentials. |
-| 🧩 | [Manual localizations / Ручные локализации](manual-localizations.md) | You already have translated JSON and want automatic validation and publishing. |
-| 🔁 | [Legacy translation / Старый переводчик](legacy-translation.md) | You want to keep using the existing DeepL/Google translation workflow. |
+| 🧩 | [Manual localizations / Ручные локализации](manual-localizations.md) | You already have translated JSON and want local validation, preview, and publishing. |
+| 🔁 | [Machine translation / Машинный перевод](legacy-translation.md) | You want batch DeepL/Google translation with video checkboxes. |
 | 🆘 | [Troubleshooting / Решение проблем](troubleshooting.md) | Setup, OAuth, ports, dependencies, or API calls are failing. |
 | 🛡️ | [Security / Безопасность](security.md) | You are handling credentials, tokens, or a leaked secret. |
 | 🛠️ | [Development / Разработка](development.md) | You are running tests or changing the project. |
@@ -27,7 +27,7 @@ what you want to do, then follow the numbered steps inside it.
         ↓
 ▶️ Start the app
         ↓
-🧩 Manual localizations  or  🔁 Legacy translation
+🔁 Machine translation  or  🧩 Manual localizations
         ↓
 🆘 Troubleshooting if something goes wrong
 ```

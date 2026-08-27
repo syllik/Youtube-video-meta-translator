@@ -11,7 +11,7 @@ DeepL, and the local files they use.
 2. Create a project or select an existing one, for example
    `youtube-video-translator`.
 3. Enable [YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com).
-4. If you want the legacy Google Translate fallback, enable
+4. If you want the Google Translate fallback for machine translation, enable
    [Cloud Translation API](https://console.cloud.google.com/apis/library/translate.googleapis.com).
 
 Translation usage may require billing or consume free credits. Check the
@@ -78,8 +78,7 @@ find config -maxdepth 1 -type f -print
 
 ## 🌐 Optional: Google Cloud Translation
 
-Use this only if you want the existing Google Translate workflow or its
-fallback when DeepL is unavailable.
+Use this only for machine translation or its fallback when DeepL is unavailable.
 
 1. Open [Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts).
 2. Select the same project and create a service account.
