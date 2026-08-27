@@ -28,6 +28,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertIn("render_machine_controls", source)
         self.assertIn("render_video_list", source)
         self.assertIn("sync_visible_checkbox_state", source)
+        self.assertIn("reconcile_select_all_channel", source)
         self.assertNotIn("render_manual_editor", source)
 
     def test_manual_page_contains_manual_components_only(self):
@@ -40,6 +41,10 @@ class StreamlitBootstrapTests(unittest.TestCase):
         source = Path("ui/video_list.py").read_text()
         self.assertNotIn("st.radio", source)
         self.assertIn('"Selected" if is_selected else "Select"', source)
+
+    def test_manual_page_explains_selection_from_another_page(self):
+        source = Path("pages/2_Manual_translate.py").read_text()
+        self.assertIn("selected video is on another page", source.lower())
 
     def test_channel_logo_is_large_enough_for_the_summary_card(self):
         self.assertGreaterEqual(CHANNEL_LOGO_SIZE, 112)

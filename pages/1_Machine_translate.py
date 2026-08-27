@@ -3,12 +3,14 @@
 import streamlit as st
 
 from services.machine_translation_service import MachineTranslationService
-from state.machine_state import init_machine_state
+from state.machine_state import init_machine_state, reconcile_select_all_channel
 from streamlit_app import render_common_page_context
 from ui.feedback import render_feedback
 from ui.machine_controls import render_machine_controls
 from ui.pagination import render_pagination
 from ui.video_list import (
+    MACHINE_SELECT_ALL_CHANNEL_KEY,
+    MACHINE_SELECT_ALL_ROW_CHANGE_KEY,
     render_video_list,
     stateful_checkbox_kwargs,
     sync_visible_checkbox_state,
@@ -59,26 +61,37 @@ def render_machine_page() -> None:
     state = init_machine_state(st.session_state)
     if context.selection.limit == "all":
         visible_ids = tuple(video.id for video in context.page.videos)
+        reconcile_select_all_channel(state, visible_ids)
+        if state.get("select_all_channel_reset_pending"):
+            st.session_state[MACHINE_SELECT_ALL_CHANNEL_KEY] = False
+            state["select_all_channel_reset_pending"] = False
         previous_select_all = bool(state.get("select_all_channel"))
+        row_change = bool(
+            st.session_state.pop(MACHINE_SELECT_ALL_ROW_CHANGE_KEY, False)
+        )
         select_all_channel = st.checkbox(
             **stateful_checkbox_kwargs(
                 st.session_state,
-                "machine-select-all-channel",
+                MACHINE_SELECT_ALL_CHANNEL_KEY,
                 "Select all channel videos",
                 bool(state.get("select_all_channel")),
             )
         )
         state["select_all_channel"] = select_all_channel
-        if previous_select_all and not select_all_channel:
+        if previous_select_all and not select_all_channel and not row_change:
             state["selected_video_ids"] = set()
             sync_visible_checkbox_state(st.session_state, visible_ids, set())
-        if select_all_channel:
+        if select_all_channel and not previous_select_all:
             state["selected_video_ids"] = set(visible_ids)
             sync_visible_checkbox_state(
                 st.session_state,
                 visible_ids,
                 state["selected_video_ids"],
             )
+    else:
+        state["select_all_channel"] = False
+        state["select_all_channel_reset_pending"] = False
+        st.session_state[MACHINE_SELECT_ALL_CHANNEL_KEY] = False
 
     language_options = context.service.code_to_name
     options, clicked = render_machine_controls(
@@ -87,11 +100,6 @@ def render_machine_page() -> None:
         disabled=state.get("operation_status") == "running",
     )
     render_video_list(context.page.videos, "machine", state, {})
-    if state.get("select_all_channel") and state.get("selected_video_ids") != {
-        video.id for video in context.page.videos
-    }:
-        state["select_all_channel"] = False
-        st.session_state["machine-select-all-channel"] = False
     render_pagination(context.selection, context.channel.total_videos, st.query_params)
 
     if clicked:

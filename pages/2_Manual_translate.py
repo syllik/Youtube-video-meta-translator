@@ -17,14 +17,16 @@ def render_manual_page() -> None:
 
     state = init_manual_state(st.session_state)
     selection = render_video_list(context.page.videos, "manual", {}, state)
-    video = next(
-        (candidate for candidate in context.page.videos
-         if candidate.id == selection.selected_manual_video_id),
-        None,
-    )
-    if video is None:
+    videos_by_id = {candidate.id: candidate for candidate in context.page.videos}
+    selected_video_id = selection.selected_manual_video_id
+    if selected_video_id is None:
         st.info("Select one video to begin.")
+    elif selected_video_id not in videos_by_id:
+        st.info(
+            "The selected video is on another page. Select a video here to switch."
+        )
     else:
+        video = videos_by_id[selected_video_id]
         service = ManualLocalizationService(
             context.service, context.service.supported_language_codes()
         )

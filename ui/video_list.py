@@ -7,6 +7,10 @@ from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
 from models import VideoSummary
 
 
+MACHINE_SELECT_ALL_CHANNEL_KEY = "machine-select-all-channel"
+MACHINE_SELECT_ALL_ROW_CHANGE_KEY = "machine-select-all-row-change"
+
+
 @dataclass(frozen=True)
 class SelectionResult:
     mode: str
@@ -29,6 +33,14 @@ def sync_visible_checkbox_state(
     selected = set(selected_video_ids)
     for video_id in video_ids:
         widget_state[widget_key("machine", video_id)] = video_id in selected
+
+
+def clear_channel_select_all_widget() -> None:
+    """Stop channel-wide selection when a user changes one video row."""
+    import streamlit as st
+
+    st.session_state[MACHINE_SELECT_ALL_CHANNEL_KEY] = False
+    st.session_state[MACHINE_SELECT_ALL_ROW_CHANGE_KEY] = True
 
 
 def checkbox_widget_kwargs(
@@ -135,6 +147,8 @@ def render_video_list(
         ):
             selected.difference_update(visible_ids)
             machine_state["selected_video_ids"] = selected
+            machine_state["select_all_channel"] = False
+            machine_state["select_all_channel_reset_pending"] = True
             sync_visible_checkbox_state(
                 st.session_state,
                 visible_ids,
@@ -146,9 +160,12 @@ def render_video_list(
         for video in videos:
             row_col, details_col = st.columns((1, 7))
             with row_col:
-                checked = st.checkbox(
-                    **checkbox_widget_kwargs(st.session_state, video.id, selected)
+                checkbox_kwargs = checkbox_widget_kwargs(
+                    st.session_state, video.id, selected
                 )
+                if machine_state.get("select_all_channel"):
+                    checkbox_kwargs["on_change"] = clear_channel_select_all_widget
+                checked = st.checkbox(**checkbox_kwargs)
                 if checked:
                     selected.add(video.id)
                 else:

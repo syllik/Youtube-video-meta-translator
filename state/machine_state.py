@@ -1,12 +1,13 @@
 """Machine-page session state helpers."""
 
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping, MutableMapping, Sequence
 
 
 MACHINE_DEFAULTS = {
     "selected_video_ids": set(),
     "select_all_visible": False,
     "select_all_channel": False,
+    "select_all_channel_reset_pending": False,
     "selected_language_codes": set(),
     "prefer_deepl": False,
     "overwrite": False,
@@ -38,3 +39,15 @@ def machine_can_submit(state: Mapping[str, Any]) -> bool:
         and state.get("selected_language_codes")
         and state.get("operation_status") != "running"
     )
+
+
+def reconcile_select_all_channel(
+    state: MutableMapping[str, Any], visible_video_ids: Sequence[str]
+) -> bool:
+    """Clear stale all-channel intent after selection changes elsewhere."""
+    if state.get("select_all_channel") and set(
+        state.get("selected_video_ids", set())
+    ) != set(visible_video_ids):
+        state["select_all_channel"] = False
+        state["select_all_channel_reset_pending"] = True
+    return bool(state.get("select_all_channel"))
