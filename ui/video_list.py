@@ -1,4 +1,4 @@
-"""Shared video list with mode-specific selection widgets."""
+"""Shared video list for the Manual and LLM workflows."""
 
 import html
 from dataclasses import dataclass
@@ -16,10 +16,11 @@ class SelectionResult:
     mode: str
     selected_video_ids: Tuple[str, ...] = ()
     selected_manual_video_id: Optional[str] = None
+    selected_video_id: Optional[str] = None
 
 
 def widget_key(mode: str, video_id: str) -> str:
-    if mode not in {"machine", "manual"}:
+    if mode not in {"machine", "manual", "llm"}:
         raise ValueError("Unknown video-list mode: {}".format(mode))
     return "{}-video-{}".format(mode, video_id)
 
@@ -122,23 +123,19 @@ def _render_video_details(video: VideoSummary) -> None:
 def render_video_list(
     videos: Sequence[VideoSummary],
     mode: str,
-    machine_state: MutableMapping[str, Any],
-    manual_state: MutableMapping[str, Any],
+    workflow_state: MutableMapping[str, Any],
+    manual_state: Optional[MutableMapping[str, Any]] = None,
 ) -> SelectionResult:
-    """Render the same rows while isolating machine/manual selectors."""
+    """Render Machine, Manual, and LLM cards with compatible state inputs."""
     import streamlit as st
 
     if mode == "machine":
-        selected = set(machine_state.setdefault("selected_video_ids", set()))
+        selected = set(workflow_state.setdefault("selected_video_ids", set()))
         visible_ids = tuple(video.id for video in videos)
         if st.button("Select all visible", key="machine-select-all-visible"):
             selected.update(visible_ids)
-            machine_state["selected_video_ids"] = selected
-            sync_visible_checkbox_state(
-                st.session_state,
-                visible_ids,
-                selected,
-            )
+            workflow_state["selected_video_ids"] = selected
+            sync_visible_checkbox_state(st.session_state, visible_ids, selected)
             st.rerun()
         if st.button(
             "Clear all visible",
@@ -146,14 +143,10 @@ def render_video_list(
             key="machine-clear-visible",
         ):
             selected.difference_update(visible_ids)
-            machine_state["selected_video_ids"] = selected
-            machine_state["select_all_channel"] = False
-            machine_state["select_all_channel_reset_pending"] = True
-            sync_visible_checkbox_state(
-                st.session_state,
-                visible_ids,
-                selected,
-            )
+            workflow_state["selected_video_ids"] = selected
+            workflow_state["select_all_channel"] = False
+            workflow_state["select_all_channel_reset_pending"] = True
+            sync_visible_checkbox_state(st.session_state, visible_ids, selected)
             st.rerun()
 
         st.caption("{} video(s) selected".format(len(selected)))
@@ -163,7 +156,7 @@ def render_video_list(
                 checkbox_kwargs = checkbox_widget_kwargs(
                     st.session_state, video.id, selected
                 )
-                if machine_state.get("select_all_channel"):
+                if workflow_state.get("select_all_channel"):
                     checkbox_kwargs["on_change"] = clear_channel_select_all_widget
                 checked = st.checkbox(**checkbox_kwargs)
                 if checked:
@@ -172,13 +165,22 @@ def render_video_list(
                     selected.discard(video.id)
             with details_col:
                 _render_video_details(video)
-        machine_state["selected_video_ids"] = selected
+        workflow_state["selected_video_ids"] = selected
         return SelectionResult("machine", tuple(sorted(selected)))
 
     if mode == "manual":
         from state.manual_state import set_manual_video
 
-        selected_id = manual_state.get("selected_video_id")
+        set_video = set_manual_video
+        selected_state = manual_state if manual_state is not None else workflow_state
+    elif mode == "llm":
+        from state.llm_state import set_llm_video
+
+        set_video = set_llm_video
+        selected_state = workflow_state
+
+    if mode in {"manual", "llm"}:
+        selected_id = selected_state.get("selected_video_id")
         for video in videos:
             details_col, action_col = st.columns((7, 1))
             with details_col:
@@ -189,10 +191,14 @@ def render_video_list(
                     "Selected" if is_selected else "Select",
                     type="primary" if is_selected else "secondary",
                     disabled=is_selected,
-                    key=widget_key("manual", video.id),
+                    key=widget_key(mode, video.id),
                 ):
-                    set_manual_video(manual_state, video.id)
+                    set_video(selected_state, video.id)
                     st.rerun()
-        return SelectionResult("manual", selected_manual_video_id=selected_id)
+        return SelectionResult(
+            mode,
+            selected_manual_video_id=selected_id if mode == "manual" else None,
+            selected_video_id=selected_id,
+        )
 
     raise ValueError("Unknown video-list mode: {}".format(mode))
