@@ -155,6 +155,35 @@ class LlmLocalizationPackageTests(unittest.TestCase):
 
         self.assertEqual(tuple(parsed.entries), ("en-GB",))
 
+    def test_upload_parser_rejects_duplicate_language_keys(self):
+        raw_json = (
+            '{"en-GB":{"title":"First","description":"Text"},'
+            '"en-GB":{"title":"Second","description":"Text"}}'
+        )
+
+        parsed = parse_llm_upload_json(raw_json, ("en-GB",))
+
+        self.assertFalse(parsed.is_valid)
+        self.assertEqual(parsed.entries, {})
+        self.assertEqual(parsed.issues[0].message, "Duplicate JSON object key: en-GB")
+
+    def test_upload_parser_rejects_duplicate_nested_fields(self):
+        for field in ("title", "description"):
+            with self.subTest(field=field):
+                raw_json = (
+                    '{{"en-GB":{{"title":"British","description":"Text",'
+                    '"{field}":"Replacement"}}}}'
+                ).format(field=field)
+
+                parsed = parse_llm_upload_json(raw_json, ("en-GB",))
+
+                self.assertFalse(parsed.is_valid)
+                self.assertEqual(parsed.entries, {})
+                self.assertEqual(
+                    parsed.issues[0].message,
+                    "Duplicate JSON object key: {}".format(field),
+                )
+
     def test_upload_parser_rejects_invalid_json(self):
         parsed = parse_llm_upload_json('{"en-GB":', ("en-GB",))
 

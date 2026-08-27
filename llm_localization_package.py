@@ -11,6 +11,21 @@ from localizations import LocalizationIssue, ParsedLocalizations, validate_local
 LLM_BATCH_SIZE = 10
 
 
+class _DuplicateJsonKeyError(ValueError):
+    """Raised when a JSON object repeats one of its members."""
+
+
+def _reject_duplicate_json_keys(pairs: Sequence[Tuple[str, Any]]) -> Dict[str, Any]:
+    document = {}
+    for key, value in pairs:
+        if key in document:
+            raise _DuplicateJsonKeyError(
+                "Duplicate JSON object key: {}".format(key)
+            )
+        document[key] = value
+    return document
+
+
 @dataclass(frozen=True)
 class LlmTranslationProgress:
     current: int
@@ -124,7 +139,11 @@ def parse_llm_upload_json(
 ) -> ParsedLocalizations:
     """Parse one exact expected localization batch without mutating state."""
     try:
-        document = json.loads(raw_json)
+        document = json.loads(raw_json, object_pairs_hook=_reject_duplicate_json_keys)
+    except _DuplicateJsonKeyError as error:
+        return ParsedLocalizations(
+            entries={}, issues=(LocalizationIssue(None, str(error)),)
+        )
     except json.JSONDecodeError as error:
         return ParsedLocalizations(
             entries={},
