@@ -1,4 +1,4 @@
-# 🔐 Configuration / Настройка
+# 🔐 Configuration
 
 This guide explains Google Cloud, YouTube OAuth, Google Cloud Translation,
 DeepL, and the local files they use.
@@ -105,7 +105,7 @@ DEEPL_API_KEY=replace-this-with-your-key
 The application loads `.env` at startup. Keep the file local and restart the
 app after changing it.
 
-## 📁 Local files / Локальные файлы
+## 📁 Local files
 
 | File | Required? | Purpose |
 | --- | --- | --- |

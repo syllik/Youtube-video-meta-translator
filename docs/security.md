@@ -1,4 +1,4 @@
-# 🛡️ Security / Безопасность
+# 🛡️ Security
 
 This is a local tool with permission to modify YouTube metadata. Treat every
 credential and token as a secret.

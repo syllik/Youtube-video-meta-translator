@@ -1,11 +1,11 @@
-# 🚀 Getting started / Быстрый старт
+# 🚀 Getting started
 
 Use this guide to install the local app, start it, and complete the first
 Google authorization.
 
 ⬅️ [Back to documentation](README.md) · ➡️ [Configure credentials](configuration.md)
 
-## ✅ What you need / Что понадобится
+## ✅ What you need
 
 - A Google account with access to the YouTube channel.
 - Python 3.12 (recommended and tested for this project).
@@ -58,7 +58,7 @@ PowerShell window and repeat the activation command:
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-## 3️⃣ Configure Google / Настройте Google
+## 3️⃣ Configure Google
 
 Follow [Configuration](configuration.md) and place the OAuth file at:
 
@@ -69,7 +69,7 @@ config/account_client_secrets_main.json
 Do not use a plain API key for YouTube. This app needs OAuth permission to read
 and update channel data.
 
-## 4️⃣ Check the environment / Проверьте окружение
+## 4️⃣ Check the environment
 
 With `.venv` active:
 
@@ -82,7 +82,7 @@ python -c "import streamlit, grpc, deepl, dotenv, googleapiclient, google_auth_o
 named `pkg_resources`; the project pins a compatible Setuptools version for
 older Google Translation code.
 
-## 5️⃣ Start the application / Запустите приложение
+## 5️⃣ Start the application
 
 ### macOS or Linux
 
@@ -107,7 +107,7 @@ The application uses two local ports:
 
 Open [http://127.0.0.1:8501](http://127.0.0.1:8501) after Streamlit starts.
 
-## 6️⃣ First authorization / Первая авторизация
+## 6️⃣ First authorization
 
 1. Run `streamlit run streamlit_app.py` from the project root.
 2. Sign in with the Google account added as an OAuth test user.

@@ -1,4 +1,4 @@
-# 🆘 Troubleshooting / Решение проблем
+# 🆘 Troubleshooting
 
 Start with the symptom that matches what you see. Most setup problems come
 from an inactive virtual environment, an incorrect credential filename, or the

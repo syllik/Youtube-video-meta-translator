@@ -567,7 +567,8 @@ Localizations JSON
 │ }                                           │
 └─────────────────────────────────────────────┘
 
-Validation runs automatically after the Manual radio button and JSON are set, and after either one changes.
+Validation runs automatically after a Manual video is selected and JSON is set,
+and after either one changes.
 ```
 
 After automatic validation:
@@ -590,8 +591,9 @@ After automatic validation:
 [ Cancel ]            [ Publish 5 changes ]
 ```
 
-The localization form should appear only after a single Manual radio button is
-selected. The checkbox selection used by the legacy translator is independent.
+The localization form should appear only after a single Manual video card is
+selected with its **Select** button. The checkbox selection used by the legacy
+translator is independent.
 Validation should run after every JSON change and after switching the selected
 Manual video. The Publish button should be unavailable if the current input is
 invalid or validation is still pending.

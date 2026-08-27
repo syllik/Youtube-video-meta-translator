@@ -61,7 +61,7 @@ header and video list, then its own controls.
 Both workflow pages use the same visual order:
 
 1. Page title and one-sentence explanation of the current mode.
-2. Channel identity, refresh action, and total video count.
+2. Channel identity, refresh action, page-size control, and total video count.
 3. Mode-specific control panel.
 4. Video list with thumbnail, title, description preview, video ID affordance,
    and current localization badges.
@@ -101,7 +101,7 @@ The translation provider code is not imported by the manual page.
 
 The manual page contains only manual-localization controls:
 
-- one radio control per video, keyed by stable YouTube video ID;
+- one `Select`/`Selected` button per video card, keyed by stable YouTube video ID;
 - a selected-video summary with title and YouTube link;
 - a monospace JSON textarea;
 - compact format help and the supported JSON example;
@@ -204,6 +204,7 @@ description
 thumbnail_url
 current_language_codes
 current_language_names
+default_language_code
 ```
 
 All widget keys and service calls use `id`. Titles are display-only, so
@@ -405,7 +406,7 @@ git diff --check
 - Both pages show the same readable video list and channel context.
 - Machine mode retains multi-video/multi-language DeepL/Google, overwrite, and
   trim behavior.
-- Manual mode is single-video, radio-based, JSON-driven, preview-first, and
+- Manual mode is single-video, button-selected, JSON-driven, preview-first, and
   preserves omitted localizations.
 - No machine-only control is visible on the manual page, and no manual-only
   editor is visible on the machine page.

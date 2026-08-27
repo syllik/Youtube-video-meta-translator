@@ -607,14 +607,14 @@ git commit -m "feat: add localization preview and publish endpoints"
 - Modify: `static/css/home.css`
 
 **Interfaces:**
-- Each video row exposes its YouTube ID as the radio input value; the browser sends that ID unchanged.
+- Each video row exposes its YouTube ID through a card-level Select button; the browser sends that ID unchanged.
 - The JSON textarea accepts raw JSON in the context's localization-map format. The browser sends it as `localizations` after parsing, or as `localizations_json` when raw-text transport is needed for server-side syntax-error reporting; both paths use the same backend validation.
 - The preview panel renders statuses `added`, `changed`, `unchanged`, and `invalid` plus preserved-language count.
 - The publish button is disabled until the latest preview is valid and contains at least one added/changed entry; the backend still revalidates independently.
 
 - [ ] **Step 1: Replace title-based multi-selection with one ID-based selection**
 
-Change the existing video checkbox to a radio input with a common name and `value="{{ video.id }}"`. Keep the thumbnail, title, description, language count, and pagination. Remove the “select all” and all-channel behaviors because version one edits one video at a time.
+Change the existing video checkbox to a card-level Select button keyed by `{{ video.id }}`. Keep the thumbnail, title, description, language count, and pagination. Remove the “select all” and all-channel behaviors because version one edits one video at a time.
 
 - [ ] **Step 2: Add the minimal JSON editor controls**
 

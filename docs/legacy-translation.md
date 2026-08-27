@@ -1,11 +1,11 @@
-# 🔁 Machine translation / Машинный перевод
+# 🔁 Machine translation
 
 Use this guide when you want automatic title and description translation
 instead of prepared JSON.
 
 ⬅️ [Back to documentation](README.md) · ➡️ [Troubleshooting](troubleshooting.md)
 
-## 🧭 Safe first test / Первый безопасный тест
+## 🧭 Safe first test
 
 Before translating a whole channel:
 
@@ -18,6 +18,14 @@ Before translating a whole channel:
    existing localization.
 7. Click **Translate selected videos**.
 8. Check the result in YouTube Studio.
+
+For batch selection, **Select all visible** and **Clear all visible** affect
+only the current page. **Select all channel videos** is available with the
+`all` page size. Once a row is changed or the visible selection is cleared,
+the channel-wide selection mode turns off so it cannot reapply the old state.
+
+The video list defaults to the latest 10 uploads. Use `10`, `20`, `50`, or
+`all`; the current page and limit are kept in the URL.
 
 The app translates video titles and descriptions, not subtitles or audio
 tracks. YouTube character limits still apply.

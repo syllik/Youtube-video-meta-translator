@@ -455,12 +455,16 @@ class YoutubeApi:
         videos = []
         for item in videos_response.get("items", []):
             video_id = item["snippet"]["resourceId"]["videoId"]
+            localizations, default_language = self.get_video_localization_metadata(
+                video_id
+            )
             videos.append(Video(
                 item["snippet"]["title"],
                 video_id,
                 item["snippet"]["description"],
                 item["snippet"]["thumbnails"]["default"]["url"],
-                self.get_video_localizations(video_id),
+                localizations,
+                default_language,
             ))
 
         return {
@@ -490,19 +494,26 @@ class YoutubeApi:
 
     def get_video_localizations(self, video_id):
         """Get existing localizations for a video"""
+        localizations, _default_language = self.get_video_localization_metadata(video_id)
+        return localizations
+
+    def get_video_localization_metadata(self, video_id):
+        """Get localizations and the default language for a video card."""
         try:
             results = self.youtube.videos().list(
-                part='localizations',
+                part='snippet,localizations',
                 id=video_id
             ).execute()
-            
-            if not results['items']:
-                return []
-            
-            localizations = list(results['items'][0].get('localizations', {}).keys())
 
-            return list(dict.fromkeys(localizations))
-            
+            if not results.get('items'):
+                return [], None
+
+            video = results['items'][0]
+            localizations = list(video.get('localizations', {}).keys())
+            default_language = (video.get('snippet') or {}).get('defaultLanguage')
+
+            return list(dict.fromkeys(localizations)), default_language
+
         except googleapiclient.errors.HttpError as e:
             print(f"Error getting localizations for video {video_id}: {e}")
             self.errorStr = _http_error_reason(e)
@@ -510,18 +521,21 @@ class YoutubeApi:
                 self, "localization_read_errors", set()
             )
             self.localization_read_errors.add(str(video_id))
-            return []
+            return [], None
 
 
 class Video:
     """Represents a YouTube video with translation data"""
     
-    def __init__(self, title, vid_id, desc, thumb_url, curr_langs):
+    def __init__(
+        self, title, vid_id, desc, thumb_url, curr_langs, default_language_code=None
+    ):
         self.video_title = title
         self.id = vid_id
         self.description = desc
         self.thumbnail_url = thumb_url
         self.current_languages = curr_langs if curr_langs else []
+        self.default_language_code = default_language_code
         self.language_names = []
 
     @property

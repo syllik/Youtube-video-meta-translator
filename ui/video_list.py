@@ -2,9 +2,13 @@
 
 import html
 from dataclasses import dataclass
-from typing import Any, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Mapping, MutableMapping, Optional, Sequence, Tuple
 
 from models import VideoSummary
+
+
+MACHINE_SELECT_ALL_CHANNEL_KEY = "machine-select-all-channel"
+MACHINE_SELECT_ALL_ROW_CHANGE_KEY = "machine-select-all-row-change"
 
 
 @dataclass(frozen=True)
@@ -18,6 +22,52 @@ def widget_key(mode: str, video_id: str) -> str:
     if mode not in {"machine", "manual"}:
         raise ValueError("Unknown video-list mode: {}".format(mode))
     return "{}-video-{}".format(mode, video_id)
+
+
+def sync_visible_checkbox_state(
+    widget_state: MutableMapping[str, Any],
+    video_ids: Sequence[str],
+    selected_video_ids,
+) -> None:
+    """Synchronize rendered checkbox values after a bulk selection action."""
+    selected = set(selected_video_ids)
+    for video_id in video_ids:
+        widget_state[widget_key("machine", video_id)] = video_id in selected
+
+
+def clear_channel_select_all_widget() -> None:
+    """Stop channel-wide selection when a user changes one video row."""
+    import streamlit as st
+
+    st.session_state[MACHINE_SELECT_ALL_CHANNEL_KEY] = False
+    st.session_state[MACHINE_SELECT_ALL_ROW_CHANGE_KEY] = True
+
+
+def checkbox_widget_kwargs(
+    widget_state: Mapping[str, Any], video_id: str, selected_video_ids
+):
+    """Build checkbox arguments without conflicting with existing widget state."""
+    return stateful_checkbox_kwargs(
+        widget_state,
+        widget_key("machine", video_id),
+        "Select video",
+        video_id in set(selected_video_ids),
+    )
+
+
+def stateful_checkbox_kwargs(
+    widget_state: Mapping[str, Any], key: str, label: str, default: bool
+):
+    """Build checkbox arguments while respecting an existing widget value."""
+    kwargs = {"label": label, "key": key}
+    if key not in widget_state:
+        kwargs["value"] = default
+    return kwargs
+
+
+def visible_selected_video_ids(video_ids: Sequence[str], selected_video_ids):
+    """Return only selected IDs represented by the current visible page."""
+    return set(video_ids).intersection(selected_video_ids)
 
 
 def _description(text: str, max_length: int = 220) -> str:
@@ -53,6 +103,12 @@ def _render_video_details(video: VideoSummary) -> None:
                 ),
                 unsafe_allow_html=True,
             )
+            st.markdown(
+                '<div class="video-default-language">Default language: {}</div>'.format(
+                    html.escape(video.default_language_code or "Not set")
+                ),
+                unsafe_allow_html=True,
+            )
             if video.current_language_codes:
                 badges = " ".join(
                     '<span class="localization-badge">{}</span>'.format(html.escape(code))
@@ -74,24 +130,42 @@ def render_video_list(
 
     if mode == "machine":
         selected = set(machine_state.setdefault("selected_video_ids", set()))
+        visible_ids = tuple(video.id for video in videos)
         if st.button("Select all visible", key="machine-select-all-visible"):
-            selected.update(video.id for video in videos)
+            selected.update(visible_ids)
             machine_state["selected_video_ids"] = selected
+            sync_visible_checkbox_state(
+                st.session_state,
+                visible_ids,
+                selected,
+            )
             st.rerun()
-        if selected and st.button("Clear visible selection", key="machine-clear-visible"):
-            selected.difference_update(video.id for video in videos)
+        if st.button(
+            "Clear all visible",
+            disabled=not visible_selected_video_ids(visible_ids, selected),
+            key="machine-clear-visible",
+        ):
+            selected.difference_update(visible_ids)
             machine_state["selected_video_ids"] = selected
+            machine_state["select_all_channel"] = False
+            machine_state["select_all_channel_reset_pending"] = True
+            sync_visible_checkbox_state(
+                st.session_state,
+                visible_ids,
+                selected,
+            )
             st.rerun()
 
         st.caption("{} video(s) selected".format(len(selected)))
         for video in videos:
             row_col, details_col = st.columns((1, 7))
             with row_col:
-                checked = st.checkbox(
-                    "Select video",
-                    value=video.id in selected,
-                    key=widget_key("machine", video.id),
+                checkbox_kwargs = checkbox_widget_kwargs(
+                    st.session_state, video.id, selected
                 )
+                if machine_state.get("select_all_channel"):
+                    checkbox_kwargs["on_change"] = clear_channel_select_all_widget
+                checked = st.checkbox(**checkbox_kwargs)
                 if checked:
                     selected.add(video.id)
                 else:
@@ -104,22 +178,21 @@ def render_video_list(
     if mode == "manual":
         from state.manual_state import set_manual_video
 
-        video_by_id = {video.id: video for video in videos}
         selected_id = manual_state.get("selected_video_id")
-        options = [video.id for video in videos]
-        if selected_id not in video_by_id:
-            selected_id = options[0] if options else None
-        if options:
-            selected_id = st.radio(
-                "Select one video to edit",
-                options,
-                index=options.index(selected_id) if selected_id in options else 0,
-                format_func=lambda video_id: video_by_id[video_id].title,
-                key="manual-video-radio",
-            )
-        set_manual_video(manual_state, selected_id)
         for video in videos:
-            _render_video_details(video)
+            details_col, action_col = st.columns((7, 1))
+            with details_col:
+                _render_video_details(video)
+            with action_col:
+                is_selected = selected_id == video.id
+                if st.button(
+                    "Selected" if is_selected else "Select",
+                    type="primary" if is_selected else "secondary",
+                    disabled=is_selected,
+                    key=widget_key("manual", video.id),
+                ):
+                    set_manual_video(manual_state, video.id)
+                    st.rerun()
         return SelectionResult("manual", selected_manual_video_id=selected_id)
 
     raise ValueError("Unknown video-list mode: {}".format(mode))

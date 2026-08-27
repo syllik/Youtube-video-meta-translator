@@ -21,6 +21,7 @@ class VideoSummary:
     description: str
     thumbnail_url: str
     current_language_codes: Tuple[str, ...]
+    default_language_code: Optional[str] = None
 
 
 @dataclass(frozen=True)
