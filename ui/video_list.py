@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, MutableMapping, Optional, Sequence, Tuple
 
 from models import VideoSummary
+from state.manual_state import set_manual_video
 
 
 @dataclass(frozen=True)
@@ -111,7 +112,7 @@ def render_video_list(
                 format_func=lambda video_id: video_by_id[video_id].title,
                 key="manual-video-radio",
             )
-        manual_state["selected_video_id"] = selected_id
+        set_manual_video(manual_state, selected_id)
         for video in videos:
             _render_video_details(video)
         return SelectionResult("manual", selected_manual_video_id=selected_id)

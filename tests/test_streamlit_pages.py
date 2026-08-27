@@ -2,6 +2,7 @@ import importlib
 import sys
 import unittest
 from unittest.mock import patch
+from pathlib import Path
 
 from streamlit_app import page_title
 
@@ -20,6 +21,18 @@ class StreamlitBootstrapTests(unittest.TestCase):
         with patch("youtube_account.YoutubeApi") as constructor:
             importlib.import_module("streamlit_app")
             constructor.assert_not_called()
+
+    def test_machine_page_contains_machine_components_only(self):
+        source = Path("pages/1_Machine_translate.py").read_text()
+        self.assertIn("render_machine_controls", source)
+        self.assertIn("render_video_list", source)
+        self.assertNotIn("render_manual_editor", source)
+
+    def test_manual_page_contains_manual_components_only(self):
+        source = Path("pages/2_Manual_translate.py").read_text()
+        self.assertIn("render_manual_editor", source)
+        self.assertIn("render_video_list", source)
+        self.assertNotIn("render_machine_controls", source)
 
 
 if __name__ == "__main__":
