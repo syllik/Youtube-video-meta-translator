@@ -61,13 +61,31 @@ def render_pagination(
     total_videos: int,
     query_params: MutableMapping[str, str],
 ) -> None:
-    """Render a compact range summary and write URL changes exactly once."""
+    """Render the page-size and page controls backed by URL parameters."""
     import streamlit as st
 
     current = PaginationSelection(
         page=min(selection.page, total_pages(selection.limit, total_videos)),
         limit=selection.limit,
     )
+    limit_labels = {
+        10: "10 videos",
+        20: "20 videos",
+        50: "50 videos",
+        "all": "All videos",
+    }
+    chosen_limit = st.selectbox(
+        "Videos per page",
+        list(ALLOWED_LIMITS),
+        format_func=lambda limit: limit_labels[limit],
+        key="common-pagination-limit-select-{}".format(current.limit),
+    )
+    if chosen_limit != current.limit:
+        query_params.update(
+            canonical_pagination_query(PaginationSelection(1, chosen_limit))
+        )
+        st.rerun()
+
     start, end = page_bounds(current.page, current.limit, total_videos)
     if current.limit == "all":
         st.caption("All videos loaded · {} total".format(total_videos))
@@ -97,7 +115,7 @@ def render_pagination(
             pages,
             index=pages.index(current.page),
             label_visibility="collapsed",
-            key="common-pagination-page-select",
+            key="common-pagination-page-select-{}".format(current.page),
         )
         if chosen_page != current.page:
             query_params.update(canonical_pagination_query(

@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Any, MutableMapping, Optional, Sequence, Tuple
 
 from models import VideoSummary
-from state.manual_state import set_manual_video
 
 
 @dataclass(frozen=True)
@@ -46,7 +45,12 @@ def _render_video_details(video: VideoSummary) -> None:
                 unsafe_allow_html=True,
             )
             st.markdown(
-                '<div class="video-id">ID: {}</div>'.format(html.escape(video.id)),
+                '<div class="video-id">ID: {} · '
+                '<a href="https://www.youtube.com/watch?v={}" target="_blank" '
+                'rel="noopener noreferrer">Open on YouTube</a></div>'.format(
+                    html.escape(video.id),
+                    html.escape(video.id, quote=True),
+                ),
                 unsafe_allow_html=True,
             )
             if video.current_language_codes:
@@ -84,10 +88,9 @@ def render_video_list(
             row_col, details_col = st.columns((1, 7))
             with row_col:
                 checked = st.checkbox(
-                    "Select",
+                    "Select video",
                     value=video.id in selected,
                     key=widget_key("machine", video.id),
-                    label_visibility="collapsed",
                 )
                 if checked:
                     selected.add(video.id)
@@ -99,6 +102,8 @@ def render_video_list(
         return SelectionResult("machine", tuple(sorted(selected)))
 
     if mode == "manual":
+        from state.manual_state import set_manual_video
+
         video_by_id = {video.id: video for video in videos}
         selected_id = manual_state.get("selected_video_id")
         options = [video.id for video in videos]

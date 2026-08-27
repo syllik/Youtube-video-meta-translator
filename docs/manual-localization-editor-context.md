@@ -2,6 +2,11 @@
 
 ⬅️ [Back to documentation](README.md) · [Open the user workflow](manual-localizations.md)
 
+> Historical product context: the current runtime is Streamlit with separate
+> **Machine translate** and **Manual translate** pages. The migration design
+> and current architecture are documented in
+> [`superpowers/specs/2026-08-27-streamlit-migration-design.md`](superpowers/specs/2026-08-27-streamlit-migration-design.md).
+
 ## Goal
 
 Adapt the existing open-source project:

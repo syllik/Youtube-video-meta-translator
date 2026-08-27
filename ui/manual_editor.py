@@ -1,7 +1,9 @@
 """Manual-only JSON editor, preview report, and publish action."""
 
-import html
-from typing import Any, Mapping, MutableMapping
+from typing import Any, MutableMapping
+
+from googleapiclient.errors import HttpError
+from youtube_account import YoutubeVideoNotFoundError
 
 from localizations import parse_localizations_json
 from state.manual_state import (
@@ -18,6 +20,21 @@ def _render_errors(issues) -> None:
     for issue in issues:
         path = issue.path or "document"
         st.error("{}: {}".format(path, issue.message))
+
+
+def _render_service_error(error: Exception) -> None:
+    import streamlit as st
+
+    if isinstance(error, YoutubeVideoNotFoundError):
+        st.error("The selected video was not found. Refresh the list and select it again.")
+        return
+    if isinstance(error, HttpError):
+        details = getattr(error, "error_details", None) or []
+        reason = details[0].get("reason") if details and isinstance(details[0], dict) else None
+        if reason == "quotaExceeded":
+            st.error("YouTube API quota is exhausted. Wait for the quota reset before trying again.")
+            return
+    st.error("YouTube could not complete this localization request. Check the connection and try again.")
 
 
 def _render_report(result: Any) -> None:
@@ -44,16 +61,16 @@ def _render_report(result: Any) -> None:
                 st.markdown("**Before**")
                 st.code(
                     "title: {}\ndescription: {}".format(
-                        html.escape(diff.existing.title),
-                        html.escape(diff.existing.description),
+                        diff.existing.title,
+                        diff.existing.description,
                     ),
                     language="text",
                 )
             st.markdown("**After**")
             st.code(
                 "title: {}\ndescription: {}".format(
-                    html.escape(diff.submitted.title),
-                    html.escape(diff.submitted.description),
+                    diff.submitted.title,
+                    diff.submitted.description,
                 ),
                 language="text",
             )
@@ -110,13 +127,14 @@ def render_manual_editor(
     if preview_clicked:
         state["operation_status"] = "previewing"
         try:
-            store_manual_preview(state, service.preview(video.id, raw_json))
+            with st.spinner("Comparing with the current YouTube state..."):
+                store_manual_preview(state, service.preview(video.id, raw_json))
             state["operation_status"] = "idle"
             st.rerun()
-        except Exception:
+        except Exception as error:
             state["operation_status"] = "idle"
             state["operation_error"] = "youtube_api"
-            st.error("Could not preview the current YouTube localization state.")
+            _render_service_error(error)
 
     if publish_clicked:
         if not manual_preview_is_current(state):
@@ -124,17 +142,19 @@ def render_manual_editor(
         else:
             state["operation_status"] = "publishing"
             try:
-                result = service.publish(video.id, raw_json)
+                with st.spinner("Publishing localization changes..."):
+                    result = service.publish(video.id, raw_json)
                 store_manual_preview(state, result)
                 state["operation_status"] = "idle"
                 if result.wrote:
+                    state["published"] = True
                     st.success("Localization changes published successfully.")
                 else:
                     st.info("No localization changes were found.")
-            except Exception:
+            except Exception as error:
                 state["operation_status"] = "idle"
                 state["operation_error"] = "youtube_api"
-                st.error("Could not publish localization changes.")
+                _render_service_error(error)
 
     result = state.get("preview_result")
     if result is not None:

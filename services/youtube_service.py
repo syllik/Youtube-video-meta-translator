@@ -57,6 +57,8 @@ class YoutubeService:
     ) -> MachinePublishResult:
         before_trimmed = getattr(self.account, "videos_trimmed", 0)
         before_skipped = getattr(self.account, "videos_skipped", 0)
+        if hasattr(self.account, "errorStr"):
+            self.account.errorStr = ""
         self.account.set_video_localization(
             video_id,
             language_code,

@@ -75,7 +75,7 @@ With `.venv` active:
 
 ```bash
 python -m pip check
-python -c "import flask, grpc, deepl, dotenv, googleapiclient, google_auth_oauthlib; print('Dependencies: OK')"
+python -c "import streamlit, grpc, deepl, dotenv, googleapiclient, google_auth_oauthlib; print('Dependencies: OK')"
 ```
 
 `pip check` should not report broken requirements. Do not install a package
@@ -89,7 +89,7 @@ older Google Translation code.
 ```bash
 cd /path/to/Youtube-video-meta-translator
 source .venv/bin/activate
-python app.py
+streamlit run streamlit_app.py
 ```
 
 ### Windows PowerShell
@@ -97,25 +97,24 @@ python app.py
 ```powershell
 cd C:\path\to\Youtube-video-meta-translator
 .\.venv\Scripts\Activate.ps1
-python app.py
+streamlit run streamlit_app.py
 ```
 
 The application uses two local ports:
 
 - `8080` — temporary Google OAuth callback;
-- `5001` — the Flask web application.
+- `8501` — the Streamlit web application.
 
-Open [http://127.0.0.1:5001](http://127.0.0.1:5001) after Flask starts. Do not
-open port `5000`; on some macOS installations another service uses it.
+Open [http://127.0.0.1:8501](http://127.0.0.1:8501) after Streamlit starts.
 
 ## 6️⃣ First authorization / Первая авторизация
 
-1. Run `python app.py` from the project root.
+1. Run `streamlit run streamlit_app.py` from the project root.
 2. Sign in with the Google account added as an OAuth test user.
 3. Review and approve the requested YouTube permissions.
 4. Let Google redirect to the local callback on port `8080`.
 5. Wait for the terminal to finish its initial YouTube requests.
-6. Open `http://127.0.0.1:5001`.
+6. Open `http://127.0.0.1:8501`.
 
 Keep the terminal open while the app is running. Press `Control+C` there to
 stop it. After authorization, `token.json` is created in the project root and
@@ -126,4 +125,4 @@ and migrated to the safer JSON format.
 
 - [Configure Google Cloud and optional providers](configuration.md)
 - [Use the manual JSON editor](manual-localizations.md)
-- [Use the existing translation workflow](legacy-translation.md)
+- [Use the machine translation workflow](legacy-translation.md)

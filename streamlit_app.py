@@ -1,15 +1,18 @@
 """Streamlit entry point and shared page bootstrap."""
 
-import os
 from typing import Any, MutableMapping
 
 import streamlit as st
-from dotenv import load_dotenv
 
 
 PAGE_TITLES = {
     "machine": "Machine translate",
     "manual": "Manual translate",
+}
+
+PAGE_DESCRIPTIONS = {
+    "machine": "Translate several videos and languages with DeepL or Google fallback.",
+    "manual": "Review prepared localization JSON for one video before publishing it.",
 }
 
 
@@ -48,7 +51,13 @@ def render_common_page_context(mode: str):
 
     from googleapiclient.errors import HttpError
 
-    from state.common_state import clamp_selection, init_common_state, load_video_page
+    from models import YouTubePage
+    from state.common_state import (
+        clamp_selection,
+        init_common_state,
+        load_video_page,
+        reset_video_cache,
+    )
     from ui.channel_header import render_channel_header
     from ui.feedback import render_feedback
     from ui.pagination import (
@@ -61,6 +70,8 @@ def render_common_page_context(mode: str):
         raise ValueError("Unknown application mode: {}".format(mode))
     configure_page(page_title(mode))
     apply_app_styles()
+    st.title(page_title(mode))
+    st.caption(PAGE_DESCRIPTIONS[mode])
     init_common_state(st.session_state)
     query = parse_pagination_query(st.query_params)
     service = None
@@ -71,13 +82,22 @@ def render_common_page_context(mode: str):
             channel = service.fetch_channel()
             st.session_state["common.channel"] = channel
         normalized = clamp_selection(query, channel.total_videos)
+        previous_limit = st.session_state.get("common.active_limit")
+        if previous_limit is not None and previous_limit != normalized.limit:
+            reset_video_cache(st.session_state)
+        st.session_state["common.active_limit"] = normalized.limit
         if canonical_pagination_query(normalized) != {
             "page": str(st.query_params.get("page", "")),
             "limit": str(st.query_params.get("limit", "")),
         }:
             st.query_params.update(canonical_pagination_query(normalized))
             st.rerun()
-        page = load_video_page(service, st.session_state, normalized)
+        with st.spinner("Loading channel videos..."):
+            page = (
+                YouTubePage(videos=(), next_page_token=None)
+                if channel.total_videos <= 0
+                else load_video_page(service, st.session_state, normalized)
+            )
     except HttpError as error:
         reason = ""
         details = getattr(error, "error_details", None) or []
@@ -100,10 +120,9 @@ def render_common_page_context(mode: str):
         selection: Any
 
     def refresh():
-        from state.common_state import reset_video_cache
-
         reset_video_cache(st.session_state)
         st.session_state["common.channel"] = None
+        st.session_state["common.active_limit"] = None
         st.rerun()
 
     render_channel_header(channel, refresh)

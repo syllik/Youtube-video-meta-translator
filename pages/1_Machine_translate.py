@@ -4,7 +4,7 @@ import streamlit as st
 
 from services.machine_translation_service import MachineTranslationService
 from state.machine_state import init_machine_state
-from streamlit_app import get_youtube_service, render_common_page_context
+from streamlit_app import render_common_page_context
 from ui.feedback import render_feedback
 from ui.machine_controls import render_machine_controls
 from ui.pagination import render_pagination
@@ -44,7 +44,7 @@ def _render_result(result):
     if result.trimmed:
         st.info("Trimmed {} text value(s).".format(result.trimmed))
     for error in result.errors:
-        render_feedback(error.message, "error")
+        render_feedback(error.message, error.error_type)
 
 
 def render_machine_page() -> None:
@@ -53,33 +53,43 @@ def render_machine_page() -> None:
         return
 
     state = init_machine_state(st.session_state)
-    st.title("Machine translate")
-    st.caption("Translate several videos and languages using DeepL or Google Translation.")
     if context.selection.limit == "all":
+        previous_select_all = bool(state.get("select_all_channel"))
         select_all_channel = st.checkbox(
             "Select all channel videos",
             value=bool(state.get("select_all_channel")),
             key="machine-select-all-channel",
         )
         state["select_all_channel"] = select_all_channel
+        if previous_select_all and not select_all_channel:
+            state["selected_video_ids"] = set()
         if select_all_channel:
             state["selected_video_ids"] = {video.id for video in context.page.videos}
 
     language_options = context.service.code_to_name
-    options, clicked = render_machine_controls(state, language_options)
+    options, clicked = render_machine_controls(
+        state,
+        language_options,
+        disabled=state.get("operation_status") == "running",
+    )
     render_video_list(context.page.videos, "machine", state, {})
+    if state.get("select_all_channel") and state.get("selected_video_ids") != {
+        video.id for video in context.page.videos
+    }:
+        state["select_all_channel"] = False
     render_pagination(context.selection, context.channel.total_videos, st.query_params)
 
     if clicked:
         state["operation_status"] = "running"
         try:
-            result = get_machine_translation_service(
-                st.session_state, context.service
-            ).translate_and_publish(
-                sorted(state["selected_video_ids"]),
-                sorted(state["selected_language_codes"]),
-                options,
-            )
+            with st.spinner("Translating selected videos..."):
+                result = get_machine_translation_service(
+                    st.session_state, context.service
+                ).translate_and_publish(
+                    sorted(state["selected_video_ids"]),
+                    sorted(state["selected_language_codes"]),
+                    options,
+                )
             state["operation_result"] = result
             state["operation_status"] = "idle"
             from state.common_state import reset_video_cache
@@ -95,7 +105,4 @@ def render_machine_page() -> None:
         _render_result(state["operation_result"])
 
 
-if __name__ == "__main__":
-    render_machine_page()
-else:
-    render_machine_page()
+render_machine_page()

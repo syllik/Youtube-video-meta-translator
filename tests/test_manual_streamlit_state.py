@@ -1,7 +1,9 @@
 import unittest
+from types import SimpleNamespace
 
 from state.manual_state import (
     manual_can_publish,
+    manual_fingerprint,
     manual_preview_is_current,
     set_manual_json,
     set_manual_video,
@@ -34,6 +36,19 @@ class ManualStateTests(unittest.TestCase):
         set_manual_json(state, "new")
 
         self.assertIsNone(state["preview_result"])
+        self.assertFalse(manual_can_publish(state))
+
+    def test_published_preview_cannot_be_submitted_again(self):
+        state = {
+            "selected_video_id": "video-1",
+            "raw_json": "new",
+            "preview_fingerprint": manual_fingerprint("video-1", "new"),
+            "preview_result": SimpleNamespace(
+                plan=SimpleNamespace(is_valid=True, has_changes=True)
+            ),
+            "published": True,
+        }
+
         self.assertFalse(manual_can_publish(state))
 
 

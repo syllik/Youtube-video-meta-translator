@@ -47,11 +47,11 @@ Use a non-empty JSON object keyed by YouTube language code:
 Regional codes such as `pt-BR` and `zh-CN` remain regional codes. Do not put
 `video_id`, channel data, or unrelated metadata inside this JSON.
 
-## 3️⃣ Edit and validate automatically
+## 3️⃣ Edit and validate locally
 
-After every JSON change, the form validates the current text for the selected
-video automatically. A short debounce prevents a request on every keystroke,
-while each completed edit is checked before any YouTube write. The report shows:
+After every JSON change, the form validates the current text locally. Click
+**Preview changes** to compare the valid document with the selected video's
+current YouTube state. The report shows:
 
 - `added` — the language does not exist yet;
 - `changed` — title or description differs;
@@ -99,11 +99,11 @@ The editor reports the language and field path, for example `ja.title`.
 - bulk manual editing of multiple videos;
 - automatic AI, DeepL, or Google translation generation.
 
-The existing automatic translator remains available separately. See
-[Legacy translation](legacy-translation.md).
+The machine translator remains available as a separate workflow. See
+[Machine translation](legacy-translation.md).
 
 ## ➡️ Next step
 
-- [Run the existing automatic translator](legacy-translation.md)
+- [Run the machine translation workflow](legacy-translation.md)
 - [Handle errors](troubleshooting.md)
 - [Read the complete product context](manual-localization-editor-context.md)

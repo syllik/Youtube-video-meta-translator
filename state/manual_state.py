@@ -10,6 +10,7 @@ MANUAL_DEFAULTS = {
     "local_validation": None,
     "preview_result": None,
     "preview_fingerprint": None,
+    "published": False,
     "operation_status": "idle",
     "operation_error": None,
 }
@@ -32,6 +33,7 @@ def manual_fingerprint(video_id: Optional[str], raw_json: str) -> Optional[Tuple
 def _clear_preview(state: MutableMapping[str, Any]) -> None:
     state["preview_result"] = None
     state["preview_fingerprint"] = None
+    state["published"] = False
     state["operation_error"] = None
 
 
@@ -52,6 +54,7 @@ def store_manual_preview(state: MutableMapping[str, Any], result: Any) -> None:
     state["preview_fingerprint"] = manual_fingerprint(
         state.get("selected_video_id"), state.get("raw_json", "")
     )
+    state["published"] = False
     state["operation_error"] = None
 
 
@@ -67,4 +70,8 @@ def manual_can_publish(state: Mapping[str, Any]) -> bool:
     if not manual_preview_is_current(state):
         return False
     result = state["preview_result"]
-    return bool(result.plan.is_valid and result.plan.has_changes)
+    return bool(
+        not state.get("published")
+        and result.plan.is_valid
+        and result.plan.has_changes
+    )

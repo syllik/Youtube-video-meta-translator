@@ -3,7 +3,10 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Optional, Sequence, Tuple
 
+from googleapiclient.errors import HttpError
+
 from google_translate import TranslationError
+from youtube_account import YoutubeVideoNotFoundError
 
 
 @dataclass(frozen=True)
@@ -56,10 +59,23 @@ class MachineTranslationService:
         for video_id in video_ids:
             try:
                 video = self.youtube.get_video_with_localizations(video_id)
-            except Exception:
+            except YoutubeVideoNotFoundError:
                 errors.append(MachineError(
                     str(video_id), None, "video_not_found",
-                    "The selected video could not be loaded.",
+                    "The selected video could not be found. Refresh the list and try again.",
+                ))
+                continue
+            except HttpError as error:
+                error_type = self._http_error_type(error)
+                errors.append(MachineError(
+                    str(video_id), None, error_type,
+                    self._http_error_message(error_type),
+                ))
+                continue
+            except Exception:
+                errors.append(MachineError(
+                    str(video_id), None, "youtube_api",
+                    "YouTube could not load the selected video.",
                 ))
                 continue
 
@@ -91,9 +107,23 @@ class MachineTranslationService:
                     ))
                     continue
 
-                publish_result = self.youtube.publish_machine_localization(
-                    str(video_id), str(language_code), title, description, options.trim
-                )
+                try:
+                    publish_result = self.youtube.publish_machine_localization(
+                        str(video_id), str(language_code), title, description, options.trim
+                    )
+                except HttpError as error:
+                    error_type = self._http_error_type(error)
+                    errors.append(MachineError(
+                        str(video_id), str(language_code), error_type,
+                        self._http_error_message(error_type),
+                    ))
+                    continue
+                except Exception:
+                    errors.append(MachineError(
+                        str(video_id), str(language_code), "youtube_api",
+                        "YouTube could not publish this localization.",
+                    ))
+                    continue
                 trimmed += publish_result.trimmed
                 skipped += publish_result.skipped
                 if publish_result.error_type:
@@ -154,3 +184,15 @@ class MachineTranslationService:
         if error_type == "defaultLanguageNotSet":
             return "Set the original video language in YouTube before translating."
         return "YouTube could not publish this localization."
+
+    @staticmethod
+    def _http_error_type(error):
+        details = getattr(error, "error_details", None) or []
+        reason = details[0].get("reason") if details and isinstance(details[0], dict) else None
+        return "quota_exceeded" if reason == "quotaExceeded" else "youtube_api"
+
+    @staticmethod
+    def _http_error_message(error_type):
+        if error_type == "quota_exceeded":
+            return "YouTube API quota is exhausted. Wait for the quota reset before trying again."
+        return "YouTube could not complete this request. Check the connection and try again."

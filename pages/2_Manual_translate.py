@@ -16,8 +16,6 @@ def render_manual_page() -> None:
         return
 
     state = init_manual_state(st.session_state)
-    st.title("Manual translate")
-    st.caption("Review prepared localization JSON for one video before publishing it to YouTube.")
     selection = render_video_list(context.page.videos, "manual", {}, state)
     video = next(
         (candidate for candidate in context.page.videos
@@ -39,7 +37,4 @@ def render_manual_page() -> None:
     render_pagination(context.selection, context.channel.total_videos, st.query_params)
 
 
-if __name__ == "__main__":
-    render_manual_page()
-else:
-    render_manual_page()
+render_manual_page()

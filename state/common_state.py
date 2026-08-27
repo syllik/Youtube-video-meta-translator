@@ -11,6 +11,7 @@ def init_common_state(state: MutableMapping[str, Any]) -> MutableMapping[str, An
     state.setdefault("common.page_tokens_by_limit", {})
     state.setdefault("common.video_pages_by_limit", {})
     state.setdefault("common.channel", None)
+    state.setdefault("common.active_limit", None)
     state.setdefault("common.load_error", None)
     return state
 

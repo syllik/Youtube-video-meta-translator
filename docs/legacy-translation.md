@@ -1,7 +1,7 @@
-# 🔁 Legacy translation / Старый переводчик
+# 🔁 Machine translation / Машинный перевод
 
-The original DeepL/Google translation workflow remains available. Use this
-guide when you want automatic translation instead of prepared JSON.
+Use this guide when you want automatic title and description translation
+instead of prepared JSON.
 
 ⬅️ [Back to documentation](README.md) · ➡️ [Troubleshooting](troubleshooting.md)
 
@@ -9,14 +9,14 @@ guide when you want automatic translation instead of prepared JSON.
 
 Before translating a whole channel:
 
-1. Open [http://127.0.0.1:5001](http://127.0.0.1:5001).
-2. Keep the page size small.
-3. Select one video.
+1. Run `streamlit run streamlit_app.py` and open the **Machine translate** page.
+2. Keep the page size at 10 or 20 for the first test.
+3. Select one video with its checkbox.
 4. Select one target language.
 5. Enable DeepL only when `.env` contains a valid `DEEPL_API_KEY`.
 6. Leave overwrite disabled unless you intentionally want to replace an
    existing localization.
-7. Start the translation.
+7. Click **Translate selected videos**.
 8. Check the result in YouTube Studio.
 
 The app translates video titles and descriptions, not subtitles or audio
@@ -38,8 +38,8 @@ enabled, the app shortens the title or description before publishing.
 
 ## ⚠️ Existing behavior
 
-This is the maintained legacy path for automatic translations. It is separate
-from the manual JSON editor, which is the preferred path when the final text
-has already been prepared by a person.
+This is the machine translation page. It is separate from the manual JSON
+editor, which is the preferred path when the final text has already been
+prepared by a person.
 
 ➡️ [Use the manual JSON workflow instead](manual-localizations.md)
