@@ -94,6 +94,68 @@ Titles are limited to 100 characters and descriptions to 5,000 characters.
 No OpenAI or other LLM API key is required. The live catalog and publishing
 use the existing Google OAuth setup; see [Configuration](configuration.md).
 
+## Optional local Codex CLI automation
+
+The existing Streamlit prompt/upload workflow remains unchanged. For repeated
+local generation, the optional helper uses an installed Codex CLI with saved
+local authentication and hands its direct JSON output to **Manual translate**.
+It does not create a third application workflow, integrate a provider into the
+app, or publish to YouTube.
+
+Authenticate with ChatGPT sign-in before running it:
+
+```bash
+codex login
+codex login status
+```
+
+No OpenAI API key is required. The helper removes `OPENAI_API_KEY` and
+`CODEX_API_KEY` from the child process environment, while retaining the local
+Codex authentication context. Usage is subject to the signed-in Codex/ChatGPT
+plan limits; this workflow is not free or unlimited.
+
+For every run, the helper fetches the current video and a fresh live YouTube
+language catalog through the existing YouTube OAuth service. Only the default
+`snippet.title`, `snippet.description`, and `snippet.defaultLanguage` (when
+available), together with the current target batch, are sent to Codex. Existing
+translations are never sent. Only currently missing non-default catalog targets
+are generated, in sequential batches of at most 10 languages, with one retry
+for a failed batch.
+
+The generated file is a direct localization JSON map intended for review and
+publishing through **Manual translate**, not the exact-selected-batch LLM
+uploader. Preview and Publish remain explicit actions in Streamlit; the helper
+never auto-publishes.
+
+Cheap first smoke run:
+
+```bash
+npm run youtube:codex-localize -- \
+  --video-id VIDEO_ID \
+  --max-languages 2 \
+  --output localizations-smoke.json
+```
+
+Full run:
+
+```bash
+npm run youtube:codex-localize -- \
+  --video-id VIDEO_ID
+```
+
+Controlled run:
+
+```bash
+npm run youtube:codex-localize -- \
+  --video-id VIDEO_ID \
+  --batch-size 5 \
+  --max-languages 10 \
+  --output localizations.json
+```
+
+Smaller batches create more Codex calls. The default batch size of 10
+minimizes call count while matching the current LLM batch bounds.
+
 ## Safe publishing
 
 After upload, inspect and edit the JSON in the form. Click **Preview changes**

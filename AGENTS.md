@@ -24,6 +24,11 @@
 - The LLM workflow has no provider integration, API key, environment setting,
   or dependency. It copies a prompt for an external LLM; the user downloads
   that LLM's JSON result and uploads it back to the app.
+- The optional `generate_codex_localizations.py` helper is local CLI automation,
+  not a third application workflow or an in-app LLM provider integration. It may
+  invoke an installed Codex CLI using saved local authentication, but it must
+  never require provider API-key environment variables or publish to YouTube.
+  Its generated direct localization JSON is reviewed through Manual translate.
 - Progress is `current / total` from live YouTube state, excluding the selected
   video's default language. The supporting LLM Translation prompt page offers
   only currently missing live-catalog languages, selects the first ten by

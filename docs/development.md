@@ -19,6 +19,9 @@ Youtube-video-meta-translator/
 ├── models.py                        # Shared immutable data models
 ├── language_catalog.py              # Validated live YouTube language catalog
 ├── llm_localization_package.py     # LLM context, prompt, schema, and validation
+├── codex_localization_runner.py      # Isolated non-interactive Codex batch call
+├── codex_localization_generator.py   # Missing-target batching/retry/merge
+├── generate_codex_localizations.py   # Optional local CLI entry point
 ├── youtube_account.py               # YouTube OAuth, listing, and publishing
 ├── localizations.py                 # JSON validation, diff, and merge logic
 ├── localization_service.py          # Manual/LLM preview and publish orchestration
@@ -44,14 +47,14 @@ Activate `.venv`, then run:
 python -m unittest discover -s tests -v
 ```
 
-The suite uses mocks and does not require live YouTube or LLM credentials.
-A real YouTube smoke test is intentionally separate because publishing changes
-an external channel.
+The suite mocks both Codex and YouTube, consumes no Codex quota, and does not
+require live YouTube or LLM credentials. A real YouTube smoke test is
+intentionally separate because publishing changes an external channel.
 
 ## 🧹 Run local checks
 
 ```bash
-python -m compileall -q streamlit_app.py pages models.py language_catalog.py llm_localization_package.py services state ui youtube_account.py localizations.py localization_service.py tests
+python -m compileall -q streamlit_app.py pages models.py language_catalog.py llm_localization_package.py codex_localization_runner.py codex_localization_generator.py generate_codex_localizations.py services state ui youtube_account.py localizations.py localization_service.py tests
 git diff --check
 git diff --cached --check
 python -m pip check

@@ -15,6 +15,11 @@ preview-before-publish flow. The sidebar remains available on both workflows
 and on the supporting LLM Translation prompt page, so the selected video is
 shared everywhere.
 
+For repeated local generation, an optional Codex CLI helper can automate the
+same missing-language work outside Streamlit. It produces direct localization
+JSON for review through **Manual translate**; it is not a third application
+workflow and never publishes by itself. See [LLM localizations](docs/llm-localizations.md).
+
 ## 🧭 Start here
 
 👉 **[Open the documentation hub](docs/README.md)** to choose a path.
