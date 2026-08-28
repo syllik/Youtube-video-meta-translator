@@ -1,6 +1,6 @@
 """Manual-only JSON editor, preview report, and publish action."""
 
-from typing import Any, MutableMapping
+from typing import Any, Callable, MutableMapping, Optional
 
 from googleapiclient.errors import HttpError
 from youtube_account import YoutubeVideoNotFoundError
@@ -81,6 +81,8 @@ def render_manual_editor(
     video: Any,
     service: Any,
     supported_language_codes,
+    widget_prefix: str = "manual",
+    on_published: Optional[Callable[[], None]] = None,
 ) -> None:
     import streamlit as st
 
@@ -92,11 +94,13 @@ def render_manual_editor(
         '{\n  "de": {\n    "title": "German title",\n    "description": "German description"\n  }\n}',
         language="json",
     )
+    editor_key = "{}-localizations-json".format(widget_prefix)
+    if editor_key not in st.session_state:
+        st.session_state[editor_key] = state.get("raw_json", "")
     raw_json = st.text_area(
         "Localizations JSON",
-        value=state.get("raw_json", ""),
         height=300,
-        key="manual-localizations-json",
+        key=editor_key,
         placeholder="Paste a JSON object keyed by YouTube language code",
     )
     set_manual_json(state, raw_json)
@@ -115,13 +119,13 @@ def render_manual_editor(
             "Preview changes",
             type="primary",
             disabled=not bool(video and parsed.is_valid),
-            key="manual-preview-changes",
+            key="{}-preview-changes".format(widget_prefix),
         )
     with publish_col:
         publish_clicked = st.button(
             "Publish changes",
             disabled=not manual_can_publish(state),
-            key="manual-publish-changes",
+            key="{}-publish-changes".format(widget_prefix),
         )
 
     if preview_clicked:
@@ -149,6 +153,8 @@ def render_manual_editor(
                 if result.wrote:
                     state["published"] = True
                     st.success("Localization changes published successfully.")
+                    if on_published is not None:
+                        on_published()
                 else:
                     st.info("No localization changes were found.")
             except Exception as error:
