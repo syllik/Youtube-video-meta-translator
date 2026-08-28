@@ -331,17 +331,37 @@ class YoutubeApi:
             pageToken=page_token
         ).execute()
 
+        playlist_items = videos_response.get("items", [])
+        video_ids = [
+            item["snippet"]["resourceId"]["videoId"] for item in playlist_items
+        ]
+        metadata_by_id = {}
+        if video_ids:
+            metadata_response = self.youtube.videos().list(
+                part="snippet,localizations",
+                id=",".join(video_ids),
+            ).execute()
+            metadata_by_id = {
+                item["id"]: item
+                for item in metadata_response.get("items", [])
+                if item.get("id")
+            }
+
         videos = []
-        for item in videos_response.get("items", []):
+        for item in playlist_items:
+            snippet = item["snippet"]
             video_id = item["snippet"]["resourceId"]["videoId"]
-            localizations, default_language = self.get_video_localization_metadata(
-                video_id
-            )
+            metadata = metadata_by_id.get(video_id, {})
+            metadata_snippet = metadata.get("snippet") or {}
+            localizations = list((metadata.get("localizations") or {}).keys())
+            default_language = metadata_snippet.get("defaultLanguage")
             videos.append(Video(
-                item["snippet"]["title"],
+                snippet.get("title", ""),
                 video_id,
-                item["snippet"]["description"],
-                item["snippet"]["thumbnails"]["default"]["url"],
+                snippet.get("description", ""),
+                ((snippet.get("thumbnails") or {}).get("default") or {}).get(
+                    "url", ""
+                ),
                 localizations,
                 default_language,
             ))

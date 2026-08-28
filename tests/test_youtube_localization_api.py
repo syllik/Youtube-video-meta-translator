@@ -5,6 +5,56 @@ from youtube_account import YoutubeApi, YoutubeVideoNotFoundError
 
 
 class YoutubeLocalizationApiTests(unittest.TestCase):
+    def test_video_page_batches_metadata_and_preserves_playlist_order(self):
+        account = object.__new__(YoutubeApi)
+        account.youtube = Mock()
+        account.uploads_id = "uploads-1"
+        account.youtube.playlistItems.return_value.list.return_value.execute.return_value = {
+            "items": [
+                {
+                    "snippet": {
+                        "title": "First",
+                        "description": "First description",
+                        "resourceId": {"videoId": "video-1"},
+                        "thumbnails": {"default": {"url": "thumb-1"}},
+                    }
+                },
+                {
+                    "snippet": {
+                        "title": "Second",
+                        "description": "Second description",
+                        "resourceId": {"videoId": "video-2"},
+                        "thumbnails": {"default": {"url": "thumb-2"}},
+                    }
+                },
+            ]
+        }
+        account.youtube.videos.return_value.list.return_value.execute.return_value = {
+            "items": [
+                {
+                    "id": "video-2",
+                    "snippet": {"defaultLanguage": "fr"},
+                    "localizations": {"de": {}},
+                },
+                {
+                    "id": "video-1",
+                    "snippet": {"defaultLanguage": "en"},
+                    "localizations": {"es": {}},
+                },
+            ]
+        }
+
+        page = account.fetch_video_page(10)
+
+        self.assertEqual([video.id for video in page["videos"]], ["video-1", "video-2"])
+        self.assertEqual(page["videos"][0].default_language_code, "en")
+        self.assertEqual(page["videos"][0].current_languages, ["es"])
+        self.assertEqual(page["videos"][1].default_language_code, "fr")
+        self.assertEqual(page["videos"][1].current_languages, ["de"])
+        account.youtube.videos.return_value.list.assert_called_once_with(
+            part="snippet,localizations", id="video-1,video-2"
+        )
+
     def test_channel_setup_reads_details_and_uploads_playlist_in_one_request(self):
         account = object.__new__(YoutubeApi)
         account.youtube = Mock()
@@ -48,6 +98,7 @@ class YoutubeLocalizationApiTests(unittest.TestCase):
         }
         account.youtube.videos.return_value.list.return_value.execute.return_value = {
             "items": [{
+                "id": "video-1",
                 "snippet": {"defaultLanguage": "en"},
                 "localizations": {"de": {"title": "DE", "description": "DE"}},
             }]
@@ -59,6 +110,30 @@ class YoutubeLocalizationApiTests(unittest.TestCase):
         account.youtube.videos.return_value.list.assert_called_once_with(
             part="snippet,localizations", id="video-1"
         )
+
+    def test_video_page_keeps_playlist_card_when_metadata_is_missing(self):
+        account = object.__new__(YoutubeApi)
+        account.youtube = Mock()
+        account.uploads_id = "uploads-1"
+        account.youtube.playlistItems.return_value.list.return_value.execute.return_value = {
+            "items": [{
+                "snippet": {
+                    "title": "Title",
+                    "description": "Description",
+                    "resourceId": {"videoId": "video-1"},
+                    "thumbnails": {"default": {"url": "thumb"}},
+                }
+            }]
+        }
+        account.youtube.videos.return_value.list.return_value.execute.return_value = {
+            "items": []
+        }
+
+        page = account.fetch_video_page(10)
+
+        self.assertEqual(len(page["videos"]), 1)
+        self.assertEqual(page["videos"][0].current_languages, [])
+        self.assertIsNone(page["videos"][0].default_language_code)
 
     def test_get_video_with_localizations_requests_both_required_parts(self):
         account = object.__new__(YoutubeApi)
