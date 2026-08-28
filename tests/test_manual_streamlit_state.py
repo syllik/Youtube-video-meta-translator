@@ -1,7 +1,7 @@
 import sys
 import unittest
 from contextlib import nullcontext
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 from ui import llm_package
@@ -13,6 +13,7 @@ from state.manual_state import (
     set_manual_video,
 )
 from ui.manual_editor import render_manual_editor
+from language_catalog import YouTubeLanguage, YouTubeLanguageCatalog
 
 
 class _FakeStreamlit:
@@ -46,6 +47,41 @@ class _FakeStreamlit:
 
     def spinner(self, *_args, **_kwargs):
         return nullcontext()
+
+
+class _RerunRequested(Exception):
+    pass
+
+
+class _FakeUploadedFile:
+    def __init__(self, content):
+        self.content = content
+
+    def getvalue(self):
+        return self.content
+
+
+def _fake_llm_streamlit(uploaded_file):
+    streamlit = ModuleType("streamlit")
+    streamlit.session_state = {}
+    streamlit.markdown = lambda *_args, **_kwargs: None
+    streamlit.caption = lambda *_args, **_kwargs: None
+    streamlit.success = lambda *_args, **_kwargs: None
+    streamlit.code = lambda *_args, **_kwargs: None
+    streamlit.error = lambda *_args, **_kwargs: None
+    streamlit.button = lambda *_args, **_kwargs: False
+    streamlit.file_uploader = lambda *_args, **_kwargs: uploaded_file
+
+    def rerun():
+        raise _RerunRequested()
+
+    streamlit.rerun = rerun
+    components = ModuleType("streamlit.components")
+    components_v1 = ModuleType("streamlit.components.v1")
+    components_v1.html = lambda *_args, **_kwargs: None
+    components.v1 = components_v1
+    streamlit.components = components
+    return streamlit, components, components_v1
 
 
 def _publishable_state(raw_json):
@@ -95,6 +131,55 @@ class ManualStateTests(unittest.TestCase):
 
         self.assertFalse(result.is_valid)
         self.assertEqual(state["raw_json"], "old editor value")
+
+    def test_persisted_valid_upload_is_consumed_once_then_editor_can_render(self):
+        state = {
+            "prompt_video_id": "video-1",
+            "prompt_target_codes": ("de",),
+            "prompt_text": "translate this",
+            "raw_json": "",
+        }
+        video_resource = {
+            "id": "video-1",
+            "snippet": {
+                "defaultLanguage": "en",
+                "title": "Waterfall",
+                "description": "Wind",
+            },
+            "localizations": {},
+        }
+        catalog = YouTubeLanguageCatalog(
+            source="test",
+            fetched_at="2026-08-28T00:00:00.000Z",
+            hl="ru",
+            languages=(
+                YouTubeLanguage("en", "en", "English"),
+                YouTubeLanguage("de", "de", "German"),
+            ),
+        )
+        uploaded_file = _FakeUploadedFile(
+            b'{"de":{"title":"Wasserfall","description":"Wind"}}'
+        )
+        streamlit, components, components_v1 = _fake_llm_streamlit(uploaded_file)
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        with patch.dict(sys.modules, modules):
+            with self.assertRaises(_RerunRequested):
+                llm_package.render_llm_translation_controls(state, video_resource, catalog)
+
+            try:
+                llm_package.render_llm_translation_controls(state, video_resource, catalog)
+            except _RerunRequested:
+                self.fail("persisted upload requested another rerun before the editor")
+
+        self.assertEqual(
+            state["raw_json"],
+            '{\n  "de": {\n    "title": "Wasserfall",\n    "description": "Wind"\n  }\n}',
+        )
 
     def test_post_publish_callback_runs_after_a_write(self):
         raw_json = '{"de": {"title": "German", "description": "Text"}}'

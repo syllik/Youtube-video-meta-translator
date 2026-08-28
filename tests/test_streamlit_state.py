@@ -81,18 +81,27 @@ class StreamlitStateTests(unittest.TestCase):
 
     def test_setting_and_clearing_llm_prompt_keeps_prompt_metadata_together(self):
         state = init_llm_state({})
+        state["consumed_upload_context"] = ("video-1", ("de",), "hash")
+        state["upload_issue_context"] = ("video-1", ("de",), "invalid-hash")
+        state["upload_issues"] = (object(),)
 
         set_llm_prompt(state, "video-1", ["de", "fr"], "translate this")
 
         self.assertEqual(state["prompt_video_id"], "video-1")
         self.assertEqual(state["prompt_target_codes"], ("de", "fr"))
         self.assertEqual(state["prompt_text"], "translate this")
+        self.assertIsNone(state["consumed_upload_context"])
+        self.assertIsNone(state["upload_issue_context"])
+        self.assertEqual(state["upload_issues"], ())
 
         clear_llm_prompt(state)
 
         self.assertIsNone(state["prompt_video_id"])
         self.assertEqual(state["prompt_target_codes"], ())
         self.assertEqual(state["prompt_text"], "")
+        self.assertIsNone(state["consumed_upload_context"])
+        self.assertIsNone(state["upload_issue_context"])
+        self.assertEqual(state["upload_issues"], ())
 
 
 if __name__ == "__main__":

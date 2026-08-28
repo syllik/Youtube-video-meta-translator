@@ -8,6 +8,9 @@ LLM_DEFAULTS = {
     "prompt_video_id": None,
     "prompt_target_codes": (),
     "prompt_text": "",
+    "consumed_upload_context": None,
+    "upload_issue_context": None,
+    "upload_issues": (),
     "scroll_to_prompt": False,
     "raw_json": "",
     "local_validation": None,
@@ -32,6 +35,13 @@ def clear_llm_prompt(state: MutableMapping[str, Any]) -> None:
     state["prompt_video_id"] = None
     state["prompt_target_codes"] = ()
     state["prompt_text"] = ""
+    _clear_llm_upload_state(state)
+
+
+def _clear_llm_upload_state(state: MutableMapping[str, Any]) -> None:
+    state["consumed_upload_context"] = None
+    state["upload_issue_context"] = None
+    state["upload_issues"] = ()
 
 
 def _clear_llm_form(state: MutableMapping[str, Any]) -> None:
@@ -63,3 +73,4 @@ def set_llm_prompt(
     state["prompt_video_id"] = video_id
     state["prompt_target_codes"] = tuple(target_codes)
     state["prompt_text"] = prompt
+    _clear_llm_upload_state(state)
