@@ -5,6 +5,7 @@ from state.llm_state import (
     clear_llm_prompt,
     init_llm_state,
     set_llm_prompt,
+    set_llm_selected_codes,
     set_llm_video,
 )
 from state.manual_state import init_manual_state
@@ -32,6 +33,7 @@ class StreamlitStateTests(unittest.TestCase):
                 "selected_video_id": "video-1",
                 "prompt_video_id": "video-1",
                 "prompt_target_codes": ("de",),
+                "selected_target_codes": ("de",),
                 "prompt_text": "old prompt",
                 "raw_json": '{"de": {}}',
                 "local_validation": object(),
@@ -39,7 +41,7 @@ class StreamlitStateTests(unittest.TestCase):
                 "preview_fingerprint": ("video-1", "fingerprint"),
                 "published": True,
                 "operation_status": "idle",
-                "operation_error": "openai",
+                "operation_error": "youtube_api",
             }
         )
 
@@ -56,7 +58,8 @@ class StreamlitStateTests(unittest.TestCase):
         self.assertFalse(state["published"])
         self.assertEqual(state["operation_status"], "idle")
         self.assertIsNone(state["operation_error"])
-        self.assertTrue(state["scroll_to_prompt"])
+        self.assertEqual(state["selected_target_codes"], ())
+        self.assertTrue(state["scroll_to_form"])
 
     def test_selecting_same_llm_video_keeps_current_prompt_and_form(self):
         state = init_llm_state({})
@@ -65,9 +68,10 @@ class StreamlitStateTests(unittest.TestCase):
                 "selected_video_id": "video-1",
                 "prompt_video_id": "video-1",
                 "prompt_target_codes": ("de",),
+                "selected_target_codes": ("de",),
                 "prompt_text": "current prompt",
                 "raw_json": '{"de": {}}',
-                "scroll_to_prompt": False,
+                "scroll_to_form": False,
             }
         )
 
@@ -77,10 +81,24 @@ class StreamlitStateTests(unittest.TestCase):
         self.assertEqual(state["prompt_target_codes"], ("de",))
         self.assertEqual(state["prompt_text"], "current prompt")
         self.assertEqual(state["raw_json"], '{"de": {}}')
-        self.assertFalse(state["scroll_to_prompt"])
+        self.assertEqual(state["selected_target_codes"], ("de",))
+        self.assertFalse(state["scroll_to_form"])
+
+    def test_selected_codes_are_stored_only_for_current_llm_video(self):
+        state = init_llm_state({})
+        state["selected_video_id"] = "video-1"
+
+        set_llm_selected_codes(state, "video-1", ["de", "fr"])
+
+        self.assertEqual(state["selected_target_codes"], ("de", "fr"))
+
+        set_llm_selected_codes(state, "video-2", ["es"])
+
+        self.assertEqual(state["selected_target_codes"], ("de", "fr"))
 
     def test_setting_and_clearing_llm_prompt_keeps_prompt_metadata_together(self):
         state = init_llm_state({})
+        state["selected_target_codes"] = ("de", "fr")
         state["consumed_upload_context"] = ("video-1", ("de",), "hash")
         state["upload_issue_context"] = ("video-1", ("de",), "invalid-hash")
         state["upload_issues"] = (object(),)
@@ -99,6 +117,7 @@ class StreamlitStateTests(unittest.TestCase):
         self.assertIsNone(state["prompt_video_id"])
         self.assertEqual(state["prompt_target_codes"], ())
         self.assertEqual(state["prompt_text"], "")
+        self.assertEqual(state["selected_target_codes"], ())
         self.assertIsNone(state["consumed_upload_context"])
         self.assertIsNone(state["upload_issue_context"])
         self.assertEqual(state["upload_issues"], ())

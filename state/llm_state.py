@@ -7,11 +7,12 @@ LLM_DEFAULTS = {
     "selected_video_id": None,
     "prompt_video_id": None,
     "prompt_target_codes": (),
+    "selected_target_codes": (),
     "prompt_text": "",
     "consumed_upload_context": None,
     "upload_issue_context": None,
     "upload_issues": (),
-    "scroll_to_prompt": False,
+    "scroll_to_form": False,
     "raw_json": "",
     "local_validation": None,
     "preview_result": None,
@@ -23,8 +24,9 @@ LLM_DEFAULTS = {
 
 
 def init_llm_state(session_state: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-    """Create the LLM namespace without constructing the OpenAI client."""
+    """Create the isolated LLM namespace without provider state."""
     state = session_state.setdefault("llm", {})
+    state.pop("scroll_to_prompt", None)
     for key, default in LLM_DEFAULTS.items():
         state.setdefault(key, default)
     return state
@@ -34,6 +36,7 @@ def clear_llm_prompt(state: MutableMapping[str, Any]) -> None:
     """Clear prompt metadata that belongs to a previous LLM selection."""
     state["prompt_video_id"] = None
     state["prompt_target_codes"] = ()
+    state["selected_target_codes"] = ()
     state["prompt_text"] = ""
     _clear_llm_upload_state(state)
 
@@ -60,7 +63,15 @@ def set_llm_video(state: MutableMapping[str, Any], video_id: Optional[str]) -> N
         state["selected_video_id"] = video_id
         clear_llm_prompt(state)
         _clear_llm_form(state)
-        state["scroll_to_prompt"] = True
+        state["scroll_to_form"] = True
+
+
+def set_llm_selected_codes(
+    state: MutableMapping[str, Any], video_id: str, target_codes: Sequence[str]
+) -> None:
+    """Persist a target selection only when it belongs to the active video."""
+    if state.get("selected_video_id") == video_id:
+        state["selected_target_codes"] = tuple(target_codes)
 
 
 def set_llm_prompt(
@@ -72,5 +83,6 @@ def set_llm_prompt(
     """Store the generated prompt with its selected video and language targets."""
     state["prompt_video_id"] = video_id
     state["prompt_target_codes"] = tuple(target_codes)
+    state["selected_target_codes"] = tuple(target_codes)
     state["prompt_text"] = prompt
     _clear_llm_upload_state(state)

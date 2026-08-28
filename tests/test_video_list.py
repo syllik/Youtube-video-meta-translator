@@ -5,13 +5,7 @@ from models import VideoSummary
 from state.llm_state import init_llm_state
 from state.manual_state import init_manual_state
 from ui.video_list import (
-    MACHINE_SELECT_ALL_CHANNEL_KEY,
-    MACHINE_SELECT_ALL_ROW_CHANGE_KEY,
-    checkbox_widget_kwargs,
     render_video_list,
-    stateful_checkbox_kwargs,
-    sync_visible_checkbox_state,
-    visible_selected_video_ids,
     widget_key,
 )
 
@@ -62,57 +56,9 @@ class VideoListTests(unittest.TestCase):
             widget_key("llm", "video-42"), widget_key("manual", "video-42")
         )
 
-    def test_machine_widget_key_remains_stable(self):
-        self.assertEqual(widget_key("machine", "video-42"), "machine-video-video-42")
-
-    def test_machine_widget_helpers_remain_public_and_preserve_bulk_selection(self):
-        widget_state = {}
-
-        sync_visible_checkbox_state(
-            widget_state, ("video-1", "video-2"), {"video-2"}
-        )
-
-        self.assertEqual(MACHINE_SELECT_ALL_CHANNEL_KEY, "machine-select-all-channel")
-        self.assertEqual(
-            MACHINE_SELECT_ALL_ROW_CHANGE_KEY, "machine-select-all-row-change"
-        )
-        self.assertFalse(widget_state[widget_key("machine", "video-1")])
-        self.assertTrue(widget_state[widget_key("machine", "video-2")])
-        self.assertEqual(
-            visible_selected_video_ids(
-                ("video-1", "video-2"), {"video-2", "video-99"}
-            ),
-            {"video-2"},
-        )
-        self.assertNotIn(
-            "value", checkbox_widget_kwargs({widget_key("machine", "video-1"): True}, "video-1", set())
-        )
-        self.assertNotIn(
-            "value",
-            stateful_checkbox_kwargs(
-                {"channel-select-all": True},
-                "channel-select-all",
-                "Select all channel videos",
-                False,
-            ),
-        )
-
-    def test_machine_selection_supports_the_legacy_four_argument_contract(self):
-        streamlit = _FakeStreamlit("not-clicked")
-        video = VideoSummary(
-            id="video-1",
-            title="First video",
-            description="",
-            thumbnail_url="",
-            current_language_codes=(),
-        )
-
-        with patch.dict("sys.modules", {"streamlit": streamlit}):
-            selection = render_video_list(
-                (video,), "machine", {"selected_video_ids": {"video-1"}}, {}
-            )
-
-        self.assertEqual(selection.selected_video_ids, ("video-1",))
+    def test_removed_video_list_mode_is_rejected(self):
+        with self.assertRaises(ValueError):
+            widget_key("ma" + "chine", "video-42")
 
     def test_manual_selection_supports_legacy_four_argument_contract_and_result(self):
         state = init_manual_state({})
@@ -157,7 +103,7 @@ class VideoListTests(unittest.TestCase):
         self.assertEqual(state["selected_video_id"], "video-2")
         self.assertEqual(state["prompt_target_codes"], ())
         self.assertEqual(state["raw_json"], "")
-        self.assertTrue(state["scroll_to_prompt"])
+        self.assertTrue(state["scroll_to_form"])
 
     def test_manual_selection_keeps_manual_form_contents(self):
         state = init_manual_state({})
