@@ -75,11 +75,23 @@ class StreamlitBootstrapTests(unittest.TestCase):
             "responses" + ".create",
         )
         self.assertIn("st.file_uploader", source)
-        self.assertIn("Generate prompt for next 10 languages", source)
         self.assertIn("parse_llm_upload_json", source)
         self.assertIn("st.code", source)
         for symbol in removed_provider_symbols:
             self.assertNotIn(symbol, source)
+
+    def test_llm_translation_controls_are_upload_only(self):
+        source = Path("ui/llm_package.py").read_text()
+
+        self.assertIn('id="llm-translation-form"', source)
+        self.assertIn("st.page_link", source)
+        self.assertIn("st.file_uploader", source)
+        self.assertIn("parse_llm_upload_json", source)
+        self.assertIn("prompt_target_codes", source)
+        self.assertNotIn("Generate prompt", source)
+        self.assertNotIn("build_llm_translation_package", source)
+        self.assertNotIn("build_llm_translation_prompt", source)
+        self.assertNotIn("select_next_llm_languages", source)
 
     def test_llm_guide_keeps_existing_localizations_out_of_external_context(self):
         guide = Path("docs/llm-localizations.md").read_text()

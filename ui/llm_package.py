@@ -5,11 +5,8 @@ import json
 from typing import Any, MutableMapping, Sequence
 
 from llm_localization_package import (
-    build_llm_translation_package,
-    build_llm_translation_prompt,
     calculate_llm_translation_progress,
     parse_llm_upload_json,
-    select_next_llm_languages,
 )
 from localizations import LocalizationIssue, ParsedLocalizations
 from state.llm_state import set_llm_prompt
@@ -67,57 +64,41 @@ def render_llm_translation_controls(
     catalog,
     widget_prefix: str = "llm",
 ) -> None:
-    """Show progress, a prompt for the next batch, and local JSON upload."""
+    """Show progress, prompt-page handoff, and local JSON upload."""
     import streamlit as st
     import streamlit.components.v1 as components
 
-    st.markdown(
-        '<div id="llm-translation-controls"></div>', unsafe_allow_html=True
-    )
-    if state.get("scroll_to_prompt"):
+    st.markdown('<div id="llm-translation-form"></div>', unsafe_allow_html=True)
+    if state.get("scroll_to_form"):
         components.html(
             '<script>window.parent.document.getElementById('
-            '"llm-translation-controls").scrollIntoView({behavior: "smooth"});'
+            '"llm-translation-form").scrollIntoView({behavior: "smooth"});'
             "</script>",
             height=0,
         )
-        state["scroll_to_prompt"] = False
+        state["scroll_to_form"] = False
 
     progress = calculate_llm_translation_progress(video_resource, catalog)
-    next_languages = select_next_llm_languages(progress)
     st.caption(
         "YouTube translations: {} / {}".format(progress.current, progress.total)
     )
     st.caption("Missing translations: {}".format(progress.missing_count))
+    st.page_link(
+        "pages/3_LLM_prompt.py",
+        label="LLM Translation prompt",
+    )
     if not progress.missing:
         st.success("All supported YouTube localizations are complete.")
         return
 
-    generate_clicked = st.button(
-        "Generate prompt for next 10 languages",
-        type="primary",
-        key="{}-generate-prompt".format(widget_prefix),
-    )
-    if generate_clicked:
-        package = build_llm_translation_package(video_resource, next_languages)
-        prompt = build_llm_translation_prompt(package)
-        set_llm_prompt(
-            state,
-            video_resource["id"],
-            [language.code for language in next_languages],
-            prompt,
-        )
-        st.rerun()
-
+    prompt_video_id = state.get("prompt_video_id")
     target_codes = state.get("prompt_target_codes", ())
     prompt = state.get("prompt_text", "")
-    if not target_codes or not prompt:
+    if prompt_video_id != video_resource.get("id") or not target_codes or not prompt:
         return
 
-    snippet = video_resource.get("snippet") or {}
-    st.markdown("**Default title:** {}".format(snippet.get("title", "")))
-    st.markdown("**Default description:** {}".format(snippet.get("description", "")))
-    st.code(prompt, language="text")
+    st.caption("Selected languages: {}".format(", ".join(target_codes)))
+    st.caption("Prompt is ready on the supporting LLM Translation prompt page.")
 
     uploaded_file = st.file_uploader(
         "Upload JSON file",
