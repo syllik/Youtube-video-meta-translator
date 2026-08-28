@@ -1,6 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "youtube:languages": "python3 youtube_languages/fetch_youtube_languages.py"
+    "youtube:languages": "python3 youtube_languages/fetch_youtube_languages.py",
+    "youtube:codex-localize": "python3 generate_codex_localizations.py"
   }
 }
