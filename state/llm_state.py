@@ -4,7 +4,7 @@ from typing import Any, MutableMapping, Optional, Sequence
 
 
 LLM_DEFAULTS = {
-    "selected_video_id": None,
+    "bound_video_id": None,
     "prompt_video_id": None,
     "prompt_target_codes": (),
     "selected_target_codes": (),
@@ -27,6 +27,7 @@ LLM_DEFAULTS = {
 def init_llm_state(session_state: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     """Create the isolated LLM namespace without provider state."""
     state = session_state.setdefault("llm", {})
+    state.pop("selected_video_id", None)
     state.pop("scroll_to_prompt", None)
     for key, default in LLM_DEFAULTS.items():
         state.setdefault(key, default)
@@ -59,20 +60,20 @@ def _clear_llm_form(state: MutableMapping[str, Any]) -> None:
     state["operation_error"] = None
 
 
-def set_llm_video(state: MutableMapping[str, Any], video_id: Optional[str]) -> None:
-    """Select an LLM video and discard form state for a different video."""
-    if state.get("selected_video_id") != video_id:
-        state["selected_video_id"] = video_id
+def sync_llm_video(state: MutableMapping[str, Any], video_id: Optional[str]) -> None:
+    """Bind LLM form state to the current shared video selection."""
+    if state.get("bound_video_id") != video_id:
+        state["bound_video_id"] = video_id
         clear_llm_prompt(state)
         _clear_llm_form(state)
-        state["scroll_to_form"] = True
+        state["scroll_to_form"] = bool(video_id)
 
 
 def set_llm_selected_codes(
     state: MutableMapping[str, Any], video_id: str, target_codes: Sequence[str]
 ) -> None:
     """Persist a target selection only when it belongs to the active video."""
-    if state.get("selected_video_id") == video_id:
+    if state.get("bound_video_id") == video_id:
         state["selected_target_codes"] = tuple(target_codes)
         state["selected_target_codes_initialized"] = True
 

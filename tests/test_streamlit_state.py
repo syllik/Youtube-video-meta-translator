@@ -1,28 +1,32 @@
 import unittest
 
-from state.common_state import init_common_state
+from state.common_state import init_common_state, set_selected_video_id
 from state.llm_state import (
     clear_llm_prompt,
     init_llm_state,
     set_llm_prompt,
     set_llm_selected_codes,
-    set_llm_video,
+    sync_llm_video,
 )
-from state.manual_state import init_manual_state
+from state.manual_state import init_manual_state, sync_manual_video
 
 
 class StreamlitStateTests(unittest.TestCase):
-    def test_mode_state_is_separate_from_common_state(self):
+    def test_workflows_bind_to_one_common_video_selection(self):
         session = {}
 
         init_common_state(session)
         llm = init_llm_state(session)
         manual = init_manual_state(session)
-        llm["selected_video_id"] = "video-1"
-        manual["selected_video_id"] = "video-2"
+        set_selected_video_id(session, "video-1")
+        sync_llm_video(llm, session["common.selected_video_id"])
+        sync_manual_video(manual, session["common.selected_video_id"])
 
-        self.assertEqual(session["llm"]["selected_video_id"], "video-1")
-        self.assertEqual(session["manual"]["selected_video_id"], "video-2")
+        self.assertEqual(session["common.selected_video_id"], "video-1")
+        self.assertEqual(session["llm"]["bound_video_id"], "video-1")
+        self.assertEqual(session["manual"]["bound_video_id"], "video-1")
+        self.assertNotIn("selected_video_id", session["llm"])
+        self.assertNotIn("selected_video_id", session["manual"])
         self.assertNotIn("selected_video_ids", session["common.channel"] or {})
 
     def test_switching_llm_video_clears_prompt_and_uploaded_json(self):
@@ -30,7 +34,7 @@ class StreamlitStateTests(unittest.TestCase):
         preview = object()
         state.update(
             {
-                "selected_video_id": "video-1",
+                "bound_video_id": "video-1",
                 "prompt_video_id": "video-1",
                 "prompt_target_codes": ("de",),
                 "selected_target_codes": ("de",),
@@ -45,9 +49,9 @@ class StreamlitStateTests(unittest.TestCase):
             }
         )
 
-        set_llm_video(state, "video-2")
+        sync_llm_video(state, "video-2")
 
-        self.assertEqual(state["selected_video_id"], "video-2")
+        self.assertEqual(state["bound_video_id"], "video-2")
         self.assertIsNone(state["prompt_video_id"])
         self.assertEqual(state["prompt_target_codes"], ())
         self.assertEqual(state["prompt_text"], "")
@@ -65,7 +69,7 @@ class StreamlitStateTests(unittest.TestCase):
         state = init_llm_state({})
         state.update(
             {
-                "selected_video_id": "video-1",
+                "bound_video_id": "video-1",
                 "prompt_video_id": "video-1",
                 "prompt_target_codes": ("de",),
                 "selected_target_codes": ("de",),
@@ -75,7 +79,7 @@ class StreamlitStateTests(unittest.TestCase):
             }
         )
 
-        set_llm_video(state, "video-1")
+        sync_llm_video(state, "video-1")
 
         self.assertEqual(state["prompt_video_id"], "video-1")
         self.assertEqual(state["prompt_target_codes"], ("de",))
@@ -86,7 +90,7 @@ class StreamlitStateTests(unittest.TestCase):
 
     def test_selected_codes_are_stored_only_for_current_llm_video(self):
         state = init_llm_state({})
-        state["selected_video_id"] = "video-1"
+        state["bound_video_id"] = "video-1"
 
         set_llm_selected_codes(state, "video-1", ["de", "fr"])
 

@@ -1,6 +1,6 @@
 """Shared Streamlit state for channel data and cursor-backed video pages."""
 
-from typing import Any, MutableMapping
+from typing import Any, MutableMapping, Optional
 
 from models import PageLimit, YouTubePage
 from ui.pagination import PaginationSelection, total_pages
@@ -13,7 +13,25 @@ def init_common_state(state: MutableMapping[str, Any]) -> MutableMapping[str, An
     state.setdefault("common.channel", None)
     state.setdefault("common.active_limit", None)
     state.setdefault("common.load_error", None)
+    state.setdefault("common.selected_video_id", None)
     return state
+
+
+def get_selected_video_id(state: MutableMapping[str, Any]) -> Optional[str]:
+    """Return the video selected across all workflows."""
+    init_common_state(state)
+    return state.get("common.selected_video_id")
+
+
+def set_selected_video_id(
+    state: MutableMapping[str, Any], video_id: Optional[str]
+) -> bool:
+    """Set the shared selected video and report whether it changed."""
+    init_common_state(state)
+    if state.get("common.selected_video_id") == video_id:
+        return False
+    state["common.selected_video_id"] = video_id
+    return True
 
 
 def reset_video_cache(state: MutableMapping[str, Any]) -> None:

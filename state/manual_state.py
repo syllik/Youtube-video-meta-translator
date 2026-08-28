@@ -5,7 +5,7 @@ from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 
 MANUAL_DEFAULTS = {
-    "selected_video_id": None,
+    "bound_video_id": None,
     "scroll_to_form": False,
     "raw_json": "",
     "local_validation": None,
@@ -19,6 +19,7 @@ MANUAL_DEFAULTS = {
 
 def init_manual_state(session_state: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     state = session_state.setdefault("manual", {})
+    state.pop("selected_video_id", None)
     for key, default in MANUAL_DEFAULTS.items():
         state.setdefault(key, default)
     return state
@@ -38,11 +39,12 @@ def _clear_preview(state: MutableMapping[str, Any]) -> None:
     state["operation_error"] = None
 
 
-def set_manual_video(state: MutableMapping[str, Any], video_id: Optional[str]) -> None:
-    if state.get("selected_video_id") != video_id:
-        state["selected_video_id"] = video_id
+def sync_manual_video(state: MutableMapping[str, Any], video_id: Optional[str]) -> None:
+    """Bind Manual form state to the current shared video selection."""
+    if state.get("bound_video_id") != video_id:
+        state["bound_video_id"] = video_id
         _clear_preview(state)
-        state["scroll_to_form"] = True
+        state["scroll_to_form"] = bool(video_id)
 
 
 def set_manual_json(state: MutableMapping[str, Any], raw_json: str) -> None:
@@ -54,7 +56,7 @@ def set_manual_json(state: MutableMapping[str, Any], raw_json: str) -> None:
 def store_manual_preview(state: MutableMapping[str, Any], result: Any) -> None:
     state["preview_result"] = result
     state["preview_fingerprint"] = manual_fingerprint(
-        state.get("selected_video_id"), state.get("raw_json", "")
+        state.get("bound_video_id"), state.get("raw_json", "")
     )
     state["published"] = False
     state["operation_error"] = None
@@ -64,7 +66,7 @@ def manual_preview_is_current(state: Mapping[str, Any]) -> bool:
     return bool(
         state.get("preview_result") is not None
         and state.get("preview_fingerprint")
-        == manual_fingerprint(state.get("selected_video_id"), state.get("raw_json", ""))
+        == manual_fingerprint(state.get("bound_video_id"), state.get("raw_json", ""))
     )
 
 
