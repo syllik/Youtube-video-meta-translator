@@ -208,12 +208,6 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# The language catalog is generated from the official YouTube API and is safe
-# to keep as a project artifact. Other JSON files remain ignored by default.
-!data/
-!data/youtube-languages.json
-!package.json
-
 # Marimo
 marimo/_static/
 marimo/_lsp/
