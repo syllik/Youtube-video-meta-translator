@@ -1,7 +1,6 @@
 """Supporting page for selecting LLM targets and copying a prompt."""
 
 import html
-import json
 from typing import Any, Mapping, MutableMapping, Tuple
 
 from llm_localization_package import (
@@ -40,21 +39,6 @@ def _render_free_web_llms() -> None:
     )
 
 
-def _clipboard_script(prompt: str) -> str:
-    serialized = json.dumps(prompt, ensure_ascii=False)
-    safe_serialized = (
-        serialized.replace("<", "\\u003c")
-        .replace(">", "\\u003e")
-        .replace("&", "\\u0026")
-    )
-    return (
-        "<script>"
-        "const promptText = {};"
-        "navigator.clipboard.writeText(promptText);"
-        "</script>"
-    ).format(safe_serialized)
-
-
 def _default_target_codes(state: Mapping[str, Any], progress) -> Tuple[str, ...]:
     available = {language.code.casefold(): language.code for language in progress.missing}
     stored = tuple(state.get("selected_target_codes") or ())
@@ -74,7 +58,6 @@ def render_llm_prompt_page(
 ) -> None:
     """Render missing-language selection, prompt copy, and web-LLM links."""
     import streamlit as st
-    import streamlit.components.v1 as components
 
     video_id = state.get("selected_video_id") or video_resource.get("id")
     if not video_id:
@@ -132,15 +115,6 @@ def render_llm_prompt_page(
     prompt = build_llm_translation_prompt(package)
     set_llm_prompt(state, video_id, canonical_codes, prompt)
 
-    st.text_area(
-        "Prompt",
-        value=prompt,
-        height=420,
-        disabled=True,
-        key="llm-prompt-text",
-    )
-    if st.button("Copy prompt", type="primary", key="llm-copy-prompt"):
-        components.html(_clipboard_script(prompt), height=0)
-        st.success("Copy request sent to the browser clipboard.")
+    st.code(prompt, language="text")
 
     _render_free_web_llms()

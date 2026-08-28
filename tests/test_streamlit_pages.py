@@ -69,7 +69,8 @@ class StreamlitBootstrapTests(unittest.TestCase):
 
         self.assertIn("render_llm_prompt_page", prompt_source)
         self.assertIn("st.multiselect", ui_source)
-        self.assertIn("Copy prompt", ui_source)
+        self.assertIn('st.code(prompt, language="text")', ui_source)
+        self.assertNotIn("Copy prompt", ui_source)
         self.assertNotIn("file_uploader", ui_source)
         self.assertNotIn("render_manual_editor", ui_source)
         for provider_url in (

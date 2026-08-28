@@ -13,6 +13,7 @@ class _FakeStreamlit:
         self.copy_clicked = copy_clicked
         self.multiselect_calls = []
         self.text_area_calls = []
+        self.code_calls = []
         self.messages = []
 
     def caption(self, value, **_kwargs):
@@ -31,6 +32,9 @@ class _FakeStreamlit:
     def text_area(self, label, **kwargs):
         self.text_area_calls.append((label, kwargs))
         return kwargs.get("value", "")
+
+    def code(self, body, **kwargs):
+        self.code_calls.append((body, kwargs))
 
     def button(self, _label, **_kwargs):
         return self.copy_clicked
@@ -151,19 +155,19 @@ class LlmPromptPageTests(unittest.TestCase):
         self.assertEqual(state["prompt_text"], "old prompt")
         self.assertTrue(any(kind == "error" for kind, _ in fake.messages))
 
-    def test_copy_prompt_requests_clipboard_and_reports_success(self):
+    def test_prompt_is_rendered_in_a_native_copyable_code_block(self):
         from ui.llm_prompt import render_llm_prompt_page
 
-        fake = _FakeStreamlit(selected_codes=("code-2",), copy_clicked=True)
+        fake = _FakeStreamlit(selected_codes=("code-2",))
         state = {"selected_video_id": "video-1", "selected_target_codes": ()}
 
         with patch.dict(sys.modules, self._streamlit_modules(fake)):
             render_llm_prompt_page(state, self.video_resource, self.catalog)
 
-        html_calls = [message for message in fake.messages if message[0] == "html"]
-        self.assertEqual(len(html_calls), 1)
-        self.assertIn("navigator.clipboard", html_calls[0][1][0])
-        self.assertTrue(any(message[0] == "success" for message in fake.messages))
+        self.assertEqual(len(fake.text_area_calls), 0)
+        self.assertEqual(len(fake.code_calls), 1)
+        self.assertEqual(fake.code_calls[0][1], {"language": "text"})
+        self.assertEqual(fake.code_calls[0][0], state["prompt_text"])
 
 
 if __name__ == "__main__":
