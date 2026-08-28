@@ -25,11 +25,12 @@ class StreamlitBootstrapTests(unittest.TestCase):
 
     def test_only_manual_and_llm_workflow_pages_are_exposed(self):
         root_source = Path("streamlit_app.py").read_text()
+        removed_mode = "ma" + "chine"
 
         self.assertIn('"manual"', root_source)
         self.assertIn('"llm"', root_source)
-        self.assertNotIn('"machine"', root_source)
-        self.assertFalse(Path("pages/1_Machine_translate.py").exists())
+        self.assertNotIn('"{}"'.format(removed_mode), root_source)
+        self.assertFalse(Path("pages/1_" + "Machine_translate.py").exists())
         self.assertTrue(Path("pages/1_Manual_translate.py").exists())
         self.assertTrue(Path("pages/2_LLM_translate.py").exists())
 
@@ -46,7 +47,27 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertIn("render_manual_editor", source)
         self.assertIn("catalog.codes", source)
 
-    def test_llm_ui_uses_prompt_generation_and_local_json_upload(self):
+    def test_supporting_llm_prompt_page_has_selection_and_external_links_only(self):
+        prompt_source = Path("pages/3_LLM_prompt.py").read_text()
+        ui_source = Path("ui/llm_prompt.py").read_text()
+
+        self.assertIn("render_llm_prompt_page", prompt_source)
+        self.assertIn("st.multiselect", ui_source)
+        self.assertIn("Copy prompt", ui_source)
+        self.assertNotIn("file_uploader", ui_source)
+        self.assertNotIn("render_manual_editor", ui_source)
+        for provider_url in (
+            "https://chatgpt.com/",
+            "https://gemini.google.com/",
+            "https://claude.ai/",
+            "https://copilot.microsoft.com/",
+            "https://www.perplexity.ai/",
+            "https://chat.mistral.ai/",
+        ):
+            self.assertIn(provider_url, ui_source)
+        self.assertIn('target="_blank"', ui_source)
+
+    def test_llm_ui_uses_local_json_upload(self):
         source = Path("ui/llm_package.py").read_text()
         removed_provider_symbols = (
             "Open" + "AITranslationService",
@@ -59,6 +80,22 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertIn("st.code", source)
         for symbol in removed_provider_symbols:
             self.assertNotIn(symbol, source)
+
+    def test_llm_guide_keeps_existing_localizations_out_of_external_context(self):
+        guide = Path("docs/llm-localizations.md").read_text()
+
+        self.assertIn(
+            "Existing localizations are used only for progress and missing-target calculation.",
+            guide,
+        )
+        self.assertNotIn("- existing `localizations`", guide)
+        self.assertNotIn("supporting context", guide)
+
+    def test_llm_page_copy_describes_external_prompt_workflow(self):
+        source = Path("streamlit_app.py").read_text()
+
+        self.assertIn("Copy a prompt for an external LLM", source)
+        self.assertNotIn("Open" + "AI", source)
 
     def test_requirements_do_not_declare_openai(self):
         dependency_lines = Path("requirements.txt").read_text().splitlines()
