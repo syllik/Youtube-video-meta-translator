@@ -65,7 +65,9 @@ def _fake_llm_streamlit(uploaded_file):
     streamlit = ModuleType("streamlit")
     streamlit.session_state = {}
     streamlit.calls = []
-    streamlit.markdown = lambda *_args, **_kwargs: None
+    streamlit.markdown = lambda *args, **kwargs: streamlit.calls.append(
+        ("markdown", args, kwargs)
+    )
     streamlit.caption = lambda *args, **_kwargs: streamlit.calls.append(
         ("caption", args)
     )
@@ -229,8 +231,17 @@ class ManualStateTests(unittest.TestCase):
                 state, video_resource, catalog
             )
 
-        self.assertIn(
-            ("caption", ("Selected languages: fr, de",)), streamlit.calls
+        self.assertTrue(
+            any(
+                kind == "markdown" and "localization-badge" in args[0]
+                for kind, args, *_rest in streamlit.calls
+            )
+        )
+        self.assertFalse(
+            any(
+                kind == "caption" and "Missing translations" in args[0]
+                for kind, args, *_rest in streamlit.calls
+            )
         )
         self.assertTrue(any(call[0] == "file_uploader" for call in streamlit.calls))
 

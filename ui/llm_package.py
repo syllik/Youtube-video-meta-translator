@@ -10,6 +10,7 @@ from llm_localization_package import (
 )
 from localizations import LocalizationIssue, ParsedLocalizations
 from state.manual_state import set_manual_json
+from ui.badges import render_language_badges
 
 
 def apply_llm_upload(
@@ -81,7 +82,6 @@ def render_llm_translation_controls(
     st.caption(
         "YouTube translations: {} / {}".format(progress.current, progress.total)
     )
-    st.caption("Missing translations: {}".format(progress.missing_count))
     st.page_link(
         "pages/3_LLM_prompt.py",
         label="LLM Translation prompt",
@@ -96,8 +96,7 @@ def render_llm_translation_controls(
     if prompt_video_id != video_resource.get("id") or not target_codes or not prompt:
         return
 
-    st.caption("Selected languages: {}".format(", ".join(target_codes)))
-    st.caption("Prompt is ready on the supporting LLM Translation prompt page.")
+    render_language_badges(target_codes, label="Selected languages")
     st.code(
         '{\n  "de": {\n    "title": "Translated title",\n    "description": "Translated description"\n  }\n}',
         language="json",
