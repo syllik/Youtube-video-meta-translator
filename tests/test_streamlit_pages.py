@@ -48,12 +48,23 @@ class StreamlitBootstrapTests(unittest.TestCase):
 
     def test_llm_ui_uses_prompt_generation_and_local_json_upload(self):
         source = Path("ui/llm_package.py").read_text()
+        removed_provider_symbols = (
+            "Open" + "AITranslationService",
+            "OPEN" + "AI_API_KEY",
+            "responses" + ".create",
+        )
         self.assertIn("st.file_uploader", source)
         self.assertIn("Generate prompt for next 10 languages", source)
         self.assertIn("parse_llm_upload_json", source)
         self.assertIn("st.code", source)
-        self.assertNotIn("OpenAITranslationService", source)
-        self.assertNotIn("OPENAI_API_KEY", source)
+        for symbol in removed_provider_symbols:
+            self.assertNotIn(symbol, source)
+
+    def test_requirements_do_not_declare_openai(self):
+        dependency_lines = Path("requirements.txt").read_text().splitlines()
+        self.assertFalse(
+            any(line.lstrip().startswith("openai") for line in dependency_lines)
+        )
 
     def test_manual_video_selection_uses_card_buttons_not_radio(self):
         source = Path("ui/video_list.py").read_text()

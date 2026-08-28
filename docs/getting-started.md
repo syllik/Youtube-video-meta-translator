@@ -10,11 +10,11 @@ Google authorization.
 - A Google account with access to the YouTube channel.
 - Python 3.12 (recommended and tested for this project).
 - A browser on the same computer.
-- An OAuth client JSON file for YouTube; see [Configuration](configuration.md).
-- Optional: a DeepL API key or Google Cloud Translation credentials.
+- A YouTube OAuth client JSON file; see [Configuration](configuration.md).
+- No OpenAI or other LLM API key is required for **LLM translate**.
 
 The application changes YouTube metadata on your behalf. Start with one video
-and one language until you have checked the result in YouTube Studio.
+and check the result in YouTube Studio before larger work.
 
 ## 1️⃣ Install on macOS or Linux
 
@@ -31,7 +31,7 @@ Then run these commands from the project folder:
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install --only-binary=grpcio -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 For a later terminal session, activate the existing environment:
@@ -48,11 +48,11 @@ cd C:\path\to\Youtube-video-meta-translator
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install --only-binary=grpcio -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 If PowerShell refuses to activate the environment, run this once in the same
-PowerShell window and repeat the activation command:
+PowerShell window and repeat activation:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
@@ -66,8 +66,9 @@ Follow [Configuration](configuration.md) and place the OAuth file at:
 config/account_client_secrets_main.json
 ```
 
-Do not use a plain API key for YouTube. This app needs OAuth permission to read
-and update channel data.
+The LLM workflow uses the same OAuth session as Manual translate. It creates a
+copyable prompt for an external LLM and validates the downloaded JSON file when
+you upload it; no provider API key is configured in this project.
 
 ## 4️⃣ Check the environment
 
@@ -75,12 +76,11 @@ With `.venv` active:
 
 ```bash
 python -m pip check
-python -c "import streamlit, grpc, deepl, dotenv, googleapiclient, google_auth_oauthlib; print('Dependencies: OK')"
+python -c "import streamlit, googleapiclient, google_auth_oauthlib; print('Dependencies: OK')"
 ```
 
-`pip check` should not report broken requirements. Do not install a package
-named `pkg_resources`; the project pins a compatible Setuptools version for
-older Google Translation code.
+`pip check` should not report broken requirements. A `pkg_resources is
+deprecated` warning from an older Google dependency is not a fatal error.
 
 ## 5️⃣ Start the application
 
@@ -100,11 +100,6 @@ cd C:\path\to\Youtube-video-meta-translator
 streamlit run streamlit_app.py
 ```
 
-The application uses two local ports:
-
-- `8080` — temporary Google OAuth callback;
-- `8501` — the Streamlit web application.
-
 Open [http://127.0.0.1:8501](http://127.0.0.1:8501) after Streamlit starts.
 
 ## 6️⃣ First authorization
@@ -114,7 +109,7 @@ Open [http://127.0.0.1:8501](http://127.0.0.1:8501) after Streamlit starts.
 3. Review and approve the requested YouTube permissions.
 4. Let Google redirect to the local callback on port `8080`.
 5. Wait for the terminal to finish its initial YouTube requests.
-6. Open `http://127.0.0.1:8501`.
+6. Open the local Streamlit page.
 
 Keep the terminal open while the app is running. Press `Control+C` there to
 stop it. After authorization, `token.json` is created in the project root and
@@ -123,6 +118,6 @@ and migrated to the safer JSON format.
 
 ## ➡️ Next step
 
-- [Configure Google Cloud and optional providers](configuration.md)
-- [Use the manual JSON editor](manual-localizations.md)
-- [Use the machine translation workflow](legacy-translation.md)
+- [Use Manual translate](manual-localizations.md)
+- [Use LLM translate](llm-localizations.md)
+- [Troubleshoot setup](troubleshooting.md)

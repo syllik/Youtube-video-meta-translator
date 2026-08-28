@@ -1,7 +1,6 @@
 # 🔐 Configuration
 
-This guide explains Google Cloud, YouTube OAuth, Google Cloud Translation,
-DeepL, and the local files they use.
+This guide explains the YouTube OAuth setup used by both workflows.
 
 ⬅️ [Back to documentation](README.md) · ⬅️ [Getting started](getting-started.md)
 
@@ -11,15 +10,13 @@ DeepL, and the local files they use.
 2. Create a project or select an existing one, for example
    `youtube-video-translator`.
 3. Enable [YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com).
-4. If you want the Google Translate fallback for machine translation, enable
-   [Cloud Translation API](https://console.cloud.google.com/apis/library/translate.googleapis.com).
 
-Translation usage may require billing or consume free credits. Check the
-quotas and billing pages in your Google Cloud project.
+The app uses one authenticated YouTube OAuth session for listing videos,
+fetching the live `i18nLanguages.list` catalog, reading localizations, and
+publishing updates. It does not need a separate YouTube API key for the
+integrated app flow.
 
 ## 2️⃣ Configure the OAuth consent screen
-
-The consent screen controls which Google account may authorize this local app.
 
 1. Open [Google Auth Platform → Branding](https://console.cloud.google.com/auth/branding).
 2. Select the same project if prompted.
@@ -41,80 +38,46 @@ application is normal for a private local tool.
 5. Download the JSON file.
 
 Do not choose **Web application** and do not create a plain API key for this
-step. The app uses Google's installed-application OAuth flow. See Google's
+step. The app uses Google's installed-application OAuth flow for video access,
+the live catalog, and publishing. See Google's
 [installed-app OAuth guide](https://developers.google.com/youtube/v3/guides/auth/installed-apps).
 
 ## 4️⃣ Place the OAuth file
 
-Create the folder if needed:
-
-```bash
-mkdir -p config
-```
-
-Rename the downloaded file exactly to:
-
-```text
-account_client_secrets_main.json
-```
-
-Place it here:
+Create the folder if needed and place the downloaded file here:
 
 ```text
 Youtube-video-meta-translator/config/account_client_secrets_main.json
 ```
 
-Watch for an accidental double extension:
-
-```text
-account_client_secrets_main.json.json
-```
-
-Check the real filename with:
+The filename must be exactly `account_client_secrets_main.json`, not
+`account_client_secrets_main.json.json`.
 
 ```bash
+mkdir -p config
 find config -maxdepth 1 -type f -print
 ```
 
-## 🌐 Optional: Google Cloud Translation
+## 5️⃣ Use an external LLM without an API key
 
-Use this only for machine translation or its fallback when DeepL is unavailable.
-
-1. Open [Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts).
-2. Select the same project and create a service account.
-3. If a role is requested, choose **Cloud Translation API User**.
-4. Open the account's **Keys** tab.
-5. Choose **Add key → Create new key → JSON**.
-6. Store the downloaded private key securely; it cannot be downloaded again.
-7. Rename it to `translate_key.json` and place it in `config/`.
-
-This is a different credential from `account_client_secrets_main.json`. See
-Google's [service-account key instructions](https://docs.cloud.google.com/iam/docs/keys-create-delete).
-
-## 🟦 Optional: DeepL
-
-1. Create an account at [DeepL API](https://www.deepl.com/en/pro-api).
-2. Copy your API key.
-3. Create `.env` in the project root.
-4. Add:
-
-```text
-DEEPL_API_KEY=replace-this-with-your-key
-```
-
-The application loads `.env` at startup. Keep the file local and restart the
-app after changing it.
+No OpenAI or other LLM API key, `.env` file, or provider configuration is
+required. The supporting **LLM Translation prompt** page creates a copyable
+prompt from the selected video's default metadata and live YouTube language
+catalog. Paste it into an external LLM, download its JSON file, and upload the
+file to **LLM translate** for local validation, Preview, and Publish.
 
 ## 📁 Local files
 
 | File | Required? | Purpose |
 | --- | --- | --- |
 | `config/account_client_secrets_main.json` | Yes | YouTube OAuth client configuration. |
-| `config/translate_key.json` | Only for Google Translate/fallback | Google Cloud Translation service-account key. |
-| `.env` | Only for DeepL | Stores `DEEPL_API_KEY`. |
 | `token.json` | Created automatically | Local YouTube OAuth session. |
 | `token.pickle` | Legacy only | Accepted once and migrated to `token.json`. |
 | `.venv/` | Created automatically | Project-specific Python environment. |
+
+The language catalog is fetched at runtime from YouTube Data API v3
+`i18nLanguages.list`. There is no checked-in language list and no
+`YOUTUBE_API_KEY` setting in this application flow.
 
 All credentials, token files, `.env`, and `.venv` are excluded by
 `.gitignore`. Read the [Security guide](security.md) before sharing the
@@ -123,5 +86,6 @@ project or opening an issue.
 ## ➡️ Next step
 
 - [Start the app](getting-started.md)
-- [Publish prepared JSON localizations](manual-localizations.md)
-- [Troubleshoot OAuth and credentials](troubleshooting.md)
+- [Use the Manual workflow](manual-localizations.md)
+- [Use the LLM workflow](llm-localizations.md)
+- [Troubleshoot OAuth and JSON uploads](troubleshooting.md)

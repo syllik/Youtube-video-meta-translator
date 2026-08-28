@@ -10,13 +10,12 @@ what you want to do, then follow the numbered steps inside it.
 | | Guide | Use it when… |
 | --- | --- | --- |
 | 🚀 | [Getting started](getting-started.md) | You are installing the project or launching it for the first time. |
-| 🔐 | [Configuration](configuration.md) | You need Google Cloud, OAuth, DeepL, or Google Translate credentials. |
-| 🧩 | [Manual localizations](manual-localizations.md) | You already have translated JSON and want local validation, preview, and publishing. |
-| 🔁 | [Machine translation](legacy-translation.md) | You want batch DeepL/Google translation with video checkboxes. |
+| 🔐 | [Configuration](configuration.md) | Set up the YouTube OAuth client. |
+| 🧩 | [Manual localizations](manual-localizations.md) | Edit, validate, preview, and publish localization JSON. |
+| ✨ | [LLM localizations](llm-localizations.md) | Use an external LLM prompt and upload its JSON result. |
 | 🆘 | [Troubleshooting](troubleshooting.md) | Setup, OAuth, ports, dependencies, or API calls are failing. |
 | 🛡️ | [Security](security.md) | You are handling credentials, tokens, or a leaked secret. |
 | 🛠️ | [Development](development.md) | You are running tests or changing the project. |
-| 📝 | [Manual editor context](manual-localization-editor-context.md) | You need the full product scope and implementation constraints. |
 
 ## ✅ Recommended order
 
@@ -27,7 +26,7 @@ what you want to do, then follow the numbered steps inside it.
         ↓
 ▶️ Start the app
         ↓
-🔁 Machine translation  or  🧩 Manual localizations
+🧩 Manual localizations  or  ✨ LLM localizations
         ↓
 🆘 Troubleshooting if something goes wrong
 ```
@@ -39,7 +38,8 @@ icon that matches your task and open the linked guide.
 
 - Keep setup commands copy-pasteable.
 - Link to an existing guide instead of duplicating long instructions.
-- Keep product context and implementation plans separate from user setup help.
+- Keep historical design records and implementation plans separate from user
+  setup help; do not use `superpowers` records as current instructions.
 - Update links when a guide is renamed.
 - Write baseline documentation in English only until a localization policy is
   introduced.
