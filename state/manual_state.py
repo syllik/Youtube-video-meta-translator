@@ -6,6 +6,7 @@ from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 MANUAL_DEFAULTS = {
     "selected_video_id": None,
+    "scroll_to_form": False,
     "raw_json": "",
     "local_validation": None,
     "preview_result": None,
@@ -41,6 +42,7 @@ def set_manual_video(state: MutableMapping[str, Any], video_id: Optional[str]) -
     if state.get("selected_video_id") != video_id:
         state["selected_video_id"] = video_id
         _clear_preview(state)
+        state["scroll_to_form"] = True
 
 
 def set_manual_json(state: MutableMapping[str, Any], raw_json: str) -> None:

@@ -103,11 +103,12 @@ The editor reports the language and field path, for example `ja.title`.
 - bulk manual editing of multiple videos;
 - automatic AI, DeepL, or Google translation generation.
 
-The machine translator remains available as a separate workflow. See
-[Machine translation](legacy-translation.md).
+For externally prepared AI translations, use the
+[LLM prompt workflow](llm-localizations.md), which keeps the provider outside
+the application and validates the downloaded JSON locally.
 
 ## ➡️ Next step
 
-- [Run the machine translation workflow](legacy-translation.md)
+- [Use the LLM prompt workflow](llm-localizations.md)
 - [Handle errors](troubleshooting.md)
 - [Read the complete product context](manual-localization-editor-context.md)

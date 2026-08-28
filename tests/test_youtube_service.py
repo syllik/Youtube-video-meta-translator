@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
+from language_catalog import YouTubeLanguageCatalog
 from models import YouTubePage
 from services.youtube_service import YoutubeService
 
@@ -57,6 +58,38 @@ class YoutubeServiceTests(unittest.TestCase):
         result = service.fetch_video_page(10)
 
         self.assertEqual(result.videos[0].default_language_code, "en")
+
+    def test_language_catalog_comes_from_youtube_and_is_cached(self):
+        account = Mock()
+        account.list_i18n_languages.return_value = {
+            "items": [
+                {"id": "es", "snippet": {"hl": "es", "name": "Spanish"}},
+                {"id": "de", "snippet": {"hl": "de", "name": "German"}},
+            ]
+        }
+        service = YoutubeService(account)
+
+        first = service.fetch_localization_language_catalog()
+        second = service.fetch_localization_language_catalog()
+
+        self.assertIsInstance(first, YouTubeLanguageCatalog)
+        self.assertIs(first, second)
+        self.assertEqual(first.codes, ("de", "es"))
+        account.list_i18n_languages.assert_called_once_with("ru")
+
+    def test_language_catalog_can_be_refreshed(self):
+        account = Mock()
+        account.list_i18n_languages.side_effect = [
+            {"items": [{"id": "de", "snippet": {"hl": "de", "name": "German"}}]},
+            {"items": [{"id": "fr", "snippet": {"hl": "fr", "name": "French"}}]},
+        ]
+        service = YoutubeService(account)
+
+        service.fetch_localization_language_catalog()
+        refreshed = service.fetch_localization_language_catalog(refresh=True)
+
+        self.assertEqual(refreshed.codes, ("fr",))
+        self.assertEqual(account.list_i18n_languages.call_count, 2)
 
 
 if __name__ == "__main__":

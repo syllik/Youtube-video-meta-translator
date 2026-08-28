@@ -26,7 +26,10 @@ previewed or published.
 - Keep live language discovery through the authenticated YouTube Data API v3
   `i18nLanguages.list` response.
 - Show a localization progress indicator for the selected video.
-- Generate a prompt for at most the next ten missing languages.
+- Show a multiselect containing at most the next ten missing languages by
+  default, with an explicit maximum of ten selected targets.
+- Generate a prompt for the selected missing languages.
+- Link to major web LLMs with free tiers for manual prompt execution.
 - Use only the selected video's default title and description as prompt source
   content.
 - Add a JSON file uploader that populates the existing editable localization
@@ -56,8 +59,10 @@ previewed or published.
    - `YouTube translations: current / total`;
    - the number of missing supported languages;
    - the next target language codes and names.
-5. The user clicks **Generate prompt for next 10 languages**. If fewer than ten
-   languages remain, the prompt contains all remaining languages.
+5. The supporting page shows a multiselect of missing languages. The first ten
+   are selected by default, the user may adjust the selection, and no more
+   than ten targets are allowed. If fewer than ten languages remain, all are
+   selected.
 6. The user copies the single displayed prompt to an external web LLM. The
    prompt requires the LLM to create and attach a downloadable UTF-8 JSON file,
    not a Markdown code block or explanatory text.
@@ -170,8 +175,9 @@ uploaded batch therefore needs to contain only the next missing languages.
   `existingLocalizations`.
 - Replace the current OpenAI generation control with:
   - progress and missing-language summary;
-  - next-ten target selection;
+  - live-catalog multiselect with a ten-language maximum;
   - copyable prompt display;
+  - links to free-tier web LLMs;
   - JSON file uploader;
   - direct handoff to the shared manual editor state.
 - Add exact-batch validation while retaining the shared YouTube localization

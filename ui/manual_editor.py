@@ -86,6 +86,25 @@ def render_manual_editor(
 ) -> None:
     import streamlit as st
 
+    render_markdown = getattr(st, "markdown", None)
+    if render_markdown is not None:
+        render_markdown(
+            '<div id="manual-translation-form"></div>', unsafe_allow_html=True
+        )
+    if state.get("scroll_to_form"):
+        try:
+            import streamlit.components.v1 as components
+        except ModuleNotFoundError:
+            components = None
+        if components is not None:
+            components.html(
+                '<script>window.parent.document.getElementById('
+                '"manual-translation-form").scrollIntoView({behavior: "smooth"});'
+                "</script>",
+                height=0,
+            )
+        state["scroll_to_form"] = False
+
     st.subheader("Manual localizations")
     st.caption(
         "Paste prepared JSON. Existing languages omitted from the JSON are preserved."

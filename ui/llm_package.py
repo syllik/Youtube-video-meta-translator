@@ -9,7 +9,6 @@ from llm_localization_package import (
     parse_llm_upload_json,
 )
 from localizations import LocalizationIssue, ParsedLocalizations
-from state.llm_state import set_llm_prompt
 from state.manual_state import set_manual_json
 
 
@@ -99,11 +98,15 @@ def render_llm_translation_controls(
 
     st.caption("Selected languages: {}".format(", ".join(target_codes)))
     st.caption("Prompt is ready on the supporting LLM Translation prompt page.")
+    st.code(
+        '{\n  "de": {\n    "title": "Translated title",\n    "description": "Translated description"\n  }\n}',
+        language="json",
+    )
 
     uploaded_file = st.file_uploader(
         "Upload JSON file",
         type=["json"],
-        key="llm-localizations-upload",
+        key="llm-localizations-upload-{}".format(video_resource["id"]),
     )
     if uploaded_file is None:
         return

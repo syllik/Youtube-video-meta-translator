@@ -8,6 +8,7 @@ LLM_DEFAULTS = {
     "prompt_video_id": None,
     "prompt_target_codes": (),
     "selected_target_codes": (),
+    "selected_target_codes_initialized": False,
     "prompt_text": "",
     "consumed_upload_context": None,
     "upload_issue_context": None,
@@ -37,6 +38,7 @@ def clear_llm_prompt(state: MutableMapping[str, Any]) -> None:
     state["prompt_video_id"] = None
     state["prompt_target_codes"] = ()
     state["selected_target_codes"] = ()
+    state["selected_target_codes_initialized"] = False
     state["prompt_text"] = ""
     _clear_llm_upload_state(state)
 
@@ -72,6 +74,7 @@ def set_llm_selected_codes(
     """Persist a target selection only when it belongs to the active video."""
     if state.get("selected_video_id") == video_id:
         state["selected_target_codes"] = tuple(target_codes)
+        state["selected_target_codes_initialized"] = True
 
 
 def set_llm_prompt(
@@ -84,5 +87,6 @@ def set_llm_prompt(
     state["prompt_video_id"] = video_id
     state["prompt_target_codes"] = tuple(target_codes)
     state["selected_target_codes"] = tuple(target_codes)
+    state["selected_target_codes_initialized"] = True
     state["prompt_text"] = prompt
     _clear_llm_upload_state(state)

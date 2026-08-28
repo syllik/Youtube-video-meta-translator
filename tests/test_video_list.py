@@ -130,6 +130,22 @@ class VideoListTests(unittest.TestCase):
         self.assertEqual(state["raw_json"], '{"de": {}}')
         self.assertIsNone(state["preview_result"])
 
+    def test_manual_selection_requests_scroll_to_the_form(self):
+        state = init_manual_state({})
+        streamlit = _FakeStreamlit(widget_key("manual", "video-2"))
+        video = VideoSummary(
+            id="video-2",
+            title="Second video",
+            description="",
+            thumbnail_url="",
+            current_language_codes=(),
+        )
+
+        with patch.dict("sys.modules", {"streamlit": streamlit}):
+            render_video_list((video,), "manual", state)
+
+        self.assertTrue(state["scroll_to_form"])
+
 
 if __name__ == "__main__":
     unittest.main()

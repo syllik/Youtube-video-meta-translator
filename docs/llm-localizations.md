@@ -55,12 +55,11 @@ Each request contains:
 - the selected video's `snippet.title`;
 - the selected video's `snippet.description`;
 - `snippet.defaultLanguage`, when YouTube provides it;
-- existing `localizations`, to preserve terminology and style context;
 - the current batch of up to 10 live YouTube language entries, including their
   exact BCP-47 codes.
 
-The default title and description are always the primary source. Existing
-localizations are supporting context, not a replacement source.
+The default title and description are always the translation source.
+Existing localizations are used only for progress and missing-target calculation.
 
 ## Output contract
 

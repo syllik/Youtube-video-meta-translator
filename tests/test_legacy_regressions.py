@@ -5,23 +5,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, call, mock_open, patch
 
-from google_translate import TranslateApi, TranslationError
 from youtube_account import YoutubeApi
 import youtube_account
-
-
-class TranslationProviderTests(unittest.TestCase):
-    def test_google_translate_failure_is_not_returned_as_source_text(self):
-        api = object.__new__(TranslateApi)
-
-        class BrokenClient:
-            def translate(self, *args, **kwargs):
-                raise RuntimeError("provider down")
-
-        api.translate_client = BrokenClient()
-
-        with self.assertRaises(TranslationError):
-            api.translate_text("es", "Original title")
 
 
 class YoutubeAccountSecurityTests(unittest.TestCase):
@@ -126,32 +111,6 @@ class YoutubeAccountSecurityTests(unittest.TestCase):
         legacy_load.assert_not_called()
         oauth_flow.assert_not_called()
         chmod.assert_called_once_with("token.json", 0o600)
-
-    def test_missing_default_language_does_not_get_replaced_with_english(self):
-        account = object.__new__(YoutubeApi)
-        account.videos_trimmed = 0
-        account.videos_skipped = 0
-        account.errorStr = ""
-        account.youtube = Mock()
-        account.youtube.videos.return_value.list.return_value.execute.return_value = {
-            "items": [{
-                "id": "video-1",
-                "snippet": {
-                    "title": "Original",
-                    "description": "Description",
-                    "categoryId": "22",
-                },
-                "localizations": {},
-            }]
-        }
-
-        account.set_video_localization(
-            "video-1", "es", "Spanish", "Título", "Descripción", False, "Original"
-        )
-
-        self.assertEqual(account.errorStr, "defaultLanguageNotSet")
-        account.youtube.videos.return_value.update.assert_not_called()
-
 
 if __name__ == "__main__":
     unittest.main()

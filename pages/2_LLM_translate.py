@@ -19,16 +19,18 @@ def render_llm_page() -> None:
         return
 
     state = init_llm_state(st.session_state)
-    selection = render_video_list(context.page.videos, "llm", state)
     videos_by_id = {candidate.id: candidate for candidate in context.page.videos}
-    selected_video_id = selection.selected_video_id
+    selected_video_id = state.get("selected_video_id")
     if selected_video_id is None:
         st.info("Select one video to begin.")
     elif selected_video_id not in videos_by_id:
         st.info(
             "The selected video is on another page. Select a video here to switch."
         )
-    else:
+
+    selection = render_video_list(context.page.videos, "llm", state)
+    selected_video_id = selection.selected_video_id
+    if selected_video_id is not None and selected_video_id in videos_by_id:
         video = videos_by_id[selected_video_id]
         try:
             catalog = context.service.fetch_localization_language_catalog(hl="ru")

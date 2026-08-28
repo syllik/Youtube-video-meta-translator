@@ -79,6 +79,9 @@ The language catalog is fetched at runtime from YouTube Data API v3
 `i18nLanguages.list`. There is no checked-in language list and no
 `YOUTUBE_API_KEY` setting in this application flow.
 
+The optional `youtube_languages/` export utility is separate from the
+Streamlit app and is not needed for translation or publishing.
+
 All credentials, token files, `.env`, and `.venv` are excluded by
 `.gitignore`. Read the [Security guide](security.md) before sharing the
 project or opening an issue.

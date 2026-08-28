@@ -1,4 +1,3 @@
-import html
 import os
 import pickle
 
@@ -68,87 +67,10 @@ class YoutubeApi:
         self.results_per_page = 10
         self.per_page_option_index = 0
         self.current_page = 1
-        self.videos_trimmed = 0
-        self.videos_skipped = 0
         self.errorStr = ''
         self.total_video_count = 0
-        self.allowed_languages = []
         self.localization_read_errors = set()
-        
-        self.code_to_name = {
-            "af": "Afrikaans",
-            "am": "Amharic",
-            "ar": "Arabic",
-            "az": "Azerbaijani",
-            "be": "Belarusian",
-            "bg": "Bulgarian",
-            "bn": "Bangla",        
-            "bs": "Bosnian",
-            "ca": "Catalan",
-            "cs": "Czech",
-            "da": "Danish",
-            "de": "German",
-            "en": "English",
-            "es": "Spanish",
-            "et": "Estonian",
-            "eu": "Basque",
-            "fa": "Persian",
-            "fi": "Finnish",
-            "fr": "French",
-            "gl": "Galician",
-            "gu": "Gujarati",
-            "hi": "Hindi",
-            "hr": "Croatian",
-            "hu": "Hungarian",
-            "hy": "Armenian",
-            "id": "Indonesian",
-            "is": "Icelandic",
-            "it": "Italian",
-            "iw": "Hebrew",
-            "ja": "Japanese",
-            "ka": "Georgian",
-            "kk": "Kazakh",
-            "km": "Khmer",
-            "kn": "Kannada",
-            "ko": "Korean",
-            "ky": "Kyrgyz",
-            "lo": "Lao",
-            "lt": "Lithuanian",
-            "lv": "Latvian",
-            "mk": "Macedonian",
-            "ml": "Malayalam",
-            "mn": "Mongolian",
-            "mr": "Marathi",
-            "ms": "Malay",
-            "my": "Burmese",
-            "no": "Norwegian",
-            "ne": "Nepali",
-            "nl": "Dutch",
-            "or": "Odia",
-            "pa": "Punjabi",
-            "pl": "Polish",
-            "pt": "Portuguese",
-            "ro": "Romanian",
-            "ru": "Russian",
-            "si": "Sinhala",
-            "sk": "Slovak",
-            "sl": "Slovenian",
-            "sq": "Albanian",
-            "sr": "Serbian",
-            "sv": "Swedish",
-            "sw": "Swahili",
-            "ta": "Tamil",
-            "te": "Telugu",
-            "th": "Thai",
-            "tr": "Turkish",
-            "uk": "Ukrainian",
-            "ur": "Urdu",
-            "vi": "Vietnamese",
-            "zh-CN": "Chinese (China)",
-            "zh-TW": "Chinese (Taiwan)",
-        }
-        self.name_to_code = {val: key for (key, val) in self.code_to_name.items()}
-        
+
         self.check_credentials()
         self.youtube = googleapiclient.discovery.build(
             api_service_name, api_version, credentials=self.credentials)
@@ -387,60 +309,11 @@ class YoutubeApi:
         except googleapiclient.errors.HttpError as e:
             self.errorStr = e.error_details[0]['reason']
 
-    def set_video_localization(self, video_id, language_code, language, title, description, trim_checked,
-                               default_title):
-        """Add or update localization for a video"""
-        if language_code == '':
-            return
-            
-        video = {}
-        language = language.strip()
-        print(f"Translating '{default_title}' to '{language}'")
-        
-        if trim_checked:
-            if len(title) > 99:
-                title = title[:98]
-                self.videos_trimmed += 1
-                print(f"Title for video '{default_title}' was too long, trimmed")
-            if len(description) > 4999:
-                description = description[:4998]
-                self.videos_trimmed += 1
-                print(f"Description for video '{default_title}' was too long, trimmed")
-        else:
-            if len(title) > 99 or len(description) > 4999:
-                self.videos_skipped += 1
-                print(f"Video '{default_title}' skipped for language '{language}' due to length.")
-                return
-                
-        try:
-            results = self.youtube.videos().list(
-                part='snippet,localizations',
-                id=video_id
-            ).execute()
-            
-            video = results['items'][0]
-            
-            if not video['snippet'].get('defaultLanguage'):
-                self.errorStr = 'defaultLanguageNotSet'
-                print(f"Video '{default_title}' has no default language")
-                return
-                
-            if 'localizations' not in video:
-                video['localizations'] = {}
-                
-            video['localizations'][language_code] = {
-                'title': html.unescape(title.replace('\\n', '\n')),
-                'description': html.unescape(description.replace('\\n', '\n'))
-            }
-            
-            self.youtube.videos().update(
-                part='snippet,localizations',
-                body=video
-            ).execute()
-            
-        except googleapiclient.errors.HttpError as e:
-            self.errorStr = e.error_details[0]['reason']
-            print(f"Error updating video: {e.error_details}")
+    def list_i18n_languages(self, hl="ru"):
+        """Return YouTube's live language catalog response."""
+        return self.youtube.i18nLanguages().list(
+            part="snippet", hl=hl
+        ).execute()
 
     def fetch_video_page(self, limit, page_token=None):
         """Fetch one playlist page for the Streamlit service boundary."""

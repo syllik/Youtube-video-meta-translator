@@ -58,7 +58,7 @@ def _clipboard_script(prompt: str) -> str:
 def _default_target_codes(state: Mapping[str, Any], progress) -> Tuple[str, ...]:
     available = {language.code.casefold(): language.code for language in progress.missing}
     stored = tuple(state.get("selected_target_codes") or ())
-    if stored:
+    if state.get("selected_target_codes_initialized") or stored:
         return tuple(
             available[code.strip().casefold()]
             for code in stored
@@ -82,6 +82,7 @@ def render_llm_prompt_page(
             "pages/2_LLM_translate.py",
             label="Select a video on LLM translate",
         )
+        _render_free_web_llms()
         return
 
     progress = calculate_llm_translation_progress(video_resource, catalog)
@@ -107,7 +108,7 @@ def render_llm_prompt_page(
             default=default_codes,
             max_selections=LLM_BATCH_SIZE,
             format_func=lambda code: labels_by_code[code],
-            key="llm-prompt-targets",
+            key="llm-prompt-targets-{}".format(video_id),
         )
     )
 

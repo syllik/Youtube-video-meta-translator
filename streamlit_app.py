@@ -6,13 +6,13 @@ import streamlit as st
 
 
 PAGE_TITLES = {
-    "machine": "Machine translate",
     "manual": "Manual translate",
+    "llm": "LLM translate",
 }
 
 PAGE_DESCRIPTIONS = {
-    "machine": "Translate several videos and languages with DeepL or Google fallback.",
     "manual": "Review prepared localization JSON for one video before publishing it.",
+    "llm": "Copy a prompt for an external LLM, upload its JSON result, and publish it safely.",
 }
 
 
@@ -66,7 +66,7 @@ def render_common_page_context(mode: str):
     )
     from ui.styles import apply_app_styles
 
-    if mode not in {"machine", "manual"}:
+    if mode not in {"manual", "llm"}:
         raise ValueError("Unknown application mode: {}".format(mode))
     configure_page(page_title(mode))
     apply_app_styles()
@@ -134,8 +134,8 @@ def render_app_intro() -> None:
     configure_page()
     st.title("YouTube Metadata Translator")
     st.write("Choose a workflow from the navigation panel.")
-    st.page_link("pages/1_Machine_translate.py", label="Machine translate")
-    st.page_link("pages/2_Manual_translate.py", label="Manual translate")
+    st.page_link("pages/1_Manual_translate.py", label="Manual translate")
+    st.page_link("pages/2_LLM_translate.py", label="LLM translate")
 
 
 if __name__ == "__main__":
