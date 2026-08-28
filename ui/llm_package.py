@@ -4,6 +4,11 @@ import hashlib
 import json
 from typing import Any, MutableMapping, Sequence
 
+from codex_localization_generator import (
+    CodexGenerationError,
+    generate_missing_localizations,
+)
+from codex_localization_runner import CodexLocalizationError, check_codex_login
 from llm_localization_package import (
     calculate_llm_translation_progress,
     parse_llm_upload_json,
@@ -43,6 +48,15 @@ def apply_llm_upload(
     return parsed
 
 
+def apply_generated_localizations(
+    state: MutableMapping[str, Any], document
+) -> str:
+    """Hand generated localizations to the existing editable JSON form."""
+    canonical_json = json.dumps(document, ensure_ascii=False, indent=2)
+    set_manual_json(state, canonical_json)
+    return canonical_json
+
+
 def _render_issues(issues) -> None:
     import streamlit as st
 
@@ -63,8 +77,11 @@ def render_llm_translation_controls(
     video_resource,
     catalog,
     widget_prefix: str = "llm",
+    *,
+    login_checker=check_codex_login,
+    generate_localizations=generate_missing_localizations,
 ) -> None:
-    """Show progress, prompt-page handoff, and local JSON upload."""
+    """Show automatic generation, prompt-page handoff, and local JSON upload."""
     import streamlit as st
     import streamlit.components.v1 as components
 
@@ -88,6 +105,44 @@ def render_llm_translation_controls(
     )
     if not progress.missing:
         st.success("All supported YouTube localizations are complete.")
+        return
+
+    if st.button(
+        "Generate missing translations",
+        key="llm-generate-missing-{}".format(video_resource["id"]),
+        type="primary",
+    ):
+        try:
+            login_checker()
+            progress_placeholder = st.empty()
+
+            def on_batch(index, total, codes):
+                progress_placeholder.info(
+                    "Generating batch {} / {} — {}".format(
+                        index, total, ", ".join(codes)
+                    )
+                )
+
+            generated_document = generate_localizations(
+                video_resource,
+                catalog,
+                on_batch=on_batch,
+            )
+        except (CodexLocalizationError, CodexGenerationError) as error:
+            st.error(str(error))
+            return
+        except Exception as error:
+            st.error("Automatic translation generation failed: {}".format(error))
+            return
+
+        if not generated_document:
+            st.success("All supported YouTube localizations are complete.")
+            return
+
+        canonical_json = apply_generated_localizations(state, generated_document)
+        editor_key = "{}-localizations-json".format(widget_prefix)
+        st.session_state[editor_key] = canonical_json
+        st.rerun()
         return
 
     prompt_video_id = state.get("prompt_video_id")

@@ -3,8 +3,10 @@ import sys
 import unittest
 from contextlib import nullcontext
 from types import ModuleType, SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+from codex_localization_generator import CodexGenerationError
+from codex_localization_runner import CodexLocalizationError
 from ui import llm_package
 from state.manual_state import (
     manual_can_publish,
@@ -71,29 +73,50 @@ class _FakeUploadedFile:
         return self.content
 
 
-def _fake_llm_streamlit(uploaded_file):
+class _FakeProgressPlaceholder:
+    def __init__(self, calls):
+        self.calls = calls
+
+    def info(self, *args, **kwargs):
+        self.calls.append(("progress", args, kwargs))
+
+
+def _fake_llm_streamlit(uploaded_file, generate_clicked=False):
     streamlit = ModuleType("streamlit")
     streamlit.session_state = {}
     streamlit.calls = []
+    streamlit.rerun_calls = 0
     streamlit.markdown = lambda *args, **kwargs: streamlit.calls.append(
         ("markdown", args, kwargs)
     )
     streamlit.caption = lambda *args, **_kwargs: streamlit.calls.append(
         ("caption", args)
     )
-    streamlit.success = lambda *_args, **_kwargs: None
+    streamlit.success = lambda *args, **kwargs: streamlit.calls.append(
+        ("success", args, kwargs)
+    )
     streamlit.code = lambda *_args, **_kwargs: None
-    streamlit.error = lambda *_args, **_kwargs: None
+    streamlit.error = lambda *args, **kwargs: streamlit.calls.append(
+        ("error", args, kwargs)
+    )
     streamlit.info = lambda *_args, **_kwargs: None
     streamlit.page_link = lambda *args, **kwargs: streamlit.calls.append(
         ("page_link", args, kwargs)
     )
-    streamlit.button = lambda *_args, **_kwargs: False
+    streamlit.button = lambda *args, **kwargs: streamlit.calls.append(
+        ("button", args, kwargs)
+    ) or (
+        generate_clicked
+        and args
+        and args[0] == "Generate missing translations"
+    )
+    streamlit.empty = lambda: _FakeProgressPlaceholder(streamlit.calls)
     streamlit.file_uploader = lambda *args, **kwargs: streamlit.calls.append(
         ("file_uploader", args, kwargs)
     ) or uploaded_file
 
     def rerun():
+        streamlit.rerun_calls += 1
         raise _RerunRequested()
 
     streamlit.rerun = rerun
@@ -117,6 +140,25 @@ def _publishable_state(raw_json):
         "operation_status": "idle",
         "operation_error": None,
     }
+
+
+def _llm_generation_inputs(codes=("en", "de", "fr")):
+    video_resource = {
+        "id": "video-1",
+        "snippet": {
+            "defaultLanguage": "en",
+            "title": "Waterfall",
+            "description": "Wind",
+        },
+        "localizations": {},
+    }
+    catalog = YouTubeLanguageCatalog(
+        source="test",
+        fetched_at="2026-08-28T00:00:00.000Z",
+        hl="ru",
+        languages=tuple(YouTubeLanguage(code, code, code) for code in codes),
+    )
+    return video_resource, catalog
 
 
 class ManualStateTests(unittest.TestCase):
@@ -239,6 +281,310 @@ class ManualStateTests(unittest.TestCase):
 
         self.assertFalse(result.is_valid)
         self.assertEqual(state["raw_json"], "old editor value")
+
+    def test_generated_localizations_become_one_canonical_editor_json(self):
+        state = {"raw_json": "old editor value", "preview_result": object()}
+        apply_generated = getattr(
+            llm_package, "apply_generated_localizations", None
+        )
+
+        self.assertIsNotNone(apply_generated)
+        if apply_generated is None:
+            return
+
+        canonical_json = apply_generated(
+            state,
+            {
+                "DE": {"title": "Grüße", "description": "Text"},
+                "fr": {"title": "Bonjour", "description": "Texte"},
+            },
+        )
+
+        self.assertEqual(canonical_json, state["raw_json"])
+        self.assertEqual(
+            canonical_json,
+            '{\n'
+            '  "DE": {\n'
+            '    "title": "Grüße",\n'
+            '    "description": "Text"\n'
+            '  },\n'
+            '  "fr": {\n'
+            '    "title": "Bonjour",\n'
+            '    "description": "Texte"\n'
+            '  }\n'
+            '}',
+        )
+        self.assertNotIn("\\u00fc", canonical_json)
+        self.assertEqual(tuple(json.loads(canonical_json)), ("DE", "fr"))
+        self.assertNotIn("localizations", json.loads(canonical_json))
+
+    def test_generate_button_checks_login_and_calls_generator_with_live_inputs(self):
+        video_resource, catalog = _llm_generation_inputs()
+        login_checker = Mock()
+        generator = Mock(
+            return_value={
+                "de": {"title": "Wasserfall", "description": "Wind"},
+            }
+        )
+        streamlit, components, components_v1 = _fake_llm_streamlit(
+            None, generate_clicked=True
+        )
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        with patch.dict(sys.modules, modules):
+            with self.assertRaises(_RerunRequested):
+                llm_package.render_llm_translation_controls(
+                    {"raw_json": ""},
+                    video_resource,
+                    catalog,
+                    login_checker=login_checker,
+                    generate_localizations=generator,
+                )
+
+        login_checker.assert_called_once_with()
+        generator.assert_called_once()
+        generator_args, generator_kwargs = generator.call_args
+        self.assertIs(generator_args[0], video_resource)
+        self.assertIs(generator_args[1], catalog)
+        self.assertNotIn("max_languages", generator_kwargs)
+        self.assertTrue(callable(generator_kwargs["on_batch"]))
+        self.assertTrue(
+            any(
+                kind == "button"
+                and args[0] == "Generate missing translations"
+                for kind, args, *_rest in streamlit.calls
+            )
+        )
+
+    def test_generate_button_reports_generator_batch_callbacks(self):
+        missing_codes = tuple("lang-{:02d}".format(index) for index in range(21))
+        video_resource, catalog = _llm_generation_inputs(("en",) + missing_codes)
+        callbacks = []
+
+        def fake_generate(_video_resource, _catalog, *, on_batch):
+            batches = (
+                missing_codes[:10],
+                missing_codes[10:20],
+                missing_codes[20:],
+            )
+            for index, codes in enumerate(batches, start=1):
+                callbacks.append((index, 3, codes))
+                on_batch(index, 3, codes)
+            return {}
+
+        streamlit, components, components_v1 = _fake_llm_streamlit(
+            None, generate_clicked=True
+        )
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        with patch.dict(sys.modules, modules):
+            llm_package.render_llm_translation_controls(
+                {"raw_json": "old"},
+                video_resource,
+                catalog,
+                login_checker=lambda: None,
+                generate_localizations=fake_generate,
+            )
+
+        self.assertEqual(
+            [(index, total) for index, total, _codes in callbacks],
+            [(1, 3), (2, 3), (3, 3)],
+        )
+        progress_messages = [
+            args[0]
+            for kind, args, *_rest in streamlit.calls
+            if kind == "progress"
+        ]
+        self.assertEqual(
+            progress_messages,
+            [
+                "Generating batch 1 / 3 — " + ", ".join(missing_codes[:10]),
+                "Generating batch 2 / 3 — " + ", ".join(missing_codes[10:20]),
+                "Generating batch 3 / 3 — " + ", ".join(missing_codes[20:]),
+            ],
+        )
+
+    def test_generated_result_becomes_editor_json_and_requests_one_rerun(self):
+        video_resource, catalog = _llm_generation_inputs()
+        state = {"raw_json": "old editor value"}
+        generated = {
+            "DE": {"title": "Grüße", "description": "Text"},
+            "fr": {"title": "Bonjour", "description": "Texte"},
+        }
+        streamlit, components, components_v1 = _fake_llm_streamlit(
+            None, generate_clicked=True
+        )
+        editor_key = "llm-localizations-json"
+        streamlit.session_state[editor_key] = "old widget value"
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        with patch.dict(sys.modules, modules):
+            with self.assertRaises(_RerunRequested):
+                llm_package.render_llm_translation_controls(
+                    state,
+                    video_resource,
+                    catalog,
+                    login_checker=lambda: None,
+                    generate_localizations=lambda *_args, **_kwargs: generated,
+                )
+
+        self.assertEqual(streamlit.rerun_calls, 1)
+        self.assertEqual(state["raw_json"], streamlit.session_state[editor_key])
+        self.assertEqual(
+            state["raw_json"],
+            '{\n'
+            '  "DE": {\n'
+            '    "title": "Grüße",\n'
+            '    "description": "Text"\n'
+            '  },\n'
+            '  "fr": {\n'
+            '    "title": "Bonjour",\n'
+            '    "description": "Texte"\n'
+            '  }\n'
+            '}',
+        )
+
+    def test_login_error_is_shown_without_starting_generation(self):
+        video_resource, catalog = _llm_generation_inputs()
+        generator = Mock()
+        streamlit, components, components_v1 = _fake_llm_streamlit(
+            None, generate_clicked=True
+        )
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        def missing_login():
+            raise CodexLocalizationError(
+                "Codex CLI is not logged in. Run `codex login`."
+            )
+
+        with patch.dict(sys.modules, modules):
+            llm_package.render_llm_translation_controls(
+                {"raw_json": "old"},
+                video_resource,
+                catalog,
+                login_checker=missing_login,
+                generate_localizations=generator,
+            )
+
+        generator.assert_not_called()
+        self.assertEqual(streamlit.rerun_calls, 0)
+        self.assertTrue(
+            any(
+                kind == "error" and "codex login" in args[0]
+                for kind, args, *_rest in streamlit.calls
+            )
+        )
+
+    def test_generation_error_preserves_editor_json_and_does_not_rerun(self):
+        video_resource, catalog = _llm_generation_inputs()
+        state = {"raw_json": "existing editor value"}
+        generator = Mock(side_effect=CodexGenerationError("batch failed"))
+        streamlit, components, components_v1 = _fake_llm_streamlit(
+            None, generate_clicked=True
+        )
+        editor_key = "llm-localizations-json"
+        streamlit.session_state[editor_key] = "existing widget value"
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        with patch.dict(sys.modules, modules):
+            llm_package.render_llm_translation_controls(
+                state,
+                video_resource,
+                catalog,
+                login_checker=lambda: None,
+                generate_localizations=generator,
+            )
+
+        self.assertEqual(state["raw_json"], "existing editor value")
+        self.assertEqual(
+            streamlit.session_state[editor_key], "existing widget value"
+        )
+        self.assertEqual(streamlit.rerun_calls, 0)
+        self.assertTrue(
+            any(
+                kind == "error" and "batch failed" in args[0]
+                for kind, args, *_rest in streamlit.calls
+            )
+        )
+
+    def test_unexpected_generation_error_is_shown_without_rerun(self):
+        video_resource, catalog = _llm_generation_inputs()
+        state = {"raw_json": "existing editor value"}
+        streamlit, components, components_v1 = _fake_llm_streamlit(
+            None, generate_clicked=True
+        )
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        with patch.dict(sys.modules, modules):
+            llm_package.render_llm_translation_controls(
+                state,
+                video_resource,
+                catalog,
+                login_checker=lambda: None,
+                generate_localizations=Mock(
+                    side_effect=RuntimeError("unexpected failure")
+                ),
+            )
+
+        self.assertEqual(state["raw_json"], "existing editor value")
+        self.assertEqual(streamlit.rerun_calls, 0)
+        self.assertTrue(
+            any(
+                kind == "error" and "unexpected failure" in args[0]
+                for kind, args, *_rest in streamlit.calls
+            )
+        )
+
+    def test_automatic_generation_does_not_call_publish_method(self):
+        video_resource, catalog = _llm_generation_inputs()
+        publish = Mock()
+        state = {"raw_json": "old", "publish": publish}
+        streamlit, components, components_v1 = _fake_llm_streamlit(
+            None, generate_clicked=True
+        )
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        with patch.dict(sys.modules, modules):
+            with self.assertRaises(_RerunRequested):
+                llm_package.render_llm_translation_controls(
+                    state,
+                    video_resource,
+                    catalog,
+                    login_checker=lambda: None,
+                    generate_localizations=lambda *_args, **_kwargs: {
+                        "de": {"title": "Wasserfall", "description": "Wind"}
+                    },
+                )
+
+        publish.assert_not_called()
 
     def test_persisted_valid_upload_is_consumed_once_then_editor_can_render(self):
         state = {

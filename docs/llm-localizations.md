@@ -14,18 +14,23 @@ Fetch the current YouTube i18nLanguages.list catalog through OAuth
       ↓
 Fetch the video's default title/description and existing localizations
       ↓
-Open the supporting LLM Translation prompt page and copy the prompt
+Click **Generate missing translations** for local Codex CLI batching, or open
+the supporting LLM Translation prompt page and copy the prompt
       ↓
-Paste it into an external LLM and download its JSON result
+Automatic generation loads one merged JSON result, or paste the prompt into an
+external LLM and download its JSON result
       ↓
-Upload the JSON result and validate it locally
+Upload the fallback JSON result and validate it locally
       ↓
-Automatic validation → Preview changes → Publish changes
+Edit → Preview changes → Publish changes
 ```
 
-The app does not call an LLM provider or require an API key. A downloaded file
-is untrusted until the local upload validation accepts it; accepted JSON then
-remains editable in the shared localization form.
+The app does not call an LLM provider or require an API key. The automatic
+button uses the existing locally authenticated Codex CLI batching helper to
+generate every currently missing language in sequential batches of at most ten
+and loads one merged JSON object into the editor. The downloaded fallback file
+is untrusted until local upload validation accepts it; either result remains
+editable in the shared localization form.
 
 ## Choose targets and copy the prompt
 
@@ -94,13 +99,15 @@ Titles are limited to 100 characters and descriptions to 5,000 characters.
 No OpenAI or other LLM API key is required. The live catalog and publishing
 use the existing Google OAuth setup; see [Configuration](configuration.md).
 
-## Optional local Codex CLI automation
+## Automatic local Codex CLI generation
 
-The existing Streamlit prompt/upload workflow remains unchanged. For repeated
-local generation, the optional helper uses an installed Codex CLI with saved
-local authentication and hands its direct JSON output to **Manual translate**.
-It does not create a third application workflow, integrate a provider into the
-app, or publish to YouTube.
+On **LLM translate**, click **Generate missing translations** to check the
+local Codex login and generate all currently missing non-default catalog
+targets. The existing helper uses sequential batches of at most ten languages,
+validates each result, merges them, and loads the direct JSON into the editable
+LLM form. The prompt/upload workflow below remains available as a fallback.
+This does not create a third application workflow, integrate a provider into
+the app, or publish to YouTube.
 
 Authenticate with ChatGPT sign-in before running it:
 
