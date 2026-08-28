@@ -58,13 +58,28 @@ mkdir -p config
 find config -maxdepth 1 -type f -print
 ```
 
-## 5️⃣ Use an external LLM without an API key
+## 5️⃣ Use an external LLM or local Codex without an API key
 
 No OpenAI or other LLM API key, `.env` file, or provider configuration is
 required. The supporting **LLM Translation prompt** page creates a copyable
 prompt from the selected video's default metadata and live YouTube language
 catalog. Paste it into an external LLM, download its JSON file, and upload the
 file to **LLM translate** for local validation, Preview, and Publish.
+
+Automatic generation is a separate local option. It uses the installed Codex
+CLI and its local authentication session; follow [Automatic local Codex CLI generation](llm-localizations.md#automatic-local-codex-cli-generation)
+for installation, sign-in, and smoke-test commands.
+
+### Credential boundary
+
+YouTube and Codex authentication are separate:
+
+- `config/account_client_secrets_main.json` and `token.json` authenticate the
+  app with YouTube.
+- `codex login` authenticates the local Codex CLI.
+
+YouTube OAuth does not authenticate Codex, and Codex authentication does not
+authenticate YouTube. Do not expose or commit either credential or token.
 
 ## 📁 Local files
 

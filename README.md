@@ -17,8 +17,9 @@ shared everywhere.
 
 For repeated local generation, an optional Codex CLI helper can automate the
 same missing-language work outside Streamlit. It produces direct localization
-JSON for review through **Manual translate**; it is not a third application
-workflow and never publishes by itself. See [LLM localizations](docs/llm-localizations.md).
+JSON for review in the existing localization editor; it is not a third
+application workflow and never publishes by itself. It requires Node.js/npm
+and a locally authenticated Codex CLI; see [LLM localizations](docs/llm-localizations.md).
 
 ## 🧭 Start here
 
@@ -29,7 +30,7 @@ workflow and never publishes by itself. See [LLM localizations](docs/llm-localiz
 | 🚀 | [Getting started](docs/getting-started.md) | Install the project and launch it for the first time. |
 | 🔐 | [Configuration](docs/configuration.md) | Set up the YouTube OAuth client. |
 | 🧩 | [Manual localizations](docs/manual-localizations.md) | Edit, validate, preview, and publish localization JSON. |
-| ✨ | [LLM localizations](docs/llm-localizations.md) | Use an external LLM safely with a prompt and JSON upload. |
+| ✨ | [LLM localizations](docs/llm-localizations.md) | Use local Codex generation or an external LLM safely. |
 | 🆘 | [Troubleshooting](docs/troubleshooting.md) | Fix setup, OAuth, dependency, port, or API problems. |
 | 🛡️ | [Security](docs/security.md) | Protect credentials and local token files. |
 | 🛠️ | [Development](docs/development.md) | Run tests and work on the repository. |
@@ -48,6 +49,10 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
+
+The Python requirements do not install the optional Codex CLI. For automatic
+Codex generation, install and authenticate it separately using the
+[LLM localization guide](docs/llm-localizations.md#automatic-local-codex-cli-generation).
 
 Streamlit opens the local app in your browser. If it does not, open
 [http://127.0.0.1:8501](http://127.0.0.1:8501). Before the first launch, place the YouTube OAuth file at
@@ -79,6 +84,11 @@ streamlit run streamlit_app.py
 6. Click **Publish changes** only when the JSON is valid. Publish refetches
    the current video, merges omitted localizations, and refreshes progress.
 7. Confirm the result in YouTube Studio.
+
+For automatic Codex generation, use **LLM translate** and follow the separate
+generation-only flow in [LLM localizations](docs/llm-localizations.md):
+Generate missing translations → inspect/edit → Preview changes → Publish
+changes.
 
 For fully manual work, use **Manual translate** and paste a direct JSON object
 keyed by YouTube language codes into the same editor.

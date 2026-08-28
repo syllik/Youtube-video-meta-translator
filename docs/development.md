@@ -51,6 +51,11 @@ The suite mocks both Codex and YouTube, consumes no Codex quota, and does not
 require live YouTube or LLM credentials. A real YouTube smoke test is
 intentionally separate because publishing changes an external channel.
 
+The optional local Codex CLI is not installed by `requirements.txt`. Its real
+generation smoke tests and batching checks are documented in
+[LLM localizations](llm-localizations.md#recommended-first-smoke-test); do not
+run them as part of the credential-free suite.
+
 ## 🧹 Run local checks
 
 ```bash

@@ -17,6 +17,41 @@ python -m pip install -r requirements.txt
 The project pins a compatible Setuptools version for older Google API
 dependencies. A `pkg_resources is deprecated` warning is not fatal.
 
+## 🧰 `Codex CLI was not found`
+
+Automatic Codex generation requires the local Codex CLI. Install it with npm
+and verify that the command is available:
+
+```bash
+npm install -g @openai/codex
+codex --version
+```
+
+If installation succeeds but the command is still missing, check the runtime
+and npm's global binary location:
+
+```bash
+node --version
+npm --version
+npm prefix -g
+which codex
+```
+
+The npm global binary directory may not be present in `PATH`. Do not assume a
+single macOS global npm path; installation methods can use different locations.
+
+## 🔐 `Codex CLI is not logged in`
+
+Authenticate the local Codex CLI with ChatGPT sign-in, then verify it:
+
+```bash
+codex login
+codex login status
+```
+
+This is separate from the YouTube OAuth file and `token.json`. No OpenAI API
+key is required for the local Codex workflow.
+
 ## 🔑 `FileNotFoundError` for the OAuth file
 
 Check that:

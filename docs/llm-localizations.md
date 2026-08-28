@@ -101,15 +101,19 @@ use the existing Google OAuth setup; see [Configuration](configuration.md).
 
 ## Automatic local Codex CLI generation
 
-On **LLM translate**, click **Generate missing translations** to check the
-local Codex login and generate all currently missing non-default catalog
-targets. The existing helper uses sequential batches of at most ten languages,
-validates each result, merges them, and loads the direct JSON into the editable
-LLM form. The prompt/upload workflow below remains available as a fallback.
-This does not create a third application workflow, integrate a provider into
-the app, or publish to YouTube.
+Automatic Codex translation requires the local Codex CLI. Installing the
+Python requirements does not install it. Node.js and npm must be available for
+this installation method.
 
-Authenticate with ChatGPT sign-in before running it:
+Install and verify the CLI:
+
+```bash
+npm install -g @openai/codex
+codex --version
+```
+
+Authenticate the local CLI with the ChatGPT sign-in flow and verify the
+session:
 
 ```bash
 codex login
@@ -118,50 +122,142 @@ codex login status
 
 No OpenAI API key is required. The helper removes `OPENAI_API_KEY` and
 `CODEX_API_KEY` from the child process environment, while retaining the local
-Codex authentication context. Usage is subject to the signed-in Codex/ChatGPT
-plan limits; this workflow is not free or unlimited.
+Codex authentication context. Usage follows the limits of the signed-in
+ChatGPT/Codex account; this workflow is not free or unlimited.
+
+On **LLM translate**, click **Generate missing translations** to check the
+Codex login and generate all currently missing non-default catalog targets.
+The current Streamlit implementation:
+
+- calculates missing translations from the selected video's current YouTube
+  state and fresh live language catalog;
+- processes the missing languages in sequential batches of 1–10;
+- validates each batch, retries a failed Codex batch once, and stops with an
+  error if the retry also fails;
+- merges the validated batches and validates the final direct localization map;
+- loads the merged JSON into the existing editable localization editor.
+
+This reuses the existing editor; it does not create a separate automatic
+publishing workflow or integrate an LLM provider into the app.
 
 For every run, the helper fetches the current video and a fresh live YouTube
 language catalog through the existing YouTube OAuth service. Only the default
 `snippet.title`, `snippet.description`, and `snippet.defaultLanguage` (when
 available), together with the current target batch, are sent to Codex. Existing
 translations are never sent. Only currently missing non-default catalog targets
-are generated, in sequential batches of at most 10 languages, with one retry
-for a failed batch.
+are generated, in sequential batches of at most 10 languages. The CLI helper
+uses one retry for a failed batch.
 
-The generated file is a direct localization JSON map intended for review and
-publishing through **Manual translate**, not the exact-selected-batch LLM
-uploader. Preview and Publish remain explicit actions in Streamlit; the helper
-never auto-publishes.
+The CLI command is generation-only. It reads the YouTube state and live catalog
+needed to construct missing targets, then writes local JSON; it does not
+publish translations to YouTube. The generated file is a direct localization
+JSON map for inspection and editing in the existing localization editor.
 
-Cheap first smoke run:
+### Recommended first smoke test
+
+After `codex login status` succeeds, start with a small real run:
 
 ```bash
 npm run youtube:codex-localize -- \
   --video-id VIDEO_ID \
   --max-languages 2 \
-  --output localizations-smoke.json
+  --output /tmp/smoke.json
 ```
 
-Full run:
+Expected terminal output has this shape:
+
+```text
+Generated 2 localizations -> /tmp/smoke.json
+```
+
+Inspect the direct localization map:
 
 ```bash
-npm run youtube:codex-localize -- \
-  --video-id VIDEO_ID
+python -m json.tool /tmp/smoke.json
 ```
 
-Controlled run:
+The output must be one direct map, for example:
+
+```json
+{
+  "de": {
+    "title": "...",
+    "description": "..."
+  },
+  "fr": {
+    "title": "...",
+    "description": "..."
+  }
+}
+```
+
+Do not expect wrapper objects such as:
+
+```json
+{ "localizations": {} }
+```
+
+or:
+
+```json
+{ "languages": {} }
+```
+
+### Verify batching and merge
+
+To force more than one batch while keeping the run small:
 
 ```bash
 npm run youtube:codex-localize -- \
   --video-id VIDEO_ID \
-  --batch-size 5 \
-  --max-languages 10 \
-  --output localizations.json
+  --batch-size 2 \
+  --max-languages 3 \
+  --output /tmp/batching.json
 ```
 
-Smaller batches create more Codex calls. The default batch size of 10
-minimizes call count while matching the current LLM batch bounds.
+Expected terminal progress should resemble:
+
+```text
+Codex batch 1/2: ...
+Codex batch 2/2: ...
+Generated 3 localizations -> /tmp/batching.json
+```
+
+Then inspect the final object:
+
+```bash
+python -m json.tool /tmp/batching.json
+```
+
+The final file should contain all three language entries in one JSON object.
+This verifies:
+
+```text
+batch → Codex → validate → next batch → validate → merge → one localization JSON
+```
+
+`--batch-size` must be between 1 and 10. Smaller batches create more Codex
+calls; a failed batch is retried once by the current helper. `--max-languages`
+limits the number of missing targets selected for that run.
+
+### Generation versus publishing
+
+The CLI command only generates a local file. It never publishes translations.
+Use this safe application sequence when you are ready to review the result:
+
+```text
+Select video
+    → LLM translate
+    → Generate missing translations
+    → inspect/edit generated JSON
+    → Preview changes
+    → Publish changes
+```
+
+**Generate missing translations** must not publish, and **Preview changes**
+must not publish. Only the explicit **Publish changes** action writes
+localization changes to YouTube. Test generation and Preview before testing
+Publish.
 
 ## Safe publishing
 

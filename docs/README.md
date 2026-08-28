@@ -12,7 +12,7 @@ what you want to do, then follow the numbered steps inside it.
 | 🚀 | [Getting started](getting-started.md) | You are installing the project or launching it for the first time. |
 | 🔐 | [Configuration](configuration.md) | Set up the YouTube OAuth client. |
 | 🧩 | [Manual localizations](manual-localizations.md) | Edit, validate, preview, and publish localization JSON. |
-| ✨ | [LLM localizations](llm-localizations.md) | Use an external LLM prompt and upload its JSON result. |
+| ✨ | [LLM localizations](llm-localizations.md) | Use local Codex generation or an external LLM prompt. |
 | 🆘 | [Troubleshooting](troubleshooting.md) | Setup, OAuth, ports, dependencies, or API calls are failing. |
 | 🛡️ | [Security](security.md) | You are handling credentials, tokens, or a leaked secret. |
 | 🛠️ | [Development](development.md) | You are running tests or changing the project. |

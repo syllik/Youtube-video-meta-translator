@@ -11,6 +11,7 @@ Google authorization.
 - Python 3.12 (recommended and tested for this project).
 - A browser on the same computer.
 - A YouTube OAuth client JSON file; see [Configuration](configuration.md).
+- Node.js and npm if you want automatic Codex CLI generation.
 - No OpenAI or other LLM API key is required for **LLM translate**.
 
 The application changes YouTube metadata on your behalf. Start with one video
@@ -33,6 +34,11 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
+
+These Python requirements do not install the optional Codex CLI. To use
+automatic generation, follow [Automatic local Codex CLI generation](llm-localizations.md#automatic-local-codex-cli-generation)
+after the Python setup; that path requires Node.js/npm and a locally
+authenticated Codex session.
 
 For a later terminal session, activate the existing environment:
 
@@ -66,9 +72,10 @@ Follow [Configuration](configuration.md) and place the OAuth file at:
 config/account_client_secrets_main.json
 ```
 
-The LLM workflow uses the same OAuth session as Manual translate. It creates a
-copyable prompt for an external LLM and validates the downloaded JSON file when
-you upload it; no provider API key is configured in this project.
+Both Streamlit workflows use the same YouTube OAuth session. The external-LLM
+path creates a copyable prompt and validates the downloaded JSON file when you
+upload it; the automatic Codex path additionally uses the local Codex login.
+Neither path requires a provider API key.
 
 ## 4️⃣ Check the environment
 
