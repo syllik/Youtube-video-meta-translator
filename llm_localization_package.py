@@ -85,6 +85,45 @@ def select_next_llm_languages(
     return progress.missing[:batch_size]
 
 
+def build_selected_llm_languages(
+    progress: LlmTranslationProgress,
+    selected_codes: Sequence[str],
+    max_count: int = LLM_BATCH_SIZE,
+) -> Tuple[YouTubeLanguage, ...]:
+    """Normalize and validate an explicit subset of missing languages."""
+    if max_count <= 0:
+        raise ValueError("max_count must be positive")
+
+    selected = []
+    normalized = set()
+    for raw_code in selected_codes:
+        if not isinstance(raw_code, str) or not raw_code.strip():
+            raise ValueError("selected language codes must be non-empty strings")
+        code = raw_code.strip().casefold()
+        if code in normalized:
+            raise ValueError("duplicate selected language code: {}".format(raw_code))
+        normalized.add(code)
+        selected.append(code)
+
+    if len(selected) > max_count:
+        raise ValueError(
+            "no more than {} languages may be selected".format(max_count)
+        )
+
+    by_code = {
+        language.code.casefold(): language for language in progress.missing
+    }
+    unknown = [code for code in selected if code not in by_code]
+    if unknown:
+        raise ValueError("language is not a missing target: {}".format(unknown[0]))
+
+    return tuple(
+        language
+        for language in progress.missing
+        if language.code.casefold() in normalized
+    )
+
+
 def _video_source(video_resource: Mapping[str, Any]) -> Dict[str, Any]:
     """Extract only the default video's source metadata for translation."""
     snippet = video_resource.get("snippet")

@@ -7,6 +7,7 @@ from language_catalog import (
 )
 from llm_localization_package import (
     LlmTranslationProgress,
+    build_selected_llm_languages,
     build_llm_translation_package,
     build_llm_translation_prompt,
     calculate_llm_translation_progress,
@@ -87,6 +88,37 @@ class LlmLocalizationPackageTests(unittest.TestCase):
         for batch_size in (0, -1):
             with self.assertRaises(ValueError):
                 select_next_llm_languages(progress, batch_size=batch_size)
+
+    def test_selected_codes_are_normalized_and_returned_in_catalog_order(self):
+        progress = calculate_llm_translation_progress(self.video_resource, self.catalog)
+
+        selected = build_selected_llm_languages(progress, ("FR", "es"))
+
+        self.assertEqual([language.code for language in selected], ["es", "fr"])
+
+    def test_selected_codes_reject_default_existing_unknown_duplicate_and_eleventh(self):
+        progress = calculate_llm_translation_progress(
+            self.video_resource, self.eleven_language_catalog
+        )
+
+        for codes in (("en",), ("de",), ("unknown",), ("es", "ES")):
+            with self.subTest(codes=codes):
+                with self.assertRaises(ValueError):
+                    build_selected_llm_languages(progress, codes)
+
+        with self.assertRaises(ValueError):
+            build_selected_llm_languages(
+                progress,
+                tuple(language.code for language in progress.missing[:11]),
+            )
+
+    def test_selected_codes_reject_non_positive_limit_and_invalid_values(self):
+        progress = calculate_llm_translation_progress(self.video_resource, self.catalog)
+
+        for max_count, codes in ((0, ()), (-1, ()), (10, ("",)), (10, (None,))):
+            with self.subTest(max_count=max_count, codes=codes):
+                with self.assertRaises(ValueError):
+                    build_selected_llm_languages(progress, codes, max_count=max_count)
 
     def test_package_contains_only_default_source_and_targets(self):
         languages = (
