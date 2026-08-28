@@ -4,11 +4,14 @@ import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from streamlit_app import page_title
-from ui.channel_header import CHANNEL_LOGO_SIZE
+from streamlit_app import AppContext, bootstrap_app_context, page_title
 
 
 class StreamlitBootstrapTests(unittest.TestCase):
+    def test_app_context_exposes_shared_selection(self):
+        self.assertIn("selected_video_id", AppContext.__annotations__)
+        self.assertTrue(callable(bootstrap_app_context))
+
     def test_page_titles_are_explicit(self):
         self.assertEqual(page_title("manual"), "Manual translate")
         self.assertEqual(page_title("llm"), "LLM translate")
@@ -34,18 +37,31 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertTrue(Path("pages/1_Manual_translate.py").exists())
         self.assertTrue(Path("pages/2_LLM_translate.py").exists())
 
-    def test_manual_page_contains_manual_components_only(self):
+    def test_manual_page_uses_shared_bootstrap_and_not_page_owned_navigation(self):
         source = Path("pages/1_Manual_translate.py").read_text()
+        self.assertIn("bootstrap_app_context", source)
+        self.assertIn("sync_manual_video", source)
         self.assertIn("render_manual_editor", source)
-        self.assertIn("render_video_list", source)
+        self.assertNotIn("render_video_list", source)
+        self.assertNotIn("render_pagination", source)
         self.assertNotIn("render_llm_translation_controls", source)
 
-    def test_llm_page_uses_live_catalog_and_editor(self):
+    def test_llm_page_uses_shared_bootstrap_and_not_page_owned_navigation(self):
         source = Path("pages/2_LLM_translate.py").read_text()
+        self.assertIn("bootstrap_app_context", source)
+        self.assertIn("sync_llm_video", source)
         self.assertIn("fetch_localization_language_catalog", source)
         self.assertIn("render_llm_translation_controls", source)
         self.assertIn("render_manual_editor", source)
         self.assertIn("catalog.codes", source)
+        self.assertNotIn("render_video_list", source)
+        self.assertNotIn("render_pagination", source)
+
+    def test_prompt_page_uses_shared_bootstrap(self):
+        source = Path("pages/3_LLM_prompt.py").read_text()
+        self.assertIn("bootstrap_app_context", source)
+        self.assertIn("sync_llm_video", source)
+        self.assertNotIn("Select a video on LLM translate", source)
 
     def test_supporting_llm_prompt_page_has_selection_and_external_links_only(self):
         prompt_source = Path("pages/3_LLM_prompt.py").read_text()
@@ -120,14 +136,15 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertNotIn("st.radio", source)
         self.assertIn('"Selected" if is_selected else "Select"', source)
 
-    def test_manual_page_explains_selection_from_another_page(self):
+    def test_manual_page_does_not_require_visible_page_membership(self):
         source = Path("pages/1_Manual_translate.py").read_text()
-        self.assertIn("selected video is on another page", source.lower())
+        self.assertNotIn("selected video is on another page", source.lower())
 
-    def test_channel_logo_is_large_enough_for_the_summary_card(self):
-        self.assertGreaterEqual(CHANNEL_LOGO_SIZE, 112)
-        source = Path("ui/channel_header.py").read_text()
-        self.assertGreaterEqual(source.count("CHANNEL_LOGO_SIZE"), 2)
+    def test_sidebar_keeps_channel_logo_and_shared_bootstrap_renders_it(self):
+        source = Path("ui/sidebar.py").read_text()
+        bootstrap_source = Path("streamlit_app.py").read_text()
+        self.assertIn('class="channel-logo"', source)
+        self.assertIn("render_app_sidebar", bootstrap_source)
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 """Streamlit entry point and shared page bootstrap."""
 
-from typing import Any, MutableMapping
+from dataclasses import dataclass
+from typing import Any, MutableMapping, Optional
 
 import streamlit as st
 
@@ -14,6 +15,17 @@ PAGE_DESCRIPTIONS = {
     "manual": "Review prepared localization JSON for one video before publishing it.",
     "llm": "Copy a prompt for an external LLM, upload its JSON result, and publish it safely.",
 }
+
+
+@dataclass(frozen=True)
+class AppContext:
+    """Shared YouTube data and selection available to every workflow page."""
+
+    service: Any
+    channel: Any
+    page: Any
+    selection: Any
+    selected_video_id: Optional[str]
 
 
 def page_title(mode: str) -> str:
@@ -45,33 +57,27 @@ def get_youtube_service(session_state: MutableMapping[str, Any]):
     return service
 
 
-def render_common_page_context(mode: str):
-    """Load channel and one URL-selected page for either workflow."""
-    from dataclasses import dataclass
-
+def bootstrap_app_context() -> Optional[AppContext]:
+    """Load shared YouTube data, render the sidebar, and return app context."""
     from googleapiclient.errors import HttpError
 
     from models import YouTubePage
     from state.common_state import (
         clamp_selection,
+        get_selected_video_id,
         init_common_state,
         load_video_page,
         reset_video_cache,
     )
-    from ui.channel_header import render_channel_header
     from ui.feedback import render_feedback
     from ui.pagination import (
         canonical_pagination_query,
         parse_pagination_query,
     )
+    from ui.sidebar import render_app_sidebar
     from ui.styles import apply_app_styles
 
-    if mode not in {"manual", "llm"}:
-        raise ValueError("Unknown application mode: {}".format(mode))
-    configure_page(page_title(mode))
     apply_app_styles()
-    st.title(page_title(mode))
-    st.caption(PAGE_DESCRIPTIONS[mode])
     init_common_state(st.session_state)
     query = parse_pagination_query(st.query_params)
     service = None
@@ -112,21 +118,21 @@ def render_common_page_context(mode: str):
         render_feedback("", "youtube_api")
         return None
 
-    @dataclass(frozen=True)
-    class CommonPageContext:
-        service: Any
-        channel: Any
-        page: Any
-        selection: Any
-
-    def refresh():
-        reset_video_cache(st.session_state)
-        st.session_state["common.channel"] = None
-        st.session_state["common.active_limit"] = None
-        st.rerun()
-
-    render_channel_header(channel, refresh, normalized, st.query_params)
-    return CommonPageContext(service, channel, page, normalized)
+    context = AppContext(
+        service=service,
+        channel=channel,
+        page=page,
+        selection=normalized,
+        selected_video_id=get_selected_video_id(st.session_state),
+    )
+    render_app_sidebar(context, st.session_state, st.query_params)
+    return AppContext(
+        service=service,
+        channel=channel,
+        page=page,
+        selection=normalized,
+        selected_video_id=get_selected_video_id(st.session_state),
+    )
 
 
 def render_app_intro() -> None:

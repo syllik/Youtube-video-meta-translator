@@ -78,7 +78,7 @@ def _render_report(result: Any) -> None:
 
 def render_manual_editor(
     state: MutableMapping[str, Any],
-    video: Any,
+    video_id: Optional[str],
     service: Any,
     supported_language_codes,
     widget_prefix: str = "manual",
@@ -137,7 +137,7 @@ def render_manual_editor(
         preview_clicked = st.button(
             "Preview changes",
             type="primary",
-            disabled=not bool(video and parsed.is_valid),
+            disabled=not bool(video_id and parsed.is_valid),
             key="{}-preview-changes".format(widget_prefix),
         )
     with publish_col:
@@ -151,7 +151,7 @@ def render_manual_editor(
         state["operation_status"] = "previewing"
         try:
             with st.spinner("Comparing with the current YouTube state..."):
-                store_manual_preview(state, service.preview(video.id, raw_json))
+                store_manual_preview(state, service.preview(video_id, raw_json))
             state["operation_status"] = "idle"
             st.rerun()
         except Exception as error:
@@ -166,7 +166,7 @@ def render_manual_editor(
             state["operation_status"] = "publishing"
             try:
                 with st.spinner("Publishing localization changes..."):
-                    result = service.publish(video.id, raw_json)
+                    result = service.publish(video_id, raw_json)
                 store_manual_preview(state, result)
                 state["operation_status"] = "idle"
                 if result.wrote:

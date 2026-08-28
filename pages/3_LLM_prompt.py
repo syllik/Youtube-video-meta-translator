@@ -3,8 +3,8 @@
 import streamlit as st
 from googleapiclient.errors import HttpError
 
-from streamlit_app import configure_page, get_youtube_service
-from state.llm_state import init_llm_state
+from state.llm_state import init_llm_state, sync_llm_video
+from streamlit_app import bootstrap_app_context, configure_page
 from ui.llm_prompt import render_llm_prompt_page
 
 
@@ -32,19 +32,21 @@ data to the linked LLM websites or require an LLM API key.
 """
     )
 
+    context = bootstrap_app_context()
+    if context is None:
+        return
+
     state = init_llm_state(st.session_state)
-    selected_video_id = state.get("selected_video_id")
-    if not selected_video_id:
-        st.page_link(
-            "pages/2_LLM_translate.py",
-            label="Select a video on LLM translate",
-        )
+    sync_llm_video(state, context.selected_video_id)
+    if not context.selected_video_id:
+        st.info("Select one video from the sidebar to begin.")
         return
 
     try:
-        service = get_youtube_service(st.session_state)
-        video_resource = service.get_video_with_localizations(selected_video_id)
-        catalog = service.fetch_localization_language_catalog(hl="ru")
+        video_resource = context.service.get_video_with_localizations(
+            context.selected_video_id
+        )
+        catalog = context.service.fetch_localization_language_catalog(hl="ru")
     except HttpError:
         st.error("YouTube could not load the selected video or language catalog.")
         return
