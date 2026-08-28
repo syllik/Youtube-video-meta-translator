@@ -197,6 +197,44 @@ class CodexLocalizationGeneratorTests(unittest.TestCase):
 
         self.assertTrue(parsed.is_valid)
 
+    def test_script_subtag_canonicalization_keeps_catalog_code_order(self):
+        catalog = YouTubeLanguageCatalog(
+            source="live",
+            fetched_at="2026-08-28T00:00:00.000Z",
+            hl="ru",
+            languages=(
+                YouTubeLanguage("sr-Latn", "sr-Latn", "Serbian Latin"),
+            ),
+        )
+        video_resource = {
+            "snippet": {
+                "defaultLanguage": "en",
+                "title": "Waterfall",
+                "description": "Wind above the falls.",
+            },
+            "localizations": {},
+        }
+
+        def run_batch(package, schema):
+            return {
+                "sr-LATN": {
+                    "title": "Vodopad",
+                    "description": "Vetar iznad vodopada.",
+                }
+            }
+
+        try:
+            result = generator_module.generate_missing_localizations(
+                video_resource,
+                catalog,
+                run_batch=run_batch,
+            )
+        except KeyError as error:
+            self.fail("script-subtag result must use the catalog code: {}".format(error))
+
+        self.assertEqual(tuple(result), ("sr-Latn",))
+        self.assertEqual(result["sr-Latn"]["title"], "Vodopad")
+
     def test_atomic_writer_replaces_only_after_successful_serialization(self):
         with tempfile.TemporaryDirectory() as directory:
             output_path = Path(directory) / "localizations.json"

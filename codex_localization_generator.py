@@ -89,8 +89,11 @@ def generate_missing_localizations(
                 )
             )
 
+        parsed_entries_by_code = {
+            code.casefold(): value for code, value in parsed_batch.entries.items()
+        }
         for code in codes:
-            merged[code] = parsed_batch.entries[code].to_dict()
+            merged[code] = parsed_entries_by_code[code.casefold()].to_dict()
 
     expected_codes = tuple(language.code for language in targets)
     parsed_merged = parse_llm_upload_json(
@@ -103,8 +106,11 @@ def generate_missing_localizations(
             "Merged localization output failed validation: {}".format(issue.message)
         )
 
+    merged_entries_by_code = {
+        code.casefold(): value for code, value in parsed_merged.entries.items()
+    }
     return {
-        code: parsed_merged.entries[code].to_dict()
+        code: merged_entries_by_code[code.casefold()].to_dict()
         for code in expected_codes
     }
 
