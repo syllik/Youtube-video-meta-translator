@@ -22,17 +22,24 @@ Publish changes
 The manual editor handles exactly one uploaded video per operation. It does not
 generate translations, process subtitles, or publish audio localization.
 
-## 1️⃣ Select a video
+## 1️⃣ Select a video in the sidebar
 
-Click **Select** on one video card in the list. The selected card changes to
-**Selected** so the active video is clear. The app uses the YouTube video ID,
-not the title, as the API identifier.
+The left sidebar is available on every workflow page. Click **Select** on one
+video card; the selected card changes to **Selected** so the active video is
+clear. The app uses the YouTube video ID, not the title, as the API identifier.
 
-The selection stays active while you move through the paginated list. If the
-selected video is not on the current page, the app says so explicitly; click
-**Select** on a visible card to switch the active video.
+The selection stays active while you move through pagination and while you move
+between Manual translate, LLM translate, and LLM Translation prompt. The
+thumbnail opens the video on YouTube; the card also shows its ID, default
+language, localization badges, and selection control.
 
 ## 2️⃣ Paste JSON
+
+Open **Manual localizations** to edit the direct JSON object. The expander is
+collapsed while idle and opens automatically when JSON, validation feedback, or
+a preview result is present. Its example contains ten codes selected from the
+current live YouTube language catalog, excluding the default language when it
+is available.
 
 Use a non-empty JSON object keyed by YouTube language code:
 

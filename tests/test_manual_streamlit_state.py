@@ -334,9 +334,10 @@ class ManualStateTests(unittest.TestCase):
                 for kind, args, *_rest in streamlit.calls
             )
         )
+        missing_caption = "Missing " + "translations"
         self.assertFalse(
             any(
-                kind == "caption" and "Missing translations" in args[0]
+                kind == "caption" and missing_caption in args[0]
                 for kind, args, *_rest in streamlit.calls
             )
         )

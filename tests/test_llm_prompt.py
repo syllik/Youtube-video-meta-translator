@@ -98,7 +98,7 @@ class LlmPromptPageTests(unittest.TestCase):
         from ui.llm_prompt import render_llm_prompt_page
 
         fake = _FakeStreamlit()
-        state = {"selected_video_id": "video-1", "selected_target_codes": ()}
+        state = {"bound_video_id": "video-1", "selected_target_codes": ()}
 
         with patch.dict(sys.modules, self._streamlit_modules(fake)):
             render_llm_prompt_page(state, self.video_resource, self.catalog)
@@ -119,7 +119,7 @@ class LlmPromptPageTests(unittest.TestCase):
 
         fake = _FakeStreamlit(selected_codes=("code-2", "code-7"))
         state = {
-            "selected_video_id": "video-1",
+            "bound_video_id": "video-1",
             "selected_target_codes": ("code-2", "code-7"),
         }
 
@@ -141,7 +141,7 @@ class LlmPromptPageTests(unittest.TestCase):
         )
         fake = _FakeStreamlit(selected_codes=missing_codes)
         state = {
-            "selected_video_id": "video-1",
+            "bound_video_id": "video-1",
             "selected_target_codes": ("code-2",),
             "prompt_video_id": "video-1",
             "prompt_target_codes": ("code-2",),
@@ -159,7 +159,7 @@ class LlmPromptPageTests(unittest.TestCase):
         from ui.llm_prompt import render_llm_prompt_page
 
         fake = _FakeStreamlit(selected_codes=("code-2",))
-        state = {"selected_video_id": "video-1", "selected_target_codes": ()}
+        state = {"bound_video_id": "video-1", "selected_target_codes": ()}
 
         with patch.dict(sys.modules, self._streamlit_modules(fake)):
             render_llm_prompt_page(state, self.video_resource, self.catalog)

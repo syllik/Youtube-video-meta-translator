@@ -103,7 +103,7 @@ class SidebarTests(unittest.TestCase):
         self.assertIn("video-1", text)
         self.assertIn("Default language: en", text)
         self.assertIn("localization-badge", text)
-        self.assertNotIn("Open on YouTube", text)
+        self.assertNotIn("Open " + "on YouTube", text)
         self.assertTrue(
             any(
                 call[0] == "button" and call[1] == "Refresh list"

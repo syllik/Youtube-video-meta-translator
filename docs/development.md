@@ -14,6 +14,8 @@ Youtube-video-meta-translator/
 ├── services/                        # YouTube and Manual boundaries
 ├── state/                           # Common, Manual, and LLM session state
 ├── ui/                              # Shared and workflow-specific widgets
+│   ├── sidebar.py                   # Persistent channel and video navigation
+│   └── badges.py                    # Shared localization badge renderer
 ├── models.py                        # Shared immutable data models
 ├── language_catalog.py              # Validated live YouTube language catalog
 ├── llm_localization_package.py     # LLM context, prompt, schema, and validation
@@ -27,10 +29,12 @@ Youtube-video-meta-translator/
 └── token.json                       # Local OAuth session; generated locally
 ```
 
-The Manual and LLM pages share the YouTube and localization boundaries, but
-their Streamlit state and widget keys remain separate. The LLM path creates a
-prompt for an external tool and validates the uploaded JSON before it reaches
-the editor; it has no provider client.
+The Manual and LLM pages share the YouTube and localization boundaries and the
+common selected video stored in session state. The persistent sidebar renders
+channel details, links, pagination, and video cards on all workflow pages. The
+LLM path creates a prompt for an external tool and validates the uploaded JSON
+before it reaches the editor; it has no provider client. The prompt is shown in
+Streamlit's native read-only code block, and the Manual editor is an expander.
 
 ## 🧪 Run automated tests
 

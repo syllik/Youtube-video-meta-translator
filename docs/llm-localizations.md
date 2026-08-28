@@ -8,7 +8,7 @@ external LLM without connecting an LLM provider API to this project.
 ## End-to-end flow
 
 ```text
-Select one video
+Select one video in the persistent sidebar
       ↓
 Fetch the current YouTube i18nLanguages.list catalog through OAuth
       ↓
@@ -29,13 +29,13 @@ remains editable in the shared localization form.
 
 ## Choose targets and copy the prompt
 
-The LLM Translation prompt page shows `current / total` progress from the
-selected video's current YouTube localizations. The selected video's default
-language is excluded from both values. Its live-catalog multiselect contains
-only missing target languages, selects the first ten missing targets by default,
-and allows no more than ten selections.
+The LLM Translation prompt page shows `YouTube translations: current / total`
+progress from the selected video's current YouTube localizations. The selected
+video's default language is excluded from both values. Its live-catalog
+multiselect contains only missing target languages, selects the first ten
+missing targets by default, and allows no more than ten selections.
 
-Copy the prompt, paste it into an external LLM, and ask for one attached,
+Copy the prompt from the read-only native Streamlit code block, paste it into an external LLM, and ask for one attached,
 downloadable UTF-8 `.json` file. The prompt includes the default title,
 description, and default-language code when available, plus the exact selected
 target codes. Existing localizations are not sent as prompt context.

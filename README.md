@@ -4,14 +4,16 @@ A local Streamlit app for managing YouTube video titles and descriptions.
 
 You can choose between two workflows:
 
-- 🧩 **Manual translate** — choose one video, fetch YouTube's live language
+- 🧩 **Manual translate** — choose one video from the persistent sidebar, fetch YouTube's live language
   catalog through OAuth, edit localization JSON, validate it, preview the
   diff, and publish changes while preserving omitted languages.
 - ✨ **LLM translate** — copy a prompt for an external LLM, download its JSON
   result, upload it, then validate and review it before publishing.
 
 Both workflows use a `Select` button on each video card and the same explicit
-preview-before-publish flow.
+preview-before-publish flow. The sidebar remains available on both workflows
+and on the supporting LLM Translation prompt page, so the selected video is
+shared everywhere.
 
 ## 🧭 Start here
 
@@ -59,9 +61,9 @@ streamlit run streamlit_app.py
 ## ✅ Two-step translation flow
 
 1. Start with one non-critical video.
-2. Open the supporting **LLM Translation prompt** page, select up to ten
-   missing live-catalog targets, and copy its prompt. The first ten missing
-   targets are selected by default.
+2. Open the supporting **LLM Translation prompt** page from the app navigation,
+   select up to ten missing live-catalog targets, and copy the native code block.
+   The first ten missing targets are selected by default.
 3. Paste the prompt into an external LLM and download its direct UTF-8 JSON
    result. The prompt contains only the selected video's default metadata.
 4. Upload the file on **LLM translate**. The app validates exact requested
@@ -76,9 +78,17 @@ streamlit run streamlit_app.py
 For fully manual work, use **Manual translate** and paste a direct JSON object
 keyed by YouTube language codes into the same editor.
 
-The video list defaults to the latest 10 uploads. Use `10`, `20`, `50`, or
-`all` in the page-size control; the selected page and limit are kept in the
-URL for refreshes and sharing.
+The persistent left sidebar shows channel details, channel and RSS links,
+refresh, page-size controls, pagination, and the latest 10 uploads by default.
+Use `10`, `20`, `50`, or `all` in the page-size control; the selected page and
+limit are kept in the URL for refreshes and sharing. Click a video thumbnail to
+open it on YouTube; the card's ID, default language, localization badges, and
+`Select`/`Selected` control are shown below the thumbnail.
+
+The Manual localizations editor is collapsed while idle and opens automatically
+when JSON, validation feedback, or a preview result is present. Its example is
+a direct JSON object containing ten codes validated against YouTube's current
+live language catalog.
 
 The manual editor re-fetches current YouTube state before publishing and keeps
 existing localizations omitted from the submitted JSON.

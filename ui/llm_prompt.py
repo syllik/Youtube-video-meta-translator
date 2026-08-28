@@ -59,7 +59,7 @@ def render_llm_prompt_page(
     """Render missing-language selection, prompt copy, and web-LLM links."""
     import streamlit as st
 
-    video_id = state.get("selected_video_id") or video_resource.get("id")
+    video_id = state.get("bound_video_id") or video_resource.get("id")
     if not video_id:
         st.page_link(
             "pages/2_LLM_translate.py",
