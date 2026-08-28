@@ -150,6 +150,53 @@ def build_llm_translation_package(
     }
 
 
+def build_llm_localization_schema(
+    expected_language_codes: Sequence[str],
+) -> Dict[str, Any]:
+    """Build an exact JSON Schema for one direct localization map."""
+    codes = []
+    normalized = set()
+
+    for raw_code in expected_language_codes:
+        if not isinstance(raw_code, str) or not raw_code.strip():
+            raise ValueError("expected language codes must be non-empty strings")
+        code = raw_code.strip()
+        folded = code.casefold()
+        if folded in normalized:
+            raise ValueError("duplicate expected language code: {}".format(code))
+        normalized.add(folded)
+        codes.append(code)
+
+    if not codes:
+        raise ValueError("at least one expected language code is required")
+
+    properties = {}
+    for code in codes:
+        properties[code] = {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 5000,
+                },
+            },
+            "required": ["title", "description"],
+            "additionalProperties": False,
+        }
+
+    return {
+        "type": "object",
+        "properties": properties,
+        "required": codes,
+        "additionalProperties": False,
+    }
+
+
 def build_llm_translation_prompt(package: Mapping[str, Any]) -> str:
     """Build strict instructions for one downloadable localization JSON file."""
     package_json = json.dumps(package, ensure_ascii=False, indent=2)

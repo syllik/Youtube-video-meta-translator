@@ -1,5 +1,7 @@
 import unittest
 
+import llm_localization_package
+
 from language_catalog import (
     YouTubeLanguage,
     YouTubeLanguageCatalog,
@@ -252,6 +254,38 @@ class LlmLocalizationPackageTests(unittest.TestCase):
         self.assertFalse(
             parse_llm_upload_json(description_too_long, ("en-GB",)).is_valid
         )
+
+    def test_schema_requires_exact_language_codes_and_localization_fields(self):
+        self.assertTrue(
+            hasattr(llm_localization_package, "build_llm_localization_schema")
+        )
+        schema = llm_localization_package.build_llm_localization_schema(
+            ("en-GB", "pt-BR")
+        )
+
+        self.assertEqual(schema["type"], "object")
+        self.assertEqual(schema["required"], ["en-GB", "pt-BR"])
+        self.assertFalse(schema["additionalProperties"])
+        self.assertEqual(tuple(schema["properties"]), ("en-GB", "pt-BR"))
+
+        localization = schema["properties"]["en-GB"]
+        self.assertEqual(localization["type"], "object")
+        self.assertEqual(localization["required"], ["title", "description"])
+        self.assertFalse(localization["additionalProperties"])
+        self.assertEqual(localization["properties"]["title"]["minLength"], 1)
+        self.assertEqual(localization["properties"]["title"]["maxLength"], 100)
+        self.assertEqual(
+            localization["properties"]["description"]["maxLength"], 5000
+        )
+
+    def test_schema_rejects_empty_invalid_and_duplicate_codes(self):
+        self.assertTrue(
+            hasattr(llm_localization_package, "build_llm_localization_schema")
+        )
+        for codes in ((), ("",), (None,), ("en-GB", "EN-gb")):
+            with self.subTest(codes=codes):
+                with self.assertRaises(ValueError):
+                    llm_localization_package.build_llm_localization_schema(codes)
 
 
 if __name__ == "__main__":
