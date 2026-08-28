@@ -59,8 +59,10 @@ class YoutubeApi:
         self.page_videos = []
         self.all_videos_cache = []  # Cache for when ALL option is selected
         self.youtube = None
+        self.channel_id = ''
         self.channel_thumbnail = ''
         self.channel_name = ''
+        self.channel_description = ''
         self.uploads_id = ''
         self.next_page_token = None
         self.page_tokens = {}  # Store page tokens for efficient pagination
@@ -156,8 +158,14 @@ class YoutubeApi:
     def set_channel_data(self, channel_response):
         """Extract channel information from API response"""
         if channel_response.get("items"):
-            self.channel_thumbnail = channel_response["items"][0]['snippet']['thumbnails']['default']['url']
-            self.channel_name = channel_response["items"][0]['snippet']['title']
+            channel = channel_response["items"][0]
+            snippet = channel.get("snippet") or {}
+            self.channel_id = channel.get("id", "")
+            self.channel_thumbnail = (
+                (snippet.get("thumbnails") or {}).get("default") or {}
+            ).get("url", "")
+            self.channel_name = snippet.get("title", "")
+            self.channel_description = snippet.get("description", "")
 
     def get_total_video_count(self):
         """Get total number of videos in channel without fetching all video details"""
@@ -296,16 +304,14 @@ class YoutubeApi:
         """Get the uploads playlist ID for the authenticated channel"""
         try:
             channel_response = self.youtube.channels().list(
-                part="snippet",
+                part="snippet,contentDetails",
                 mine=True
             ).execute()
             self.set_channel_data(channel_response)
-            channel_id = channel_response["items"][0]["id"]
-            uploads_response = self.youtube.channels().list(
-                id=channel_id,
-                part='contentDetails'
-            ).execute()
-            self.uploads_id = uploads_response["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
+            self.uploads_id = (
+                channel_response["items"][0]["contentDetails"]
+                ["relatedPlaylists"]["uploads"]
+            )
         except googleapiclient.errors.HttpError as e:
             self.errorStr = e.error_details[0]['reason']
 

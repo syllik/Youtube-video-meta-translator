@@ -9,7 +9,9 @@ PageLimit = Union[int, str]
 
 @dataclass(frozen=True)
 class ChannelInfo:
+    id: str
     name: str
+    description: str
     thumbnail_url: str
     total_videos: int
 

@@ -2,11 +2,33 @@ import unittest
 from unittest.mock import Mock
 
 from language_catalog import YouTubeLanguageCatalog
-from models import YouTubePage
+from models import ChannelInfo, YouTubePage
 from services.youtube_service import YoutubeService
 
 
 class YoutubeServiceTests(unittest.TestCase):
+    def test_fetch_channel_exposes_id_and_description(self):
+        account = Mock()
+        account.channel_id = "channel-1"
+        account.channel_name = "My channel"
+        account.channel_description = "Channel description"
+        account.channel_thumbnail = "channel-thumb"
+        account.total_video_count = 42
+        service = YoutubeService(account)
+
+        result = service.fetch_channel()
+
+        self.assertEqual(
+            result,
+            ChannelInfo(
+                id="channel-1",
+                name="My channel",
+                description="Channel description",
+                thumbnail_url="channel-thumb",
+                total_videos=42,
+            ),
+        )
+
     def test_fetch_video_page_passes_limit_and_page_token(self):
         account = Mock()
         account.fetch_video_page.return_value = {

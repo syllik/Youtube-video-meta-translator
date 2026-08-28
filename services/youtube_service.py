@@ -30,7 +30,9 @@ class YoutubeService:
 
     def fetch_channel(self) -> ChannelInfo:
         return ChannelInfo(
+            id=self.account.channel_id,
             name=self.account.channel_name,
+            description=self.account.channel_description,
             thumbnail_url=self.account.channel_thumbnail,
             total_videos=self.account.total_video_count,
         )
