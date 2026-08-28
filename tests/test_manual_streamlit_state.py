@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from contextlib import nullcontext
@@ -12,7 +13,7 @@ from state.manual_state import (
     set_manual_json,
     sync_manual_video,
 )
-from ui.manual_editor import render_manual_editor
+from ui.manual_editor import render_manual_editor, select_manual_example_codes
 from language_catalog import YouTubeLanguage, YouTubeLanguageCatalog
 
 
@@ -20,6 +21,8 @@ class _FakeStreamlit:
     def __init__(self, raw_json, publish_clicked):
         self.session_state = {"manual-localizations-json": raw_json}
         self.publish_clicked = publish_clicked
+        self.expander_calls = []
+        self.code_calls = []
 
     def subheader(self, *_args, **_kwargs):
         pass
@@ -27,8 +30,12 @@ class _FakeStreamlit:
     def caption(self, *_args, **_kwargs):
         pass
 
+    def expander(self, label, **kwargs):
+        self.expander_calls.append((label, kwargs))
+        return nullcontext()
+
     def code(self, *_args, **_kwargs):
-        pass
+        self.code_calls.append((_args[0], _kwargs))
 
     def text_area(self, _label, **kwargs):
         return self.session_state[kwargs["key"]]
@@ -37,6 +44,9 @@ class _FakeStreamlit:
         pass
 
     def info(self, *_args, **_kwargs):
+        pass
+
+    def error(self, *_args, **_kwargs):
         pass
 
     def columns(self, _count):
@@ -110,6 +120,93 @@ def _publishable_state(raw_json):
 
 
 class ManualStateTests(unittest.TestCase):
+    def test_manual_example_codes_prioritize_live_codes_and_exclude_default(self):
+        supported = ("zh-CN", "en", "pt-BR", "fr", "de", "es", "ja")
+
+        result = select_manual_example_codes(
+            supported, default_language_code="EN", max_count=5
+        )
+
+        self.assertEqual(result, ("es", "pt-BR", "fr", "de", "ja"))
+        self.assertNotIn("en", result)
+
+    def test_manual_example_codes_fill_from_live_catalog_order(self):
+        supported = ("en", "xx", "yy", "zz")
+
+        result = select_manual_example_codes(
+            supported, default_language_code="en", max_count=3
+        )
+
+        self.assertEqual(result, ("xx", "yy", "zz"))
+
+    def test_manual_expander_is_collapsed_when_editor_is_idle(self):
+        state = {"raw_json": "", "preview_result": None}
+        streamlit = _FakeStreamlit("", publish_clicked=False)
+
+        with patch.dict(sys.modules, {"streamlit": streamlit}):
+            render_manual_editor(state, None, SimpleNamespace(), ("de",))
+
+        self.assertEqual(
+            streamlit.expander_calls,
+            [("Manual localizations", {"expanded": False})],
+        )
+
+    def test_manual_expander_opens_for_json_validation_issue_or_preview(self):
+        for raw_json, preview_result in (
+            ('{"de": {"title": "Title", "description": "Text"}}', None),
+            ("{", None),
+            (
+                "",
+                SimpleNamespace(
+                    plan=SimpleNamespace(
+                        is_valid=False,
+                        has_changes=False,
+                        diffs=(),
+                        issues=(),
+                        preserved_language_codes=(),
+                    )
+                ),
+            ),
+        ):
+            state = {"raw_json": raw_json, "preview_result": preview_result}
+            streamlit = _FakeStreamlit(raw_json, publish_clicked=False)
+
+            with patch.dict(sys.modules, {"streamlit": streamlit}):
+                render_manual_editor(state, None, SimpleNamespace(), ("de",))
+
+            self.assertEqual(streamlit.expander_calls[0][1], {"expanded": True})
+
+    def test_manual_example_contains_ten_live_catalog_codes(self):
+        supported_codes = (
+            "en",
+            "es",
+            "hi",
+            "pt-BR",
+            "ar",
+            "id",
+            "fr",
+            "de",
+            "ja",
+            "vi",
+            "ru",
+            "ko",
+            "tr",
+        )
+        streamlit = _FakeStreamlit("", publish_clicked=False)
+
+        with patch.dict(sys.modules, {"streamlit": streamlit}):
+            render_manual_editor(
+                {"raw_json": "", "preview_result": None},
+                None,
+                SimpleNamespace(),
+                supported_codes,
+                default_language_code="en",
+            )
+
+        example = json.loads(streamlit.code_calls[0][0])
+        self.assertEqual(tuple(example), supported_codes[1:11])
+        self.assertEqual(len(example), 10)
+
     def test_valid_utf8_upload_becomes_canonical_editor_json(self):
         state = {"raw_json": "old editor value"}
         apply_upload = getattr(llm_package, "apply_llm_upload", None)

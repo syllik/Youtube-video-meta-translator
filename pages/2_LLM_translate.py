@@ -62,6 +62,9 @@ def render_llm_page() -> None:
             catalog.codes,
             widget_prefix="llm",
             on_published=refresh_after_publish,
+            default_language_code=(video_resource.get("snippet") or {}).get(
+                "defaultLanguage"
+            ),
         )
 
 

@@ -1,6 +1,7 @@
 """Manual-only JSON editor, preview report, and publish action."""
 
-from typing import Any, Callable, MutableMapping, Optional
+import json
+from typing import Any, Callable, Iterable, MutableMapping, Optional, Tuple
 
 from googleapiclient.errors import HttpError
 from youtube_account import YoutubeVideoNotFoundError
@@ -12,6 +13,80 @@ from state.manual_state import (
     set_manual_json,
     store_manual_preview,
 )
+
+
+POPULAR_PREVIEW_LANGUAGE_CODES: Tuple[str, ...] = (
+    "en",
+    "es",
+    "hi",
+    "pt-BR",
+    "ar",
+    "id",
+    "fr",
+    "de",
+    "ja",
+    "vi",
+    "ru",
+    "ko",
+    "tr",
+    "th",
+    "it",
+)
+
+
+def select_manual_example_codes(
+    supported_codes: Iterable[str],
+    default_language_code: Optional[str] = None,
+    max_count: int = 10,
+) -> Tuple[str, ...]:
+    """Choose popular example codes that exist in the live catalog."""
+    if max_count <= 0:
+        return ()
+
+    live_by_code = {}
+    for code in supported_codes:
+        if isinstance(code, str) and code.strip():
+            live_by_code.setdefault(code.strip().casefold(), code.strip())
+    default_code = (
+        default_language_code.strip().casefold()
+        if isinstance(default_language_code, str) and default_language_code.strip()
+        else None
+    )
+
+    selected = []
+    selected_normalized = set()
+    for preferred_code in POPULAR_PREVIEW_LANGUAGE_CODES:
+        normalized_code = preferred_code.casefold()
+        if normalized_code == default_code or normalized_code not in live_by_code:
+            continue
+        selected.append(live_by_code[normalized_code])
+        selected_normalized.add(normalized_code)
+        if len(selected) == max_count:
+            return tuple(selected)
+
+    for code in live_by_code.values():
+        normalized_code = code.casefold()
+        if normalized_code == default_code or normalized_code in selected_normalized:
+            continue
+        selected.append(code)
+        selected_normalized.add(normalized_code)
+        if len(selected) == max_count:
+            break
+    return tuple(selected)
+
+
+def _example_json(codes: Iterable[str]) -> str:
+    return json.dumps(
+        {
+            code: {
+                "title": "Translated title",
+                "description": "Translated description",
+            }
+            for code in codes
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
 
 
 def _render_errors(issues) -> None:
@@ -83,6 +158,7 @@ def render_manual_editor(
     supported_language_codes,
     widget_prefix: str = "manual",
     on_published: Optional[Callable[[], None]] = None,
+    default_language_code: Optional[str] = None,
 ) -> None:
     import streamlit as st
 
@@ -105,85 +181,98 @@ def render_manual_editor(
             )
         state["scroll_to_form"] = False
 
-    st.subheader("Manual localizations")
-    st.caption(
-        "Paste prepared JSON. Existing languages omitted from the JSON are preserved."
-    )
-    st.code(
-        '{\n  "de": {\n    "title": "German title",\n    "description": "German description"\n  }\n}',
-        language="json",
-    )
     editor_key = "{}-localizations-json".format(widget_prefix)
     if editor_key not in st.session_state:
         st.session_state[editor_key] = state.get("raw_json", "")
-    raw_json = st.text_area(
-        "Localizations JSON",
-        height=300,
-        key=editor_key,
-        placeholder="Paste a JSON object keyed by YouTube language code",
+    raw_json_for_expander = st.session_state.get(
+        editor_key, state.get("raw_json", "")
     )
-    set_manual_json(state, raw_json)
-    parsed = parse_localizations_json(raw_json, supported_language_codes)
-    state["local_validation"] = parsed
-    if parsed.issues:
-        _render_errors(parsed.issues)
-    elif raw_json.strip():
-        st.success("JSON is valid. Preview it against the current YouTube state.")
-    else:
-        st.info("Paste JSON to continue.")
+    parsed_for_expander = parse_localizations_json(
+        raw_json_for_expander, supported_language_codes
+    )
+    expanded = bool(
+        raw_json_for_expander.strip()
+        or (raw_json_for_expander.strip() and parsed_for_expander.issues)
+        or state.get("preview_result") is not None
+    )
 
-    preview_col, publish_col = st.columns(2)
-    with preview_col:
-        preview_clicked = st.button(
-            "Preview changes",
-            type="primary",
-            disabled=not bool(video_id and parsed.is_valid),
-            key="{}-preview-changes".format(widget_prefix),
+    with st.expander("Manual localizations", expanded=expanded):
+        st.caption(
+            "Paste prepared JSON. Existing languages omitted from the JSON are preserved."
         )
-    with publish_col:
-        publish_clicked = st.button(
-            "Publish changes",
-            disabled=not manual_can_publish(state),
-            key="{}-publish-changes".format(widget_prefix),
+        example_codes = select_manual_example_codes(
+            supported_language_codes,
+            default_language_code=default_language_code,
         )
-
-    if preview_clicked:
-        state["operation_status"] = "previewing"
-        try:
-            with st.spinner("Comparing with the current YouTube state..."):
-                store_manual_preview(state, service.preview(video_id, raw_json))
-            state["operation_status"] = "idle"
-            st.rerun()
-        except Exception as error:
-            state["operation_status"] = "idle"
-            state["operation_error"] = "youtube_api"
-            _render_service_error(error)
-
-    if publish_clicked:
-        if not manual_preview_is_current(state):
-            st.warning("The JSON changed after preview. Preview the changes again.")
+        st.code(_example_json(example_codes), language="json")
+        raw_json = st.text_area(
+            "Localizations JSON",
+            height=300,
+            key=editor_key,
+            placeholder="Paste a JSON object keyed by YouTube language code",
+        )
+        set_manual_json(state, raw_json)
+        parsed = parse_localizations_json(raw_json, supported_language_codes)
+        state["local_validation"] = parsed
+        if parsed.issues:
+            _render_errors(parsed.issues)
+        elif raw_json.strip():
+            st.success("JSON is valid. Preview it against the current YouTube state.")
         else:
-            state["operation_status"] = "publishing"
+            st.info("Paste JSON to continue.")
+
+        preview_col, publish_col = st.columns(2)
+        with preview_col:
+            preview_clicked = st.button(
+                "Preview changes",
+                type="primary",
+                disabled=not bool(video_id and parsed.is_valid),
+                key="{}-preview-changes".format(widget_prefix),
+            )
+        with publish_col:
+            publish_clicked = st.button(
+                "Publish changes",
+                disabled=not manual_can_publish(state),
+                key="{}-publish-changes".format(widget_prefix),
+            )
+
+        if preview_clicked:
+            state["operation_status"] = "previewing"
             try:
-                with st.spinner("Publishing localization changes..."):
-                    result = service.publish(video_id, raw_json)
-                store_manual_preview(state, result)
+                with st.spinner("Comparing with the current YouTube state..."):
+                    store_manual_preview(state, service.preview(video_id, raw_json))
                 state["operation_status"] = "idle"
-                if result.wrote:
-                    state["published"] = True
-                    st.success("Localization changes published successfully.")
-                    if on_published is not None:
-                        on_published()
-                else:
-                    st.info("No localization changes were found.")
+                st.rerun()
             except Exception as error:
                 state["operation_status"] = "idle"
                 state["operation_error"] = "youtube_api"
                 _render_service_error(error)
 
-    result = state.get("preview_result")
-    if result is not None:
-        if result.plan.issues:
-            _render_errors(result.plan.issues)
-        else:
-            _render_report(result)
+        if publish_clicked:
+            if not manual_preview_is_current(state):
+                st.warning("The JSON changed after preview. Preview the changes again.")
+            else:
+                state["operation_status"] = "publishing"
+                try:
+                    with st.spinner("Publishing localization changes..."):
+                        result = service.publish(video_id, raw_json)
+                    store_manual_preview(state, result)
+                    state["operation_status"] = "idle"
+                    if result.wrote:
+                        state["published"] = True
+                        st.success("Localization changes published successfully.")
+                        if on_published is not None:
+                            on_published()
+                    else:
+                        st.info("No localization changes were found.")
+                except Exception as error:
+                    state["operation_status"] = "idle"
+                    state["operation_error"] = "youtube_api"
+                    _render_service_error(error)
+
+        result = state.get("preview_result")
+        if result is not None:
+            if result.plan.issues:
+                _render_errors(result.plan.issues)
+            else:
+                _render_report(result)

@@ -34,11 +34,20 @@ def render_manual_page() -> None:
         render_feedback("", "youtube_api")
     else:
         service = ManualLocalizationService(context.service, catalog.codes)
+        default_language_code = next(
+            (
+                video.default_language_code
+                for video in context.page.videos
+                if video.id == context.selected_video_id
+            ),
+            None,
+        )
         render_manual_editor(
             state,
             context.selected_video_id,
             service,
             catalog.codes,
+            default_language_code=default_language_code,
         )
 
 
