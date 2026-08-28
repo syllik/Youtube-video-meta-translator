@@ -1,8 +1,9 @@
 """YouTube API boundary used by both Streamlit workflow pages."""
 
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
-from models import ChannelInfo, MachinePublishResult, PageLimit, VideoSummary, YouTubePage
+from language_catalog import YouTubeLanguageCatalog, build_language_catalog
+from models import ChannelInfo, PageLimit, VideoSummary, YouTubePage
 from youtube_account import YoutubeApi
 
 
@@ -11,17 +12,21 @@ class YoutubeService:
 
     def __init__(self, account: Optional[YoutubeApi] = None):
         self.account = account or YoutubeApi()
+        self._language_catalog_cache: Dict[str, YouTubeLanguageCatalog] = {}
 
-    @property
-    def code_to_name(self):
-        return self.account.code_to_name
-
-    @property
-    def name_to_code(self):
-        return self.account.name_to_code
+    def fetch_localization_language_catalog(
+        self, hl: str = "ru", refresh: bool = False
+    ) -> YouTubeLanguageCatalog:
+        """Fetch and validate YouTube's current localization language catalog."""
+        if not refresh and hl in self._language_catalog_cache:
+            return self._language_catalog_cache[hl]
+        catalog = build_language_catalog(self.account.list_i18n_languages(hl), hl=hl)
+        self._language_catalog_cache[hl] = catalog
+        return catalog
 
     def supported_language_codes(self):
-        return set(self.code_to_name.keys()) | {"pt-BR"}
+        """Return codes from the current YouTube catalog for compatibility."""
+        return set(self.fetch_localization_language_catalog().codes)
 
     def fetch_channel(self) -> ChannelInfo:
         return ChannelInfo(
@@ -46,33 +51,6 @@ class YoutubeService:
 
     def update_video_localizations(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
         return self.account.update_video_localizations(payload)
-
-    def publish_machine_localization(
-        self,
-        video_id: str,
-        language_code: str,
-        title: str,
-        description: str,
-        trim: bool,
-    ) -> MachinePublishResult:
-        before_trimmed = getattr(self.account, "videos_trimmed", 0)
-        before_skipped = getattr(self.account, "videos_skipped", 0)
-        if hasattr(self.account, "errorStr"):
-            self.account.errorStr = ""
-        self.account.set_video_localization(
-            video_id,
-            language_code,
-            self.code_to_name.get(language_code, language_code),
-            title,
-            description,
-            trim,
-            video_id,
-        )
-        return MachinePublishResult(
-            trimmed=getattr(self.account, "videos_trimmed", 0) - before_trimmed,
-            skipped=getattr(self.account, "videos_skipped", 0) - before_skipped,
-            error_type=getattr(self.account, "errorStr", None) or None,
-        )
 
     @staticmethod
     def _to_video_summary(video: Any) -> VideoSummary:

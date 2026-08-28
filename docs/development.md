@@ -10,26 +10,27 @@ calling the live YouTube API.
 ```text
 Youtube-video-meta-translator/
 ├── streamlit_app.py                 # Streamlit entry point and common bootstrap
-├── pages/                           # Machine and manual workflow pages
-├── services/                        # YouTube, machine, and manual boundaries
-├── state/                           # Common, machine, and manual session state
-├── ui/                              # Shared and mode-specific widgets
+├── pages/                           # Manual and LLM workflow pages
+├── services/                        # YouTube and Manual boundaries
+├── state/                           # Common, Manual, and LLM session state
+├── ui/                              # Shared and workflow-specific widgets
 ├── models.py                        # Shared immutable data models
-├── youtube_account.py               # YouTube OAuth, listing, publishing
+├── language_catalog.py              # Validated live YouTube language catalog
+├── llm_localization_package.py     # LLM context, prompt, schema, and validation
+├── youtube_account.py               # YouTube OAuth, listing, and publishing
 ├── localizations.py                 # JSON validation, diff, and merge logic
-├── localization_service.py          # Pure manual validation/publish orchestration
-├── google_translate.py              # Google Cloud Translation wrapper
+├── localization_service.py          # Manual/LLM preview and publish orchestration
 ├── requirements.txt                 # Python dependencies
 ├── tests/                           # Credential-free automated tests
 ├── docs/                            # User and project documentation
-├── config/                          # Local credentials; never commit
-├── .env                             # Optional local DeepL key; never commit
+├── config/                          # Local OAuth credentials; never commit
 └── token.json                       # Local OAuth session; generated locally
 ```
 
-The provider module remains because machine translation is still supported.
-The manual editor is implemented separately so its validation and merge logic
-can be tested without credentials.
+The Manual and LLM pages share the YouTube and localization boundaries, but
+their Streamlit state and widget keys remain separate. The LLM path creates a
+prompt for an external tool and validates the uploaded JSON before it reaches
+the editor; it has no provider client.
 
 ## 🧪 Run automated tests
 
@@ -39,14 +40,14 @@ Activate `.venv`, then run:
 python -m unittest discover -s tests -v
 ```
 
-The suite uses mocks and does not require live YouTube credentials. A real
-YouTube smoke test is intentionally separate because publishing changes an
-external channel.
+The suite uses mocks and does not require live YouTube or LLM credentials.
+A real YouTube smoke test is intentionally separate because publishing changes
+an external channel.
 
 ## 🧹 Run local checks
 
 ```bash
-python -m compileall -q streamlit_app.py pages models.py services state ui google_translate.py youtube_account.py localizations.py localization_service.py youtube_languages tests
+python -m compileall -q streamlit_app.py pages models.py language_catalog.py llm_localization_package.py services state ui youtube_account.py localizations.py localization_service.py tests
 git diff --check
 git diff --cached --check
 python -m pip check
@@ -55,16 +56,24 @@ python -m pip check
 The dependency check may print a pip cache-permission warning; the relevant
 success result is `No broken requirements found.`
 
-## 🧩 Manual editor boundaries
+## 🧩 Workflow boundaries
 
 - Local JSON validation runs before preview; preview never writes.
 - Publish validates again, refetches current state, and performs at most one
   update for one video.
-- Existing localizations omitted from the submitted JSON are preserved.
-- Machine translation and manual localization code are kept separate.
+- Existing localizations omitted from submitted JSON are preserved.
+- Manual validation and the LLM prompt use the same fresh
+  `i18nLanguages.list` catalog for the Streamlit session.
+- LLM progress excludes the default language; prompt targets are a live-catalog
+  subset of missing languages, with the first ten selected by default and a
+  hard limit of ten.
+- Prompt context is default-video metadata only. An uploaded file must be an
+  exact direct language-keyed YouTube map; wrapper metadata is never accepted.
+- Preview never writes. Publish revalidates, refetches current state, merges
+  omitted localizations, and refreshes the displayed YouTube progress.
 
-Read the [manual editor context](manual-localization-editor-context.md) for the
-full product constraints and review checklist.
+Read [Manual editor context](manual-localization-editor-context.md) and
+[LLM localizations](llm-localizations.md) for the product constraints.
 
 ## 📝 Documentation changes
 

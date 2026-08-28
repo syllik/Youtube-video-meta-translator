@@ -28,10 +28,3 @@ class VideoSummary:
 class YouTubePage:
     videos: Tuple[VideoSummary, ...]
     next_page_token: Optional[str]
-
-
-@dataclass(frozen=True)
-class MachinePublishResult:
-    trimmed: int = 0
-    skipped: int = 0
-    error_type: Optional[str] = None

@@ -2,9 +2,10 @@
 
 ⬅️ [Back to documentation](README.md) · [Open the user workflow](manual-localizations.md)
 
-> Historical product context: the current runtime is Streamlit with separate
-> **Machine translate** and **Manual translate** pages. The migration design
-> and current architecture are documented in
+> Historical product context: this file describes the earlier manual-editor
+> migration and is not the current runtime specification. The current app has
+> **Manual translate** and **LLM translate** workflows; its live architecture is
+> documented in
 > [`superpowers/specs/2026-08-27-streamlit-migration-design.md`](superpowers/specs/2026-08-27-streamlit-migration-design.md).
 
 ## Goal
@@ -638,15 +639,15 @@ Return understandable API responses to the frontend.
 
 ---
 
-# Machine Translation
+# Archived Machine Translation Notes
 
-The current project includes Google Translate and DeepL.
+The earlier project included Google Translate and DeepL.
 
 Do NOT make removal of those systems the first implementation task.
 
 First make the manual JSON workflow functional and tested.
 
-After that, machine translation can be removed in a separate cleanup task/commit.
+The current runtime has removed these provider workflows.
 
 Desired final state:
 
@@ -660,17 +661,17 @@ not:
 translation generator
 ```
 
-Possible later cleanup:
+Cleanup completed in the current runtime:
 
 ```text
 remove google_translate.py
-remove DeepL dependency
 remove translation provider settings
 remove old translation routes
 remove old translation controls
 ```
 
-But keep cleanup separate from the core feature where practical.
+These notes describe the earlier project only; the live app now contains the
+Manual and LLM workflows described in the current guides.
 
 ---
 
@@ -814,7 +815,7 @@ The most important smoke-test assertion is that an existing language omitted fro
 
 ---
 
-# Development Strategy
+# Historical Development Strategy
 
 Work incrementally.
 
@@ -861,10 +862,6 @@ Add integration/error handling tests and verify the complete workflow locally.
 ## Task 8
 
 Perform real YouTube smoke test manually.
-
-## Task 9
-
-Only after the manual flow is stable, remove unused machine-translation code in a separate cleanup change.
 
 ---
 

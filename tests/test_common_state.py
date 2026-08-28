@@ -24,11 +24,11 @@ def test_reset_clears_tokens_and_pages_only():
     state = {
         "common.page_tokens_by_limit": {10: {2: "token-2"}},
         "common.video_pages_by_limit": {10: {1: object()}},
-        "machine.selected_video_ids": {"video-1"},
+        "manual.selected_video_id": "video-1",
     }
 
     reset_video_cache(state)
 
     assert state["common.page_tokens_by_limit"] == {}
     assert state["common.video_pages_by_limit"] == {}
-    assert state["machine.selected_video_ids"] == {"video-1"}
+    assert state["manual.selected_video_id"] == "video-1"

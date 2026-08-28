@@ -1,43 +1,29 @@
 # 🆘 Troubleshooting
 
 Start with the symptom that matches what you see. Most setup problems come
-from an inactive virtual environment, an incorrect credential filename, or the
-wrong local port or an incomplete OAuth setup.
+from an inactive virtual environment, an incorrect OAuth filename, or an
+incomplete Google configuration.
 
 ⬅️ [Back to documentation](README.md) · ➡️ [Security](security.md)
 
-## 🐍 `ModuleNotFoundError: No module named 'pkg_resources'`
+## 🐍 `ModuleNotFoundError`
 
-Activate `.venv` and install the compatible Setuptools version:
-
-```bash
-python -m pip install "setuptools<81"
-```
-
-`pkg_resources is deprecated` is a warning from an older dependency. It is not
-the same as the fatal missing-module error when startup stops.
-
-## 📦 pip tries to build `grpcio`
-
-The project uses a modern `grpcio` range for the tested Python 3.12 ARM64
-setup. Make sure `.venv` is active and use the documented binary-wheel
-installation command:
+Activate `.venv` and install the project requirements:
 
 ```bash
-python -m pip install --only-binary=grpcio -r requirements.txt
-which python
-python --version
+python -m pip install -r requirements.txt
 ```
 
-On Windows, use `where.exe python` instead of `which python`.
+The project pins a compatible Setuptools version for older Google API
+dependencies. A `pkg_resources is deprecated` warning is not fatal.
 
-## 🔑 `FileNotFoundError` for `config/account_client_secrets_main.json`
+## 🔑 `FileNotFoundError` for the OAuth file
 
 Check that:
 
-1. The command is running from the project root.
-2. The file is inside `config/`.
-3. The filename is not `account_client_secrets_main.json.json`.
+1. the command runs from the project root;
+2. the file is inside `config/`;
+3. the filename is exactly `account_client_secrets_main.json`.
 
 ```bash
 find config -maxdepth 1 -type f -print
@@ -47,8 +33,8 @@ See [Configuration](configuration.md) for the complete OAuth setup.
 
 ## 🚫 Google says access is restricted
 
-For an External test app, add the Google account you are using to **Google
-Auth Platform → Audience → Test users**. Authorize with that same account.
+For an External test app, add the Google account you are using to **Google Auth
+Platform → Audience → Test users**. Authorize with that same account.
 
 ## 🌐 The browser does not show Streamlit
 
@@ -67,8 +53,7 @@ http://127.0.0.1:8501
 ## 🔄 The browser does not open after Google login
 
 Complete the Google authorization page opened by the app and wait for the
-terminal to finish the callback on port `8080`. Keep the Streamlit process
-running while using the app.
+terminal to finish the callback on port `8080`. Keep Streamlit running.
 
 ## 🔗 `redirect_uri_mismatch`
 
@@ -96,33 +81,25 @@ Check that:
   available for migration;
 - the terminal is still running and has internet access.
 
-## 🌍 Google Translate is unavailable
+## 📎 The LLM upload is rejected
 
-Check that Cloud Translation API is enabled, `config/translate_key.json` is
-valid, the service account belongs to the same project, and billing/quota
-requirements are satisfied.
+The app does not need an LLM API key. Download the external LLM result as a
+UTF-8 `.json` file, then check that it has exactly the requested target codes.
+Each value must contain only a string `title` and `description`; wrapper keys,
+Markdown fences, prose, duplicate keys, extra codes, and missing codes are
+rejected. Correct the file in the external LLM and upload it again.
 
-## 🟦 DeepL is not used
+## 🧾 The form reports unsupported language codes
 
-Check that `.env` is in the project root, not in `config/`, and contains:
-
-```text
-DEEPL_API_KEY=your-real-key
-```
-
-Restart `streamlit run streamlit_app.py` after changing `.env`.
-
-## ✂️ Translations are skipped or trimmed
-
-The title or description is longer than YouTube's limit. Enable trimming if
-you want the app to shorten it, or leave trimming disabled and shorten the
-content yourself.
+Only the exact direct YouTube localization map belongs in the form. Remove
+wrapper keys such as `catalog`, `languages`, `outputContract`, `schemaVersion`,
+or `source`. The valid code list comes from the fresh `i18nLanguages.list`
+response shown by the selected workflow.
 
 ## 📊 YouTube quota errors
 
-YouTube Data API requests consume project quota. Reduce batch size, avoid
-repeatedly loading large channel lists, and check the quota page in Google
-Cloud Console. Translation providers have separate quotas.
+YouTube Data API requests consume project quota. Avoid repeatedly reloading
+large channel lists, and start with one selected video.
 
 ## ➡️ Still blocked?
 

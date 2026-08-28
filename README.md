@@ -4,15 +4,14 @@ A local Streamlit app for managing YouTube video titles and descriptions.
 
 You can choose between two workflows:
 
-- 🧩 **Manual translate** — choose one video, paste prepared localizations,
-  validate the JSON, preview the diff, and publish changes while preserving
-  omitted languages.
-- 🔁 **Machine translate** — translate several videos and languages with DeepL
-  and Google Translation fallback.
+- 🧩 **Manual translate** — choose one video, fetch YouTube's live language
+  catalog through OAuth, edit localization JSON, validate it, preview the
+  diff, and publish changes while preserving omitted languages.
+- ✨ **LLM translate** — copy a prompt for an external LLM, download its JSON
+  result, upload it, then validate and review it before publishing.
 
-The two workflows are deliberately separate. Machine translation uses
-checkboxes for batch work; manual translation uses a `Select` button on each
-video card and an explicit preview-before-publish flow.
+Both workflows use a `Select` button on each video card and the same explicit
+preview-before-publish flow.
 
 ## 🧭 Start here
 
@@ -21,16 +20,16 @@ video card and an explicit preview-before-publish flow.
 | | Open this guide | When to use it |
 | --- | --- | --- |
 | 🚀 | [Getting started](docs/getting-started.md) | Install the project and launch it for the first time. |
-| 🔐 | [Configuration](docs/configuration.md) | Set up Google Cloud, OAuth, DeepL, or Google Translate. |
-| 🧩 | [Manual localizations](docs/manual-localizations.md) | Publish prepared JSON safely. |
-| 🔁 | [Machine translation](docs/legacy-translation.md) | Translate titles and descriptions automatically. |
+| 🔐 | [Configuration](docs/configuration.md) | Set up the YouTube OAuth client. |
+| 🧩 | [Manual localizations](docs/manual-localizations.md) | Edit, validate, preview, and publish localization JSON. |
+| ✨ | [LLM localizations](docs/llm-localizations.md) | Use an external LLM safely with a prompt and JSON upload. |
 | 🆘 | [Troubleshooting](docs/troubleshooting.md) | Fix setup, OAuth, dependency, port, or API problems. |
 | 🛡️ | [Security](docs/security.md) | Protect credentials and local token files. |
 | 🛠️ | [Development](docs/development.md) | Run tests and work on the repository. |
 
 The emoji markers are navigation hints: `🚀` means start, `🔐` means
-credentials, `🧩` means manual editing, `🔁` means machine translation, and
-`🆘` means help.
+credentials, `🧩` means manual editing, `✨` means LLM generation, and `🆘`
+means help.
 
 ## ⚡ Quick start
 
@@ -39,7 +38,7 @@ From the project folder:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --only-binary=grpcio -r requirements.txt
+python -m pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
@@ -53,19 +52,29 @@ Streamlit opens the local app in your browser. If it does not, open
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --only-binary=grpcio -r requirements.txt
+python -m pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
 
-## ✅ Before publishing
+## ✅ Two-step translation flow
 
 1. Start with one non-critical video.
-2. Open **Manual translate** from the navigation and click **Select** on one video.
-3. Paste JSON, validate it, and click **Preview changes**.
-4. Check that the report shows the expected `added`, `changed`, and
-   `unchanged` entries.
-5. Click **Publish changes** only when the JSON is valid.
-6. Confirm the result in YouTube Studio.
+2. Open the supporting **LLM Translation prompt** page, select up to ten
+   missing live-catalog targets, and copy its prompt. The first ten missing
+   targets are selected by default.
+3. Paste the prompt into an external LLM and download its direct UTF-8 JSON
+   result. The prompt contains only the selected video's default metadata.
+4. Upload the file on **LLM translate**. The app validates exact requested
+   language codes and the `title`/`description` shape before filling the
+   editable JSON form.
+5. Edit the JSON if needed, then click **Preview changes**. Preview never
+   writes to YouTube.
+6. Click **Publish changes** only when the JSON is valid. Publish refetches
+   the current video, merges omitted localizations, and refreshes progress.
+7. Confirm the result in YouTube Studio.
+
+For fully manual work, use **Manual translate** and paste a direct JSON object
+keyed by YouTube language codes into the same editor.
 
 The video list defaults to the latest 10 uploads. Use `10`, `20`, `50`, or
 `all` in the page-size control; the selected page and limit are kept in the
@@ -74,17 +83,21 @@ URL for refreshes and sharing.
 The manual editor re-fetches current YouTube state before publishing and keeps
 existing localizations omitted from the submitted JSON.
 
+The language catalog is never hardcoded. Both pages use the current OAuth
+response of YouTube Data API v3 `i18nLanguages.list` at the time the video is
+selected. No OpenAI or other LLM API key is required; YouTube still uses the
+existing OAuth session, not `YOUTUBE_API_KEY`.
+
 ## 📚 Project documentation
 
 - [Documentation hub](docs/README.md)
-- [Streamlit migration design](docs/superpowers/specs/2026-08-27-streamlit-migration-design.md)
 - [Development and tests](docs/development.md)
 - [Security checklist](docs/security.md)
 
 ## 🔒 Credentials
 
-Never commit OAuth JSON, service-account keys, `.env`, `token.json`, or
-`token.pickle`. See [Security](docs/security.md) and [Configuration](docs/configuration.md).
+Never commit OAuth JSON, `.env`, `token.json`, or `token.pickle`. See
+[Security](docs/security.md) and [Configuration](docs/configuration.md).
 
 ## 📜 License
 
