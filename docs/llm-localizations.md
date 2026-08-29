@@ -118,11 +118,11 @@ codex login
 codex login status
 ```
 
-The app removes `OPENAI_API_KEY` and `CODEX_API_KEY` from Codex child-process
-environment variables, uses ephemeral read-only execution, validates every
-batch, retries a failed batch once, merges the results, and loads the direct
-document into the same Translate draft. Every batch receives the same selected
-primary/reference source context.
+The app starts Codex child processes with an explicit runtime/auth environment
+allowlist, uses ephemeral read-only execution, bounds login and batch execution
+time, validates every batch, retries a failed batch once, merges the results,
+and loads the direct document into the same Translate draft. Every batch
+receives the same selected primary/reference source context.
 
 Run a small generation-only smoke test:
 
@@ -142,9 +142,10 @@ only that entry.
 ## Safety boundary
 
 Generation and upload never publish automatically. Preview never writes to
-YouTube. Publish revalidates the JSON, refetches current YouTube state, merges
-submitted localizations with the current set, preserves omitted languages, and
-requires a current valid Preview.
+YouTube. Publish revalidates the JSON, refetches current YouTube state, rejects
+changes since the reviewed Preview, conditionally writes when an ETag is
+available, merges submitted localizations with the current set, preserves
+omitted languages, and requires a current valid Preview.
 
 Use **Reset languages** only when you intentionally want to delete every
 localization for one video. It is a separate destructive operation with native

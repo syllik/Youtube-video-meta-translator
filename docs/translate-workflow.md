@@ -58,7 +58,11 @@ in the draft.
 ## 4. Publish changes
 
 Click **Publish changes** only after a current valid Preview. Publish validates
-the draft again and fetches the selected video immediately before writing.
+the draft again and fetches the selected video immediately before writing. It
+compares the fetched resource with the resource reviewed in Preview; if YouTube
+changed in the meantime, no update is sent and the app asks you to Preview
+again. When YouTube provides an ETag, the update also uses it as a conditional
+write guard.
 
 The update uses safe merge semantics:
 

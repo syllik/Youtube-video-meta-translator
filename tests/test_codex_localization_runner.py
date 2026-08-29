@@ -59,6 +59,38 @@ class CodexLocalizationRunnerTests(unittest.TestCase):
         self.assertNotIn("OPENAI_API_KEY", kwargs["env"])
         self.assertNotIn("CODEX_API_KEY", kwargs["env"])
 
+    def test_check_login_uses_allowlisted_runtime_environment_only(self):
+        calls = []
+        synthetic_env = {
+            "PATH": "/usr/bin:/bin",
+            "HOME": "/tmp/home",
+            "USERPROFILE": "/tmp/profile",
+            "CODEX_HOME": "/tmp/codex",
+            "YOUTUBE_API_KEY": "youtube-secret",
+            "GOOGLE_APPLICATION_CREDENTIALS": "/tmp/gcp.json",
+            "GITHUB_TOKEN": "github-secret",
+            "AWS_SECRET_ACCESS_KEY": "aws-secret",
+            "APP_SECRET": "app-secret",
+            "OPENAI_API_KEY": "api-key",
+            "CODEX_API_KEY": "codex-key",
+        }
+
+        def fake_run(command, **kwargs):
+            calls.append((command, kwargs))
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+        runner_module.check_codex_login(run=fake_run, environ=synthetic_env)
+
+        self.assertEqual(
+            calls[0][1]["env"],
+            {
+                "PATH": "/usr/bin:/bin",
+                "HOME": "/tmp/home",
+                "USERPROFILE": "/tmp/profile",
+                "CODEX_HOME": "/tmp/codex",
+            },
+        )
+
     def test_check_login_rejects_missing_executable(self):
         def fake_run(command, **kwargs):
             raise FileNotFoundError("codex")
@@ -110,6 +142,23 @@ class CodexLocalizationRunnerTests(unittest.TestCase):
         self.assertNotIn("oauth-secret-value", message)
         self.assertNotIn("/Users/example/private", message)
 
+    def test_check_login_converts_timeout_to_domain_error_without_output_leak(self):
+        def fake_run(command, **kwargs):
+            raise subprocess.TimeoutExpired(
+                command,
+                15,
+                output="sensitive stdout",
+                stderr="sensitive stderr",
+            )
+
+        with self.assertRaisesRegex(
+            runner_module.CodexLocalizationError, "timed out"
+        ) as context:
+            runner_module.check_codex_login(run=fake_run, environ={})
+
+        self.assertNotIn("sensitive stdout", str(context.exception))
+        self.assertNotIn("sensitive stderr", str(context.exception))
+
     def test_run_batch_uses_ephemeral_read_only_structured_output(self):
         calls = []
 
@@ -153,6 +202,23 @@ class CodexLocalizationRunnerTests(unittest.TestCase):
         self.assertEqual(kwargs["input"], json.dumps(PACKAGE, ensure_ascii=False))
         self.assertNotIn("OPENAI_API_KEY", kwargs["env"])
         self.assertNotIn("CODEX_API_KEY", kwargs["env"])
+
+    def test_run_batch_converts_timeout_to_domain_error_without_output_leak(self):
+        def fake_run(command, **kwargs):
+            raise subprocess.TimeoutExpired(
+                command,
+                120,
+                output='{"fr":{"title":"partial"}}',
+                stderr="secret stderr",
+            )
+
+        with self.assertRaisesRegex(
+            runner_module.CodexLocalizationError, "timed out"
+        ) as context:
+            runner_module.run_codex_batch(PACKAGE, SCHEMA, run=fake_run, environ={})
+
+        self.assertNotIn("partial", str(context.exception))
+        self.assertNotIn("secret stderr", str(context.exception))
 
     def test_run_batch_uses_temporary_working_directory_outside_repository(self):
         calls = []

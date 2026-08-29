@@ -177,6 +177,26 @@ class YoutubeLocalizationApiTests(unittest.TestCase):
             part="snippet,localizations", body=payload
         )
 
+    def test_update_video_localizations_sends_if_match_when_etag_is_supplied(self):
+        account = object.__new__(YoutubeApi)
+        account.youtube = Mock()
+        request = Mock()
+        request.headers = {}
+        request.execute.return_value = {"ok": True}
+        account.youtube.videos.return_value.update.return_value = request
+        payload = {
+            "id": "video-1",
+            "localizations": {"es": {"title": "x", "description": "y"}},
+        }
+
+        result = account.update_video_localizations(payload, if_match="etag-1")
+
+        self.assertEqual(result, {"ok": True})
+        self.assertEqual(request.headers["If-Match"], "etag-1")
+        account.youtube.videos.return_value.update.assert_called_once_with(
+            part="snippet,localizations", body=payload
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -384,12 +384,15 @@ class YoutubeApi:
             )
         return items[0]
 
-    def update_video_localizations(self, payload):
+    def update_video_localizations(self, payload, if_match=None):
         """Publish one already-merged localization update."""
-        return self.youtube.videos().update(
+        request = self.youtube.videos().update(
             part='snippet,localizations',
             body=payload
-        ).execute()
+        )
+        if if_match:
+            request.headers["If-Match"] = if_match
+        return request.execute()
 
     def get_video_localizations(self, video_id):
         """Get existing localizations for a video"""

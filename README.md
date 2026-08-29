@@ -85,9 +85,9 @@ currently missing languages from YouTube's live `i18nLanguages.list` catalog,
 allows at most ten targets, and never includes selected source languages as
 targets.
 
-The persistent sidebar shows a full-width channel image, compact channel
-details, YouTube/RSS links, refresh, page-size controls, pagination, and compact
-video cards. Cards show live-catalog localization counts as `done / undone`,
+The persistent sidebar shows compact channel details, YouTube/RSS links,
+refresh, page-size controls, pagination, and compact video cards. Cards show
+live-catalog localization counts as `done / undone`,
 full-width Select/Selected, and Reset languages. Use **Load more** to append the
 next cursor-backed batch; changing the page starts a new visible batch. Click a
 thumbnail to open the video on YouTube.

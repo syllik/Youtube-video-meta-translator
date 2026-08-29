@@ -49,7 +49,7 @@ class FakeYoutubeService:
         self.catalog_requests.append((hl, refresh))
         return self.catalog
 
-    def update_video_localizations(self, payload):
+    def update_video_localizations(self, payload, if_match=None):
         self.publish_calls.append(payload)
         raise AssertionError("CLI must never publish localizations")
 

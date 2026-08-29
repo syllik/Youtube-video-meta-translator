@@ -29,13 +29,17 @@ class LocalizationService:
         )
 
     def publish(
-        self, video_id: str, draft: Mapping[str, Any]
+        self,
+        video_id: str,
+        draft: Mapping[str, Any],
+        expected_video: Mapping[str, Any] = None,
     ) -> LocalizationOperationResult:
         return publish_localizations(
             self.youtube,
             video_id,
             draft,
             self.supported_language_codes,
+            expected_video=expected_video,
         )
 
     def reset(self, video_id: str):

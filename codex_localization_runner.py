@@ -25,11 +25,39 @@ class CodexLocalizationError(RuntimeError):
     """Raised when one local Codex CLI translation attempt cannot be accepted."""
 
 
+_SAFE_ENVIRONMENT_VARIABLES = (
+    "PATH",
+    "HOME",
+    "USERPROFILE",
+    "HOMEDRIVE",
+    "HOMEPATH",
+    "CODEX_HOME",
+    "TMPDIR",
+    "TEMP",
+    "TMP",
+    "LANG",
+    "LANGUAGE",
+    "LC_ALL",
+    "LC_CTYPE",
+    "LC_MESSAGES",
+    "TERM",
+    "SYSTEMROOT",
+    "WINDIR",
+    "COMSPEC",
+    "PATHEXT",
+)
+
+CODEX_LOGIN_STATUS_TIMEOUT_SECONDS = 15
+CODEX_BATCH_TIMEOUT_SECONDS = 120
+
+
 def _codex_environment(environ=None):
-    child_env = dict(os.environ if environ is None else environ)
-    child_env.pop("OPENAI_API_KEY", None)
-    child_env.pop("CODEX_API_KEY", None)
-    return child_env
+    source_env = os.environ if environ is None else environ
+    return {
+        key: source_env[key]
+        for key in _SAFE_ENVIRONMENT_VARIABLES
+        if key in source_env
+    }
 
 
 def _safe_cli_output(output):
@@ -57,6 +85,12 @@ def _status_output(completed):
     )
 
 
+def _timeout_error_message(action, timeout_seconds):
+    return "{} timed out after {} seconds. Check the local Codex CLI session and retry.".format(
+        action, timeout_seconds
+    )
+
+
 def check_codex_login(run=subprocess.run, environ=None) -> None:
     try:
         completed = run(
@@ -65,10 +99,18 @@ def check_codex_login(run=subprocess.run, environ=None) -> None:
             capture_output=True,
             check=False,
             env=_codex_environment(environ),
+            timeout=CODEX_LOGIN_STATUS_TIMEOUT_SECONDS,
         )
     except FileNotFoundError as error:
         raise CodexLocalizationError(
             "Codex CLI was not found. Install Codex and run `codex login`."
+        ) from error
+    except subprocess.TimeoutExpired as error:
+        raise CodexLocalizationError(
+            _timeout_error_message(
+                "Codex CLI login status check",
+                CODEX_LOGIN_STATUS_TIMEOUT_SECONDS,
+            )
         ) from error
 
     if completed.returncode == 0:
@@ -125,10 +167,18 @@ def run_codex_batch(package, schema, run=subprocess.run, environ=None):
                 check=False,
                 cwd=str(workdir),
                 env=_codex_environment(environ),
+                timeout=CODEX_BATCH_TIMEOUT_SECONDS,
             )
         except FileNotFoundError as error:
             raise CodexLocalizationError(
                 "Codex CLI was not found. Install Codex and run `codex login`."
+            ) from error
+        except subprocess.TimeoutExpired as error:
+            raise CodexLocalizationError(
+                _timeout_error_message(
+                    "Codex batch generation",
+                    CODEX_BATCH_TIMEOUT_SECONDS,
+                )
             ) from error
 
         if completed.returncode != 0:

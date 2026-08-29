@@ -149,7 +149,11 @@ def render_preview_publish(
                 state["operation_status"] = "publishing"
                 try:
                     with st.spinner("Publishing localization changes..."):
-                        result = service.publish(video_id, draft)
+                        result = service.publish(
+                            video_id,
+                            draft,
+                            expected_video=state["preview_result"].video,
+                        )
                     if result.wrote:
                         clear_translation_draft(state)
                         st.success("Localization changes published successfully.")

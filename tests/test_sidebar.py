@@ -115,12 +115,12 @@ class SidebarTests(unittest.TestCase):
         self.assertIn("Localizations: 2 / 0", text)
         self.assertNotIn("First description", text)
         self.assertNotIn("Open " + "on YouTube", text)
-        self.assertTrue(
-            any(
-                call[0] == "button" and call[1] == "Refresh"
-                for call in fake.calls
-            )
-        )
+        refresh_calls = [
+            call for call in fake.calls
+            if call[0] == "button" and call[1] == "Refresh video list"
+        ]
+        self.assertEqual(len(refresh_calls), 1)
+        self.assertTrue(refresh_calls[0][2]["use_container_width"])
         self.assertTrue(
             any(
                 call[0] == "selectbox" and call[1] == "Videos per page"

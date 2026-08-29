@@ -35,7 +35,7 @@ class FakeYoutubeService:
         self.events.append(("get", video_id))
         return self.video
 
-    def update_video_localizations(self, payload):
+    def update_video_localizations(self, payload, if_match=None):
         self.events.append(("update", payload["id"]))
         self.update_calls.append(payload)
         return {"id": payload["id"]}

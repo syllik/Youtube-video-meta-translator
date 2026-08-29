@@ -22,14 +22,6 @@ from ui.video_list import render_video_list
 def _render_channel_details(channel) -> None:
     import streamlit as st
 
-    if channel.thumbnail_url:
-        st.markdown(
-            '<img class="channel-logo" src="{}" alt="Channel logo" />'.format(
-                html.escape(channel.thumbnail_url, quote=True)
-            ),
-            unsafe_allow_html=True,
-        )
-    st.caption("Your channel")
     st.subheader(channel.name or "YouTube channel")
     if channel.description:
         st.markdown(
@@ -167,7 +159,7 @@ def render_app_sidebar(
     with st.sidebar:
         with st.container(border=False):
             _render_channel_details(context.channel)
-            if st.button("Refresh", key="common-refresh-list"):
+            if st.button("Refresh video list",use_container_width=True, key="common-refresh-list"):
                 _refresh_sidebar(session_state)
 
         render_page_size_control(context.selection, query_params)

@@ -56,8 +56,10 @@ class YoutubeService:
     def get_video_with_localizations(self, video_id: str) -> Mapping[str, Any]:
         return self.account.get_video_with_localizations(video_id)
 
-    def update_video_localizations(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
-        return self.account.update_video_localizations(payload)
+    def update_video_localizations(
+        self, payload: Mapping[str, Any], if_match: Optional[str] = None
+    ) -> Mapping[str, Any]:
+        return self.account.update_video_localizations(payload, if_match=if_match)
 
     def reset_video_localizations(self, video_id: str) -> Mapping[str, Any]:
         """Delete all localizations while preserving the video's default metadata."""

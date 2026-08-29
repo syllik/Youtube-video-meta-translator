@@ -181,10 +181,10 @@ class StreamlitBootstrapTests(unittest.TestCase):
         source = Path("pages/1_Translate.py").read_text()
         self.assertNotIn("selected video is on another page", source.lower())
 
-    def test_sidebar_keeps_channel_logo_and_shared_bootstrap_renders_it(self):
+    def test_sidebar_uses_shared_bootstrap_without_channel_logo(self):
         source = Path("ui/sidebar.py").read_text()
         bootstrap_source = Path("streamlit_app.py").read_text()
-        self.assertIn('class="channel-logo"', source)
+        self.assertNotIn('class="channel-logo"', source)
         self.assertIn("render_app_sidebar", bootstrap_source)
 
 

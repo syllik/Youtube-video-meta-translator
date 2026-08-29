@@ -41,4 +41,9 @@ The application does not connect to an LLM provider or store an LLM API key.
 Uploaded localization JSON remains in the local Streamlit session until the
 translation draft is published or the selected video changes.
 
+The optional local Codex helper passes only a small runtime and local-auth
+allowlist to its child process. It excludes application, cloud, OAuth, CI, and
+other arbitrary secret environment variables. Login checks and generation
+batches have bounded execution time; timeout output is not shown to the user.
+
 ➡️ [Return to the setup guide](getting-started.md)

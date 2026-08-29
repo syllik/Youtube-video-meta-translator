@@ -77,8 +77,8 @@ success result is `No broken requirements found.`
 ## 🧩 Workflow boundaries
 
 - Local JSON validation runs before preview; preview never writes.
-- Publish validates again, refetches current state, and performs at most one
-  update for one video.
+- Publish validates again, refetches current state, rejects changes since
+  Preview, and performs at most one conditional update for one video.
 - Existing localizations omitted from submitted JSON are preserved.
 - Codex and valid external-LLM JSON become one internal translation draft; they
   do not replace unrelated draft entries.
@@ -97,7 +97,8 @@ success result is `No broken requirements found.`
 - Codex and external prompts receive the same primary/reference source model.
   An uploaded file must be an exact direct language-keyed YouTube map; wrapper
   metadata is never accepted.
-- Preview never writes. Publish revalidates, refetches current state, merges
+- Preview never writes. Publish revalidates, refetches current state, rejects
+  stale Preview state, conditionally writes when an ETag is available, merges
   omitted localizations, and refreshes the displayed YouTube progress.
 - `FAQ` can render without YouTube service construction, OAuth, or API access.
 

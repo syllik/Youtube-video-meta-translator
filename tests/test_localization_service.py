@@ -1,3 +1,4 @@
+import copy
 import unittest
 from unittest.mock import Mock
 
@@ -22,18 +23,34 @@ VIDEO_RESOURCE = {
 
 class FakeYoutubeApi:
     def __init__(self, video):
-        self.video = video
+        self.video = copy.deepcopy(video)
         self.events = []
         self.update_calls = []
+        self.update_if_matches = []
+        self.update_error = None
 
     def get_video_with_localizations(self, video_id):
         self.events.append(("get", video_id))
-        return self.video
+        return copy.deepcopy(self.video)
 
-    def update_video_localizations(self, payload):
+    def update_video_localizations(self, payload, if_match=None):
         self.events.append(("update", payload["id"]))
-        self.update_calls.append(payload)
+        self.update_calls.append(copy.deepcopy(payload))
+        self.update_if_matches.append(if_match)
+        if self.update_error is not None:
+            raise self.update_error
         return {"id": payload["id"]}
+
+
+class _Response:
+    def __init__(self, status):
+        self.status = status
+
+
+class _PreconditionFailedError(Exception):
+    def __init__(self):
+        super().__init__("precondition failed")
+        self.resp = _Response(412)
 
 
 class LocalizationServiceTests(unittest.TestCase):
@@ -79,6 +96,64 @@ class LocalizationServiceTests(unittest.TestCase):
         self.assertFalse(result.wrote)
         self.assertEqual(api.events, [("get", "video-1")])
         self.assertEqual(api.update_calls, [])
+
+    def test_stale_preview_conflict_does_not_overwrite_new_youtube_state(self):
+        api = FakeYoutubeApi(VIDEO_RESOURCE)
+        draft = {"de": {"title": "New", "description": "New"}}
+        preview = preview_localizations(api, "video-1", draft, {"de"})
+        api.video["localizations"]["de"] = {
+            "title": "Collaborator",
+            "description": "Collaborator",
+        }
+
+        result = publish_localizations(
+            api,
+            "video-1",
+            draft,
+            {"de"},
+            expected_video=preview.video,
+        )
+
+        self.assertFalse(result.wrote)
+        self.assertFalse(result.plan.is_valid)
+        self.assertIsNone(result.plan.payload)
+        self.assertEqual(api.update_calls, [])
+        self.assertIn("changed after Preview", result.plan.issues[0].message)
+
+    def test_matching_preview_writes_once_with_fresh_etag(self):
+        api = FakeYoutubeApi({**VIDEO_RESOURCE, "etag": "etag-1"})
+        draft = {"de": {"title": "New", "description": "New"}}
+        preview = preview_localizations(api, "video-1", draft, {"de"})
+
+        result = publish_localizations(
+            api,
+            "video-1",
+            draft,
+            {"de"},
+            expected_video=preview.video,
+        )
+
+        self.assertTrue(result.wrote)
+        self.assertEqual(api.update_if_matches, ["etag-1"])
+        self.assertEqual(len(api.update_calls), 1)
+
+    def test_api_precondition_conflict_does_not_report_a_successful_write(self):
+        api = FakeYoutubeApi({**VIDEO_RESOURCE, "etag": "etag-1"})
+        api.update_error = _PreconditionFailedError()
+        draft = {"de": {"title": "New", "description": "New"}}
+        preview = preview_localizations(api, "video-1", draft, {"de"})
+
+        result = publish_localizations(
+            api,
+            "video-1",
+            draft,
+            {"de"},
+            expected_video=preview.video,
+        )
+
+        self.assertFalse(result.wrote)
+        self.assertFalse(result.plan.is_valid)
+        self.assertIn("changed before YouTube accepted", result.plan.issues[0].message)
 
 
 if __name__ == "__main__":
