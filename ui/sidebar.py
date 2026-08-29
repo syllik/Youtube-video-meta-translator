@@ -158,14 +158,17 @@ def render_app_sidebar(
     if _consume_pending_reset(context, session_state, query_params):
         return get_selected_video_id(session_state)
     with st.sidebar:
-        with st.container(border=True):
+        with st.container(border=False):
             _render_channel_details(context.channel)
             if st.button("Refresh", key="common-refresh-list"):
                 _refresh_sidebar(session_state)
 
         render_page_size_control(context.selection, query_params)
         render_pagination(
-            context.selection, context.channel.total_videos, query_params
+            context.selection,
+            context.channel.total_videos,
+            query_params,
+            visible_count=len(context.page.videos),
         )
         render_video_list(
             context.page.videos,

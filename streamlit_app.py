@@ -85,23 +85,23 @@ def bootstrap_app_context() -> Optional[AppContext]:
     query = parse_pagination_query(st.query_params)
     service = None
     try:
-        service = get_youtube_service(st.session_state)
-        channel = st.session_state.get("common.channel")
-        if channel is None:
-            channel = service.fetch_channel()
-            st.session_state["common.channel"] = channel
-        normalized = clamp_selection(query, channel.total_videos)
-        previous_limit = st.session_state.get("common.active_limit")
-        if previous_limit is not None and previous_limit != normalized.limit:
-            reset_video_cache(st.session_state)
-        st.session_state["common.active_limit"] = normalized.limit
-        if canonical_pagination_query(normalized) != {
-            "page": str(st.query_params.get("page", "")),
-            "limit": str(st.query_params.get("limit", "")),
-        }:
-            st.query_params.update(canonical_pagination_query(normalized))
-            st.rerun()
-        with st.spinner("Loading channel videos and language catalog..."):
+        with st.spinner("Loading YouTube channel, videos, and language catalog..."):
+            service = get_youtube_service(st.session_state)
+            channel = st.session_state.get("common.channel")
+            if channel is None:
+                channel = service.fetch_channel()
+                st.session_state["common.channel"] = channel
+            normalized = clamp_selection(query, channel.total_videos)
+            previous_limit = st.session_state.get("common.active_limit")
+            if previous_limit is not None and previous_limit != normalized.limit:
+                reset_video_cache(st.session_state)
+            st.session_state["common.active_limit"] = normalized.limit
+            if canonical_pagination_query(normalized) != {
+                "page": str(st.query_params.get("page", "")),
+                "limit": str(st.query_params.get("limit", "")),
+            }:
+                st.query_params.update(canonical_pagination_query(normalized))
+                st.rerun()
             catalog = service.fetch_localization_language_catalog()
             page = (
                 YouTubePage(videos=(), next_page_token=None)

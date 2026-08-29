@@ -49,3 +49,8 @@
   form. The shared editor validates before Preview, Preview never writes, and
   Publish revalidates, merges omitted existing localizations, and refreshes the
   selected video from YouTube before showing the next progress value.
+- The Translate Manual edit draft is initialized from the selected video's current live localizations, excluding its default language. Normal Streamlit reruns preserve the draft; only video changes, explicit Refresh, successful Publish, or successful Reset reload it.
+- Codex and valid external-LLM uploads merge into the current Manual edit draft. Overlapping language codes replace only that entry; omitted keys remain in the draft and normal Publish preserves omitted existing YouTube localizations.
+- Reset languages is a separate destructive service operation. It requires native browser confirmation, sends an explicit empty `localizations` payload while preserving default metadata, invalidates sidebar state, and must never be implemented as an empty Manual edit JSON publish.
+- Sidebar video cards are compact and use live catalog counts: `done` is existing non-default localizations and `undone` is missing non-default codes from the current catalog. Numeric Load more appends cursor-backed batches; URL page changes reset only the accumulated visible list.
+- `FAQ` is a static navigation page. It must not construct a YouTube service, start OAuth, fetch API data, or render the persistent video sidebar, so it remains available when YouTube access fails.

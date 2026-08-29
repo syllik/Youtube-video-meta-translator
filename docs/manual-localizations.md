@@ -13,7 +13,9 @@ Select video
       ↓
 Choose default primary source and optional existing references
       ↓
-Generate with Codex, upload external JSON, or edit JSON directly
+Localization JSON Example → Manual edit
+      ↓
+Choose source languages → Generate translations
       ↓
 Validate → Preview changes → Publish changes
 ```
@@ -26,7 +28,9 @@ prompt**. Click **Select** below a video card; the selected card changes to
 identifier.
 
 Changing the selected video clears source selection, prompt and target state,
-uploaded-file context, editor JSON, validation, preview, and publish status.
+uploaded-file context, and the old editor state, then loads current live
+localizations into **Manual edit**. Normal Streamlit reruns preserve a hand-edited
+draft. Explicit Refresh, successful Publish, and successful Reset reload it.
 Source selection is not saved permanently.
 
 ## 2️⃣ Choose source languages
@@ -47,7 +51,7 @@ The same source selection is used on **Translate** and **LLM Translation
 prompt** while the same video remains selected. Source language codes are
 canonicalized using YouTube's live `i18nLanguages.list` catalog.
 
-## 3️⃣ Generate or provide localization JSON
+## 3️⃣ Edit, generate, or provide localization JSON
 
 In **Generate translations**, choose one of these paths:
 
@@ -57,9 +61,12 @@ In **Generate translations**, choose one of these paths:
 - Open **LLM Translation prompt** to prepare the same source-aware prompt for
   ChatGPT, Gemini, Claude, or another external LLM. Return to **Translate** and
   upload its direct UTF-8 JSON file.
-- Paste or edit JSON directly in the **Localization JSON** editor.
+- **Localization JSON Example** is read-only guidance; it is not the editor.
+- Paste or edit JSON directly in **Manual edit**.
 
-All three paths populate the same editor. No generation or upload publishes
+All three paths populate the same **Manual edit** draft. Codex results and valid
+external-LLM uploads merge into the current draft: new languages are added and
+an overlapping code replaces only that entry. No generation or upload publishes
 automatically.
 
 The target list contains only currently missing languages from the live
@@ -88,8 +95,10 @@ Every value must contain exactly `title` and `description` string fields. A
 title cannot be empty and is limited to 100 characters; a description is
 limited to 5,000 characters. Invalid JSON or fields keep publishing disabled.
 
-Existing localizations omitted from submitted JSON are preserved. Do not put
-video, channel, prompt, or wrapper metadata inside the localization object.
+Existing localizations omitted from submitted JSON are preserved. Removing a
+key from the draft therefore does not delete that YouTube localization during
+normal Publish. Do not put video, channel, prompt, or wrapper metadata inside
+the localization object.
 
 ## 5️⃣ Preview and publish safely
 
@@ -104,6 +113,19 @@ existing localizations, preserves omitted entries, and performs at most one
 update for the selected video.
 
 An unchanged submission does not create an unnecessary YouTube write.
+
+## 6️⃣ Use the sidebar safely
+
+Video cards show `Localizations: done / undone` using the live YouTube language
+catalog, excluding the default language from both values. **Load more** appends
+the next cursor-backed batch for numeric page sizes; changing the URL page
+starts a new visible batch. It is not shown for **all**.
+
+**Reset languages** is the separate full-deletion operation. It uses the native
+browser confirmation and removes every localization for that video while
+preserving default title, description, default language, and required snippet
+metadata. Save translations you need before selecting **OK**. Cancel does not
+make an API request.
 
 ## 🚫 Not supported
 

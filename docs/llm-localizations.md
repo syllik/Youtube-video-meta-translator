@@ -35,7 +35,8 @@ retain the catalog's canonical casing.
    default.
 3. Copy the prepared prompt from the native read-only code block.
 4. Paste it into an external LLM and ask for one downloadable UTF-8 JSON file.
-5. Return to **Translate**, upload the file, and edit it in **Localization JSON**.
+5. Return to **Translate**, upload the file, and review the merged result in
+   **Manual edit**.
 6. Validate, **Preview changes**, review the diff, and explicitly **Publish
    changes**.
 
@@ -45,6 +46,14 @@ key. Convenience links are available for [ChatGPT](https://chatgpt.com/),
 [Microsoft Copilot](https://copilot.microsoft.com/),
 [Perplexity](https://www.perplexity.ai/), and
 [Mistral](https://chat.mistral.ai/).
+
+### Source-language quality guide
+
+Translation always uses the default source as the authoritative meaning. One
+source can miss nuance, so use at least two source languages when possible. Two
+or three strong translations are a good target; roughly two to five references
+from different language families can give the LLM useful context. References
+remain optional and never replace the default source.
 
 The prompt includes only the source package and exact target metadata. Its
 semantic contract is equivalent to:
@@ -125,7 +134,9 @@ npm run youtube:codex-localize -- \
 python -m json.tool /tmp/smoke.json
 ```
 
-The output is local JSON only. Review it in **Translate** before publishing.
+The output is local JSON only. Review it in **Translate** before publishing. It
+merges into the current **Manual edit** draft instead of replacing unrelated
+language entries. An overlapping language code replaces only that entry.
 
 ## Safety boundary
 
@@ -133,5 +144,9 @@ Generation and upload never publish automatically. Preview never writes to
 YouTube. Publish revalidates the JSON, refetches current YouTube state, merges
 submitted localizations with the current set, preserves omitted languages, and
 requires a current valid Preview.
+
+Use **Reset languages** only when you intentionally want to delete every
+localization for one video. It is a separate destructive operation with native
+browser confirmation; normal omitted-key Publish behavior is unchanged.
 
 ➡️ [Troubleshooting](troubleshooting.md)

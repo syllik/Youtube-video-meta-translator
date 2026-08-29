@@ -267,13 +267,19 @@ def render_preview_publish(
             preview_clicked = st.button(
                 "Preview changes",
                 type="primary",
-                disabled=not bool(video_id and parsed.is_valid),
+                disabled=(
+                    state.get("operation_status") not in (None, "idle")
+                    or not bool(video_id and parsed.is_valid)
+                ),
                 key="{}-preview-changes".format(widget_prefix),
             )
         with publish_col:
             publish_clicked = st.button(
                 "Publish changes",
-                disabled=not manual_can_publish(state),
+                disabled=(
+                    state.get("operation_status") not in (None, "idle")
+                    or not manual_can_publish(state)
+                ),
                 key="{}-publish-changes".format(widget_prefix),
             )
 

@@ -1,7 +1,7 @@
 """Streamlit controls for Codex generation and external-LLM JSON handoff."""
 
 import hashlib
-import json
+from contextlib import nullcontext
 from typing import Any, MutableMapping, Sequence
 
 from codex_localization_generator import (
@@ -70,6 +70,11 @@ def _render_issues(issues) -> None:
         st.error("{}: {}".format(issue.path or "document", issue.message))
 
 
+def _operation_spinner(st, message: str):
+    spinner = getattr(st, "spinner", None)
+    return spinner(message) if spinner is not None else nullcontext()
+
+
 def _upload_context(video_resource, target_codes, file_content: bytes):
     return (
         video_resource["id"],
@@ -123,30 +128,36 @@ def render_llm_translation_controls(
         "Generate missing translations",
         key="llm-generate-missing-{}".format(video_resource["id"]),
         type="primary",
+        disabled=state.get("operation_status") not in (None, "idle"),
     ):
+        state["operation_status"] = "generating"
         try:
-            login_checker()
-            progress_placeholder = st.empty()
+            with _operation_spinner(st, "Generating translations..."):
+                login_checker()
+                progress_placeholder = st.empty()
 
-            def on_batch(index, total, codes):
-                progress_placeholder.info(
-                    "Generating batch {} / {} — {}".format(
-                        index, total, ", ".join(codes)
+                def on_batch(index, total, codes):
+                    progress_placeholder.info(
+                        "Generating batch {} / {} — {}".format(
+                            index, total, ", ".join(codes)
+                        )
                     )
-                )
 
-            generation_kwargs = {"on_batch": on_batch}
-            if source_codes:
-                generation_kwargs["selected_source_codes"] = source_codes
-            generated_document = generate_localizations(
-                video_resource, catalog, **generation_kwargs
-            )
+                generation_kwargs = {"on_batch": on_batch}
+                if source_codes:
+                    generation_kwargs["selected_source_codes"] = source_codes
+                generated_document = generate_localizations(
+                    video_resource, catalog, **generation_kwargs
+                )
         except (CodexLocalizationError, CodexGenerationError) as error:
+            state["operation_status"] = "idle"
             st.error(str(error))
             return
         except Exception as error:
+            state["operation_status"] = "idle"
             st.error("Automatic translation generation failed: {}".format(error))
             return
+        state["operation_status"] = "idle"
 
         if not generated_document:
             st.success("All supported YouTube localizations are complete.")

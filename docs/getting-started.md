@@ -14,6 +14,7 @@ Google authorization.
 - Node.js and npm if you want automatic Codex CLI generation.
 - No OpenAI or other LLM API key is required for **Translate** or the
   supporting **LLM Translation prompt** page.
+- **FAQ** is static and does not require YouTube OAuth or API access.
 
 The application changes YouTube metadata on your behalf. Start with one video
 and check the result in YouTube Studio before larger work.
@@ -132,4 +133,5 @@ and migrated to the safer JSON format.
 
 - [Use Translate](manual-localizations.md)
 - [Use LLM Translation prompt](llm-localizations.md)
+- [Read the FAQ](../pages/3_FAQ.py)
 - [Troubleshoot setup](troubleshooting.md)

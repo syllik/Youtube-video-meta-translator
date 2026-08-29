@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 from models import ChannelInfo, VideoSummary, YouTubePage
 from ui.pagination import PaginationSelection
-from ui.sidebar import render_app_sidebar
+from ui.sidebar import _consume_pending_reset, render_app_sidebar
 from ui.video_list import render_video_list, widget_key
 
 
@@ -49,6 +49,16 @@ class _FakeStreamlit:
 
     def rerun(self):
         self.calls.append(("rerun",))
+
+    def spinner(self, message):
+        self.calls.append(("spinner", message))
+        return _Block()
+
+    def success(self, message):
+        self.calls.append(("success", message))
+
+    def error(self, message):
+        self.calls.append(("error", message))
 
 
 class SidebarTests(unittest.TestCase):
@@ -154,6 +164,38 @@ class SidebarTests(unittest.TestCase):
         self.assertIn("Load more", source)
         self.assertIn("load_more_video_page", source)
         self.assertIn("window.confirm", Path("ui/video_list.py").read_text())
+
+    def test_confirmed_reset_targets_card_id_and_invalidates_sidebar_state(self):
+        import sys
+        from unittest.mock import Mock, patch
+
+        reset = Mock()
+        context = SimpleNamespace(
+            service=SimpleNamespace(
+                reset_video_localizations=reset,
+                supported_language_codes=lambda: (),
+            ),
+            language_catalog=SimpleNamespace(codes=("en", "de")),
+            page=self.context.page,
+        )
+        state = {
+            "common.selected_video_id": "video-1",
+            "common.page_tokens_by_limit": {10: {2: "token"}},
+            "common.video_pages_by_limit": {10: {1: self.context.page}},
+            "common.video_accumulation": {"page": 1, "limit": 10, "through_page": 1},
+        }
+        query_params = {"page": "1", "limit": "10", "reset_video": "video-1"}
+        fake = _FakeStreamlit()
+
+        with patch.dict(sys.modules, {"streamlit": fake}):
+            handled = _consume_pending_reset(context, state, query_params)
+
+        self.assertTrue(handled)
+        reset.assert_called_once_with("video-1")
+        self.assertEqual(state["common.page_tokens_by_limit"], {})
+        self.assertEqual(state["common.video_pages_by_limit"], {})
+        self.assertEqual(state["common.manual_reload_video_id"], "video-1")
+        self.assertNotIn("reset_video", query_params)
 
 
 if __name__ == "__main__":

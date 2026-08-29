@@ -10,11 +10,12 @@ calling the live YouTube API.
 ```text
 Youtube-video-meta-translator/
 ├── streamlit_app.py                 # Streamlit entry point and common bootstrap
-├── pages/                           # Translate and supporting prompt pages
+├── pages/                           # Translate, prompt, and static FAQ pages
 ├── services/                        # YouTube and localization boundaries
 ├── state/                           # Common, universal editor, and prompt state
 ├── ui/                              # Shared and workflow-specific widgets
 │   ├── sidebar.py                   # Persistent channel and video navigation
+│   ├── faq.py                       # Static FAQ content with no API bootstrap
 │   └── badges.py                    # Shared localization badge renderer
 ├── models.py                        # Shared immutable data models
 ├── language_catalog.py              # Validated live YouTube language catalog
@@ -34,12 +35,14 @@ Youtube-video-meta-translator/
 
 The Translate page and supporting prompt page share the YouTube boundary,
 selected video, source selection, and live catalog stored in session state.
-Translate owns one universal editor/preview/publish state. The prompt page owns
-only target and prompt/upload state. The default source is authoritative;
+Translate owns one universal Manual edit/preview/publish state. The prompt page
+owns only target and prompt/upload state. The default source is authoritative;
 selected existing localizations are optional verified references with real
 title/description metadata. Source selection resets when the selected video
-changes. The persistent sidebar renders channel details, links, pagination,
-and full-width video-card selection on both pages.
+changes. Manual edit drafts survive normal reruns and reload only on explicit
+lifecycle events. The persistent sidebar renders compact cards, live-catalog
+counts, cursor-backed Load more, and destructive Reset languages on both pages.
+FAQ is static and intentionally bypasses YouTube bootstrap and OAuth.
 
 ## 🧪 Run automated tests
 
@@ -76,6 +79,14 @@ success result is `No broken requirements found.`
 - Publish validates again, refetches current state, and performs at most one
   update for one video.
 - Existing localizations omitted from submitted JSON are preserved.
+- Manual edit starts from current live localizations, while deleting a key in the
+  draft does not delete it from YouTube during normal Publish.
+- Codex and external-LLM JSON merge into the current draft; they do not replace
+  unrelated language entries.
+- Reset languages is the only full-localization deletion path and preserves
+  default metadata through a separate reset payload.
+- Numeric Load more appends cached cursor pages; changing URL page resets the
+  accumulated visible list. It is hidden for `all`.
 - Translate and the supporting prompt use the same fresh `i18nLanguages.list`
   catalog and source selection for the Streamlit session.
 - Progress excludes the default language and all selected source languages;
@@ -86,6 +97,7 @@ success result is `No broken requirements found.`
   metadata is never accepted.
 - Preview never writes. Publish revalidates, refetches current state, merges
   omitted localizations, and refreshes the displayed YouTube progress.
+- `FAQ` can render without YouTube service construction, OAuth, or API access.
 
 Read [Translate workflow](manual-localizations.md) and
 [LLM Translation prompt](llm-localizations.md) for the product constraints.

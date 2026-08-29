@@ -28,6 +28,7 @@ without an API key; see [LLM localizations](docs/llm-localizations.md).
 | 🔐 | [Configuration](docs/configuration.md) | Set up the YouTube OAuth client. |
 | ▶️ | [Translate workflow](docs/manual-localizations.md) | Generate or provide JSON, edit, validate, preview, and publish. |
 | ✨ | [LLM Translation prompt](docs/llm-localizations.md) | Prepare an external-LLM prompt or use local Codex generation. |
+| ❓ | [FAQ](pages/3_FAQ.py) | Get short answers about the workflow and safe publishing. |
 | 🆘 | [Troubleshooting](docs/troubleshooting.md) | Fix setup, OAuth, dependency, port, or API problems. |
 | 🛡️ | [Security](docs/security.md) | Protect credentials and local token files. |
 | 🛠️ | [Development](docs/development.md) | Run tests and work on the repository. |
@@ -69,11 +70,12 @@ streamlit run streamlit_app.py
 2. In **Source languages**, keep the default source selected and optionally
    select existing localizations as verified references. A video with only its
    default source uses it automatically without a multiselect.
-3. In **Generate translations**, click **Generate missing translations** for
+3. Review **Localization JSON Example**, then use **Manual edit** if you want
+   to enter or change direct localization JSON.
+4. In **Generate translations**, click **Generate missing translations** for
    local Codex generation, or open **LLM Translation prompt** for an external
-   LLM. You can also paste or edit localization JSON directly.
-4. Upload an external-LLM JSON file when returning from the prompt page. All
-   generated, uploaded, and manually entered JSON uses the same editor.
+   LLM. Generated and uploaded entries merge into the current Manual edit
+   draft; an overlapping language replaces only that entry.
 5. Click **Preview changes**. Preview never writes to YouTube.
 6. Click **Publish changes** only after reviewing a valid current preview.
    Publish refetches the current video, preserves omitted existing
@@ -85,10 +87,18 @@ currently missing languages from YouTube's live `i18nLanguages.list` catalog,
 allows at most ten targets, and never includes selected source languages as
 targets.
 
-The persistent sidebar shows channel details, channel and RSS links, refresh,
-page-size controls, pagination, and video cards. Select is below each card's
-details and fills the available card width. Click a thumbnail to open the video
-on YouTube.
+The persistent sidebar shows a full-width channel image, compact channel
+details, YouTube/RSS links, refresh, page-size controls, pagination, and compact
+video cards. Cards show live-catalog localization counts as `done / undone`,
+full-width Select/Selected, and Reset languages. Use **Load more** to append the
+next cursor-backed batch; changing the page starts a new visible batch. Click a
+thumbnail to open the video on YouTube.
+
+**Reset languages** is destructive: after the native browser confirmation, all
+localizations for that video are removed while its default title, description,
+language, and required metadata remain. Save translations you need before
+confirming. The FAQ page is static and opens even when YouTube OAuth or the API
+is unavailable.
 
 The language catalog is never hardcoded. No OpenAI or other LLM API key is
 required; YouTube uses the existing OAuth session.

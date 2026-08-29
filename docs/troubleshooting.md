@@ -201,6 +201,9 @@ Check that:
   available for migration;
 - the terminal is still running and has internet access.
 
+The **FAQ** page is static and does not use this bootstrap path, so it remains
+available for guidance even when OAuth or YouTube API loading fails.
+
 ## 📎 The LLM upload is rejected
 
 The app does not need an LLM API key. Download the external LLM result as a
@@ -220,6 +223,14 @@ response shown by the selected workflow.
 
 YouTube Data API requests consume project quota. Avoid repeatedly reloading
 large channel lists, and start with one selected video.
+
+## 🧨 Reset languages was selected
+
+Reset is intentionally destructive. It removes all localizations for the video
+after the native browser confirmation and preserves only default metadata. If
+you clicked **Cancel**, no YouTube request is made. If the reset failed, review
+the error, refresh the list, and verify the video in YouTube Studio before
+trying again.
 
 ## ➡️ Still blocked?
 

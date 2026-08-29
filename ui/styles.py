@@ -33,7 +33,9 @@ def apply_app_styles() -> None:
                             border-radius: .4rem; color: #a33; text-align: center;
                             background: rgba(180, 60, 60, .08); text-decoration: none; font-size: .8rem; }
         .video-reset-link:hover, .video-reset-link:focus-visible { background: rgba(180, 60, 60, .16); }
-        div[data-testid="stVerticalBlockBorderWrapper"] { border-color: rgba(128,128,128,.2); }
+        div[data-testid="stVerticalBlockBorderWrapper"] { border-color: rgba(128,128,128,.2);
+                                                            background: rgba(255,255,255,.035);
+                                                            box-shadow: 0 .25rem .9rem rgba(0,0,0,.1); }
         @media (max-width: 700px) {
             .block-container { padding: 1rem .75rem; }
             .video-title { font-size: 1rem; }

@@ -60,6 +60,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertIn("render_manual_editor", source)
         self.assertIn("render_llm_translation_controls", source)
         self.assertIn("render_source_selection", source)
+        self.assertIn("localization_editor_key", source)
         self.assertNotIn("render_video_list", source)
         self.assertNotIn("render_pagination", source)
 

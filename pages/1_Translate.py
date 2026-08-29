@@ -10,6 +10,7 @@ from streamlit_app import bootstrap_app_context, configure_page
 from ui.feedback import render_feedback
 from ui.llm_package import render_llm_translation_controls
 from ui.manual_editor import (
+    localization_editor_key,
     render_localization_json_example,
     render_manual_editor,
     render_preview_publish,
@@ -60,11 +61,15 @@ def render_translate_page() -> None:
     pending_reload_id = st.session_state.get("common.manual_reload_video_id")
     if pending_reload_id is not None:
         st.session_state["common.manual_reload_video_id"] = None
-    load_manual_draft(
+    draft_loaded = load_manual_draft(
         translation_state,
         video_resource,
         force=pending_reload_id == context.selected_video_id,
     )
+    if draft_loaded:
+        st.session_state[localization_editor_key(
+            "translate", context.selected_video_id
+        )] = translation_state["raw_json"]
 
     render_localization_json_example(
         catalog.codes,

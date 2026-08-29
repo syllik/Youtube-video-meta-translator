@@ -102,6 +102,7 @@ def render_pagination(
     selection: PaginationSelection,
     total_videos: int,
     query_params: MutableMapping[str, str],
+    visible_count: int = None,
 ) -> None:
     """Render the range summary and page controls backed by URL parameters."""
     import streamlit as st
@@ -118,7 +119,12 @@ def render_pagination(
     st.caption(
         "Videos {}–{} of {} · Page {} of {} · {} per page".format(
             start + 1 if end else 0,
-            end,
+            min(
+                start + max(0, visible_count)
+                if visible_count is not None
+                else end,
+                total_videos,
+            ),
             total_videos,
             current.page,
             total_pages(current.limit, total_videos),
