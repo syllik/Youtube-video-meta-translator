@@ -35,3 +35,7 @@ class ManualLocalizationService:
             raw_json,
             self.supported_language_codes,
         )
+
+    def reset(self, video_id: str):
+        """Run the dedicated destructive reset operation for one video."""
+        return self.youtube.reset_video_localizations(video_id)

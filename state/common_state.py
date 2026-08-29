@@ -16,6 +16,10 @@ def init_common_state(state: MutableMapping[str, Any]) -> MutableMapping[str, An
     state.setdefault("common.selected_video_id", None)
     state.setdefault("common.source_video_id", None)
     state.setdefault("common.selected_source_codes", ())
+    state.setdefault("common.video_accumulation", None)
+    state.setdefault("common.video_operation_status", "idle")
+    state.setdefault("common.manual_reload_video_id", None)
+    state.setdefault("common.pending_sidebar_feedback", None)
     return state
 
 
@@ -139,6 +143,7 @@ def reset_video_cache(state: MutableMapping[str, Any]) -> None:
     state["common.page_tokens_by_limit"] = {}
     state["common.video_pages_by_limit"] = {}
     state["common.load_error"] = None
+    state["common.video_accumulation"] = None
 
 
 def _page_state(state: MutableMapping[str, Any], limit: PageLimit):
@@ -206,11 +211,111 @@ def _load_all_pages(service, state) -> YouTubePage:
 
 
 def load_video_page(service, state: MutableMapping[str, Any], selection: PaginationSelection) -> YouTubePage:
-    """Load a numeric or explicit all page using cached YouTube cursors."""
+    """Load the selected page using cached YouTube cursors."""
     init_common_state(state)
     if selection.limit == "all":
         return _load_all_pages(service, state)
-    return _load_numeric_page(service, state, selection)
+    return load_accumulated_video_page(service, state, selection)
+
+
+def _accumulation_matches(state: MutableMapping[str, Any], selection: PaginationSelection) -> bool:
+    accumulation = state.get("common.video_accumulation")
+    return bool(
+        accumulation
+        and accumulation.get("page") == selection.page
+        and accumulation.get("limit") == selection.limit
+    )
+
+
+def _combined_numeric_pages(
+    state: MutableMapping[str, Any], start_page: int, through_page: int
+) -> YouTubePage:
+    accumulation = state["common.video_accumulation"]
+    pages = state["common.video_pages_by_limit"][accumulation["limit"]]
+    videos = []
+    seen_ids = set()
+    for page_number in range(start_page, through_page + 1):
+        page = pages.get(page_number)
+        if page is None:
+            continue
+        for video in page.videos:
+            if video.id in seen_ids:
+                continue
+            seen_ids.add(video.id)
+            videos.append(video)
+    last_page = pages.get(through_page)
+    return YouTubePage(
+        videos=tuple(videos),
+        next_page_token=last_page.next_page_token if last_page else None,
+    )
+
+
+def load_accumulated_video_page(
+    service, state: MutableMapping[str, Any], selection: PaginationSelection
+) -> YouTubePage:
+    """Load one page and return the current accumulated numeric list."""
+    init_common_state(state)
+    if selection.limit == "all":
+        return _load_all_pages(service, state)
+
+    _load_numeric_page(service, state, selection)
+    if not _accumulation_matches(state, selection):
+        state["common.video_accumulation"] = {
+            "page": selection.page,
+            "limit": selection.limit,
+            "through_page": selection.page,
+        }
+    return _combined_numeric_pages(
+        state, selection.page, state["common.video_accumulation"]["through_page"]
+    )
+
+
+def load_more_video_page(
+    service, state: MutableMapping[str, Any], selection: PaginationSelection
+) -> YouTubePage:
+    """Append the next numeric cursor page to the current accumulation."""
+    init_common_state(state)
+    if selection.limit == "all":
+        return _load_all_pages(service, state)
+
+    current = load_accumulated_video_page(service, state, selection)
+    accumulation = state["common.video_accumulation"]
+    next_page = accumulation["through_page"] + 1
+    current_page = state["common.video_pages_by_limit"][selection.limit].get(
+        accumulation["through_page"]
+    )
+    if current_page is None or not current_page.next_page_token:
+        return current
+
+    next_result = _load_numeric_page(
+        service,
+        state,
+        PaginationSelection(next_page, selection.limit),
+    )
+    if not next_result.videos:
+        return current
+    accumulation["through_page"] = next_page
+    return _combined_numeric_pages(state, selection.page, next_page)
+
+
+def can_load_more(
+    state: MutableMapping[str, Any],
+    selection: PaginationSelection,
+    total_videos: int,
+) -> bool:
+    """Return whether another numeric page can be appended."""
+    if selection.limit == "all":
+        return False
+    accumulation = state.get("common.video_accumulation")
+    if not (
+        accumulation
+        and accumulation.get("page") == selection.page
+        and accumulation.get("limit") == selection.limit
+    ):
+        through_page = selection.page
+    else:
+        through_page = accumulation.get("through_page", selection.page)
+    return through_page < total_pages(selection.limit, total_videos)
 
 
 def clamp_selection(selection: PaginationSelection, total_videos: int) -> PaginationSelection:

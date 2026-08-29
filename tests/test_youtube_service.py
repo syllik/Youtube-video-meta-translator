@@ -81,6 +81,32 @@ class YoutubeServiceTests(unittest.TestCase):
 
         self.assertEqual(result.videos[0].default_language_code, "en")
 
+    def test_reset_video_localizations_uses_current_resource_and_dedicated_update(self):
+        account = Mock()
+        account.get_video_with_localizations.return_value = {
+            "id": "video-1",
+            "snippet": {
+                "title": "Title",
+                "description": "Description",
+                "categoryId": "22",
+                "defaultLanguage": "en",
+                "tags": ["keep"],
+            },
+            "localizations": {"de": {"title": "DE", "description": "DE"}},
+        }
+        account.update_video_localizations.return_value = {"id": "video-1"}
+        service = YoutubeService(account)
+
+        result = service.reset_video_localizations("video-1")
+
+        self.assertEqual(result, {"id": "video-1"})
+        account.get_video_with_localizations.assert_called_once_with("video-1")
+        account.update_video_localizations.assert_called_once()
+        payload = account.update_video_localizations.call_args.args[0]
+        self.assertEqual(payload["id"], "video-1")
+        self.assertEqual(payload["localizations"], {})
+        self.assertEqual(payload["snippet"]["defaultLanguage"], "en")
+
     def test_language_catalog_comes_from_youtube_and_is_cached(self):
         account = Mock()
         account.list_i18n_languages.return_value = {

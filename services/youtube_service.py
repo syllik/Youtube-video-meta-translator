@@ -3,6 +3,7 @@
 from typing import Any, Dict, Mapping, Optional
 
 from language_catalog import YouTubeLanguageCatalog, build_language_catalog
+from localizations import build_video_reset_update_payload
 from models import ChannelInfo, PageLimit, VideoSummary, YouTubePage
 from youtube_account import YoutubeApi
 
@@ -52,6 +53,12 @@ class YoutubeService:
         return self.account.get_video_with_localizations(video_id)
 
     def update_video_localizations(self, payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        return self.account.update_video_localizations(payload)
+
+    def reset_video_localizations(self, video_id: str) -> Mapping[str, Any]:
+        """Delete all localizations while preserving the video's default metadata."""
+        video = self.get_video_with_localizations(video_id)
+        payload = build_video_reset_update_payload(video)
         return self.account.update_video_localizations(payload)
 
     @staticmethod

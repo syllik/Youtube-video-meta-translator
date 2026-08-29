@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from models import VideoSummary
 from state.common_state import init_common_state
-from ui.video_list import render_video_list, widget_key
+from ui.video_list import render_video_list, video_localization_counts, widget_key
 
 
 class _Column:
@@ -44,6 +44,21 @@ class _FakeStreamlit:
 
 
 class VideoListTests(unittest.TestCase):
+    def test_localization_counts_exclude_default_and_use_live_catalog(self):
+        video = VideoSummary(
+            id="video-1",
+            title="Video",
+            description="",
+            thumbnail_url="",
+            current_language_codes=("en", "de"),
+            default_language_code="en",
+        )
+
+        self.assertEqual(
+            video_localization_counts(video, ("en", "de", "fr", "ja")),
+            (1, 2),
+        )
+
     def test_widget_keys_are_stable_by_video_id(self):
         self.assertEqual(widget_key("video-42"), "common-video-video-42")
 

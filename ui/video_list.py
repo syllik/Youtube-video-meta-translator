@@ -1,7 +1,7 @@
 """Workflow-agnostic video cards for the shared application sidebar."""
 
 import html
-from typing import Any, MutableMapping, Sequence
+from typing import Any, Iterable, MutableMapping, Sequence, Tuple
 
 from models import VideoSummary
 from state.common_state import (
@@ -14,6 +14,30 @@ from ui.badges import render_language_badges
 
 def widget_key(video_id: str) -> str:
     return "common-video-{}".format(video_id)
+
+
+def video_localization_counts(
+    video: VideoSummary, supported_language_codes: Iterable[str]
+) -> Tuple[int, int]:
+    """Count existing and missing non-default live-catalog localizations."""
+    default_code = (
+        video.default_language_code.casefold()
+        if isinstance(video.default_language_code, str)
+        else None
+    )
+    existing = {
+        code.casefold()
+        for code in video.current_language_codes
+        if isinstance(code, str) and code.casefold() != default_code
+    }
+    live_codes = {
+        code.casefold()
+        for code in supported_language_codes
+        if isinstance(code, str) and code.strip()
+    }
+    if default_code is not None:
+        live_codes.discard(default_code)
+    return len(existing), len(live_codes - existing)
 
 
 def _description(text: str, max_length: int = 220) -> str:

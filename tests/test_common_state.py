@@ -4,6 +4,9 @@ from models import YouTubePage, VideoSummary
 from state.common_state import (
     get_selected_video_id,
     init_common_state,
+    can_load_more,
+    load_accumulated_video_page,
+    load_more_video_page,
     load_video_page,
     sync_source_selection,
     reset_video_cache,
@@ -101,3 +104,61 @@ def test_empty_source_multiselect_clears_old_references_but_keeps_primary():
     )
 
     assert selected == ("en",)
+
+
+def test_load_more_appends_cursor_pages_once_without_duplicates():
+    service = Mock()
+    service.fetch_video_page.side_effect = [
+        YouTubePage(
+            (VideoSummary("1", "One", "", "", ()),),
+            "token-2",
+        ),
+        YouTubePage(
+            (VideoSummary("2", "Two", "", "", ()),),
+            "token-3",
+        ),
+        YouTubePage(
+            (VideoSummary("3", "Three", "", "", ()),),
+            None,
+        ),
+    ]
+    state = {}
+    selection = PaginationSelection(1, 10)
+
+    first = load_accumulated_video_page(service, state, selection)
+    second = load_more_video_page(service, state, selection)
+    repeated = load_more_video_page(service, state, selection)
+
+    assert [video.id for video in first.videos] == ["1"]
+    assert [video.id for video in second.videos] == ["1", "2"]
+    assert [video.id for video in repeated.videos] == ["1", "2", "3"]
+    assert [video.id for video in load_more_video_page(service, state, selection).videos] == [
+        "1",
+        "2",
+        "3",
+    ]
+    assert service.fetch_video_page.call_count == 3
+
+
+def test_page_navigation_starts_accumulation_from_selected_page():
+    service = Mock()
+    service.fetch_video_page.side_effect = [
+        YouTubePage((VideoSummary("1", "One", "", "", ()),), "token-2"),
+        YouTubePage((VideoSummary("2", "Two", "", "", ()),), "token-3"),
+        YouTubePage((VideoSummary("3", "Three", "", "", ()),), None),
+    ]
+    state = {}
+    load_accumulated_video_page(service, state, PaginationSelection(1, 10))
+    load_more_video_page(service, state, PaginationSelection(1, 10))
+
+    page_two = load_accumulated_video_page(service, state, PaginationSelection(2, 10))
+    page_two_more = load_more_video_page(service, state, PaginationSelection(2, 10))
+
+    assert [video.id for video in page_two.videos] == ["2"]
+    assert [video.id for video in page_two_more.videos] == ["2", "3"]
+
+
+def test_all_limit_never_exposes_load_more():
+    state = {}
+
+    assert not can_load_more(state, PaginationSelection(1, "all"), 100)

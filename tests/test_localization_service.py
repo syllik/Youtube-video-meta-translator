@@ -1,7 +1,9 @@
 import json
 import unittest
+from unittest.mock import Mock
 
 from localization_service import preview_localizations, publish_localizations
+from services.manual_localization_service import ManualLocalizationService
 
 
 VIDEO_RESOURCE = {
@@ -37,6 +39,16 @@ class FakeYoutubeApi:
 
 
 class LocalizationServiceTests(unittest.TestCase):
+    def test_manual_service_reset_delegates_to_dedicated_reset_operation(self):
+        youtube = Mock()
+        youtube.reset_video_localizations.return_value = {"id": "video-1"}
+        service = ManualLocalizationService(youtube, {"de"})
+
+        result = service.reset("video-1")
+
+        self.assertEqual(result, {"id": "video-1"})
+        youtube.reset_video_localizations.assert_called_once_with("video-1")
+
     def test_invalid_json_does_not_fetch_or_write(self):
         api = FakeYoutubeApi(VIDEO_RESOURCE)
 

@@ -26,6 +26,7 @@ class AppContext:
     page: Any
     selection: Any
     selected_video_id: Optional[str]
+    language_catalog: Any
 
 
 def page_title(mode: str) -> str:
@@ -98,7 +99,8 @@ def bootstrap_app_context() -> Optional[AppContext]:
         }:
             st.query_params.update(canonical_pagination_query(normalized))
             st.rerun()
-        with st.spinner("Loading channel videos..."):
+        with st.spinner("Loading channel videos and language catalog..."):
+            catalog = service.fetch_localization_language_catalog()
             page = (
                 YouTubePage(videos=(), next_page_token=None)
                 if channel.total_videos <= 0
@@ -124,6 +126,7 @@ def bootstrap_app_context() -> Optional[AppContext]:
         page=page,
         selection=normalized,
         selected_video_id=get_selected_video_id(st.session_state),
+        language_catalog=catalog,
     )
     render_app_sidebar(context, st.session_state, st.query_params)
     return AppContext(
@@ -132,6 +135,7 @@ def bootstrap_app_context() -> Optional[AppContext]:
         page=page,
         selection=normalized,
         selected_video_id=get_selected_video_id(st.session_state),
+        language_catalog=catalog,
     )
 
 
