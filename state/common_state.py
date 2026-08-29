@@ -20,6 +20,8 @@ def init_common_state(state: MutableMapping[str, Any]) -> MutableMapping[str, An
     state.setdefault("common.video_operation_status", "idle")
     state.setdefault("common.manual_reload_video_id", None)
     state.setdefault("common.pending_sidebar_feedback", None)
+    state.setdefault("common.pending_reset_video_id", None)
+    state.setdefault("common.last_reset_event", None)
     return state
 
 

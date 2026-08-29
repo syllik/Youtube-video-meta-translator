@@ -67,13 +67,6 @@ def _catalog_codes(context: Any):
     return tuple(getattr(catalog, "codes", ()) or ())
 
 
-def _query_value(query_params, key: str):
-    value = query_params.get(key)
-    if isinstance(value, (list, tuple)):
-        return value[0] if value else None
-    return value
-
-
 def _render_pending_feedback(session_state) -> None:
     import streamlit as st
 
@@ -84,13 +77,12 @@ def _render_pending_feedback(session_state) -> None:
     getattr(st, level)(message)
 
 
-def _consume_pending_reset(context, session_state, query_params) -> bool:
+def _consume_pending_reset(context, session_state) -> bool:
     import streamlit as st
 
-    video_id = _query_value(query_params, "reset_video")
+    video_id = session_state.pop("common.pending_reset_video_id", None)
     if not video_id:
         return False
-    query_params.pop("reset_video", None)
     visible_videos = {video.id: video for video in context.page.videos}
     video = visible_videos.get(video_id)
     if video is None:
@@ -155,8 +147,6 @@ def render_app_sidebar(
 
     init_common_state(session_state)
     _render_pending_feedback(session_state)
-    if _consume_pending_reset(context, session_state, query_params):
-        return get_selected_video_id(session_state)
     with st.sidebar:
         with st.container(border=False):
             _render_channel_details(context.channel)
@@ -174,8 +164,9 @@ def render_app_sidebar(
             context.page.videos,
             session_state,
             supported_language_codes=_catalog_codes(context),
-            query_params=query_params,
         )
+        if _consume_pending_reset(context, session_state):
+            return get_selected_video_id(session_state)
         _render_load_more(context, session_state)
 
     return get_selected_video_id(session_state)

@@ -228,9 +228,10 @@ large channel lists, and start with one selected video.
 
 Reset is intentionally destructive. It removes all localizations for the video
 after the native browser confirmation and preserves only default metadata. If
-you clicked **Cancel**, no YouTube request is made. If the reset failed, review
-the error, refresh the list, and verify the video in YouTube Studio before
-trying again.
+you clicked **Cancel**, no YouTube request is made and the current page URL is
+unchanged. A confirmed reset calls the API without navigating away. If the
+reset failed, review the error, refresh the list, and verify the video in
+YouTube Studio before trying again.
 
 ## ➡️ Still blocked?
 

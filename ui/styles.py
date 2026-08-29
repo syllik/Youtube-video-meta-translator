@@ -29,10 +29,6 @@ def apply_app_styles() -> None:
         .video-default-language { margin-top: .25rem; font-size: .82rem; font-weight: 600; }
         .video-localizations { font-size: .82rem; }
         .video-id { opacity: .62; font-family: monospace; font-size: .78rem; }
-        .video-reset-link { display: block; width: 100%; margin-top: .55rem; padding: .35rem .5rem;
-                            border-radius: .4rem; color: #a33; text-align: center;
-                            background: rgba(180, 60, 60, .08); text-decoration: none; font-size: .8rem; }
-        .video-reset-link:hover, .video-reset-link:focus-visible { background: rgba(180, 60, 60, .16); }
         div[data-testid="stVerticalBlockBorderWrapper"] { border-color: rgba(128,128,128,.2);
                                                             background: rgba(255,255,255,.035);
                                                             box-shadow: 0 .25rem .9rem rgba(0,0,0,.1); }

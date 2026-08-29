@@ -1,8 +1,6 @@
 """Workflow-agnostic video cards for the shared application sidebar."""
 
 import html
-import json
-from urllib.parse import urlencode
 from typing import Any, Iterable, MutableMapping, Sequence, Tuple
 
 from models import VideoSummary
@@ -62,33 +60,27 @@ def _render_thumbnail(video: VideoSummary) -> None:
     )
 
 
-def _reset_href(video_id: str, query_params) -> str:
-    params = {}
-    if query_params is not None:
-        for key in ("page", "limit"):
-            value = query_params.get(key)
-            if value is not None:
-                params[key] = value[0] if isinstance(value, (list, tuple)) else value
-    params["reset_video"] = video_id
-    return "?{}".format(urlencode(params))
-
-
-def _render_reset_control(video: VideoSummary, query_params) -> None:
-    import streamlit as st
+def _render_reset_control(
+    video: VideoSummary, session_state: MutableMapping[str, Any]
+) -> None:
+    from ui.reset_control import render_reset_button, reset_widget_key
 
     warning = (
         "Reset all YouTube localizations for {title} ({video_id})? "
         "All translations will be deleted. Only the default title, description, "
         "and language will remain. Save any translations you need before resetting."
     ).format(title=video.title or "this video", video_id=video.id)
-    st.markdown(
-        '<a class="video-reset-link" href="{href}" role="button" '
-        'onclick="return window.confirm({warning})">Reset languages</a>'.format(
-            href=html.escape(_reset_href(video.id, query_params), quote=True),
-            warning=html.escape(json.dumps(warning), quote=True),
-        ),
-        unsafe_allow_html=True,
+    event_id = render_reset_button(
+        video.id,
+        warning,
+        key=reset_widget_key(video.id),
     )
+    if event_id and session_state.get("common.last_reset_event") != (
+        video.id,
+        event_id,
+    ):
+        session_state["common.last_reset_event"] = (video.id, event_id)
+        session_state["common.pending_reset_video_id"] = video.id
 
 
 def _render_video_details(
@@ -123,7 +115,6 @@ def render_video_list(
     videos: Sequence[VideoSummary],
     session_state: MutableMapping[str, Any],
     supported_language_codes: Iterable[str] = (),
-    query_params=None,
 ):
     """Render cards that read and write only the common video selection."""
     import streamlit as st
@@ -143,5 +134,5 @@ def render_video_list(
             ):
                 set_selected_video_id(session_state, video.id)
                 st.rerun()
-            _render_reset_control(video, query_params)
+            _render_reset_control(video, session_state)
     return get_selected_video_id(session_state)

@@ -1,6 +1,8 @@
 import inspect
 import unittest
-from unittest.mock import patch
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import ANY, Mock, patch
 
 from models import VideoSummary
 from state.common_state import init_common_state
@@ -139,17 +141,55 @@ class VideoListTests(unittest.TestCase):
                 (video,),
                 state,
                 supported_language_codes=("en", "de", "fr", "ja"),
-                query_params={"page": "1", "limit": "10"},
             )
 
         text = "\n".join(args[0] for args, _kwargs in streamlit.markdown_calls)
         self.assertIn("Default language: en", text)
         self.assertIn("Localizations: 1 / 2", text)
         self.assertIn("Video ID: video-2", text)
-        self.assertIn("Reset languages", text)
         self.assertNotIn("This description must not render", text)
         self.assertNotIn("localization-badge", text)
-        self.assertIn("window.confirm", text)
+
+    def test_confirmed_reset_uses_a_component_event_without_url_navigation(self):
+        state = {}
+        streamlit = _FakeStreamlit("not-clicked")
+        render_reset_button = Mock(return_value="event-1")
+        reset_control = SimpleNamespace(
+            render_reset_button=render_reset_button,
+            reset_widget_key=lambda video_id: "common-reset-{}".format(video_id),
+        )
+        video = VideoSummary(
+            id="video-2",
+            title="Second video",
+            description="",
+            thumbnail_url="",
+            current_language_codes=(),
+        )
+
+        with patch.dict(
+            "sys.modules",
+            {"streamlit": streamlit, "ui.reset_control": reset_control},
+        ):
+            render_video_list(
+                (video,),
+                state,
+            )
+
+        render_reset_button.assert_called_once_with(
+            "video-2",
+            ANY,
+            key="common-reset-video-2",
+        )
+        self.assertNotIn("reset_video=", Path("ui/video_list.py").read_text())
+        self.assertEqual(state.get("common.pending_reset_video_id"), "video-2")
+
+    def test_reset_component_confirms_in_browser_and_does_not_navigate(self):
+        source = Path("ui/reset_video_component/index.html").read_text()
+
+        self.assertIn("window.confirm", source)
+        self.assertIn("streamlit:setComponentValue", source)
+        self.assertNotIn("window.location", source)
+        self.assertNotIn("href=", source)
 
 
 if __name__ == "__main__":

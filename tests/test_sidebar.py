@@ -113,7 +113,6 @@ class SidebarTests(unittest.TestCase):
         self.assertIn("video-1", text)
         self.assertIn("Default language: en", text)
         self.assertIn("Localizations: 2 / 0", text)
-        self.assertIn("Reset languages", text)
         self.assertNotIn("First description", text)
         self.assertNotIn("Open " + "on YouTube", text)
         self.assertTrue(
@@ -163,7 +162,10 @@ class SidebarTests(unittest.TestCase):
 
         self.assertIn("Load more", source)
         self.assertIn("load_more_video_page", source)
-        self.assertIn("window.confirm", Path("ui/video_list.py").read_text())
+        self.assertIn(
+            "window.confirm",
+            Path("ui/reset_video_component/index.html").read_text(),
+        )
 
     def test_confirmed_reset_targets_card_id_and_invalidates_sidebar_state(self):
         import sys
@@ -183,19 +185,20 @@ class SidebarTests(unittest.TestCase):
             "common.page_tokens_by_limit": {10: {2: "token"}},
             "common.video_pages_by_limit": {10: {1: self.context.page}},
             "common.video_accumulation": {"page": 1, "limit": 10, "through_page": 1},
+            "common.pending_reset_video_id": "video-1",
         }
-        query_params = {"page": "1", "limit": "10", "reset_video": "video-1"}
+        query_params = {"page": "1", "limit": "10"}
         fake = _FakeStreamlit()
 
         with patch.dict(sys.modules, {"streamlit": fake}):
-            handled = _consume_pending_reset(context, state, query_params)
+            handled = _consume_pending_reset(context, state)
 
         self.assertTrue(handled)
         reset.assert_called_once_with("video-1")
         self.assertEqual(state["common.page_tokens_by_limit"], {})
         self.assertEqual(state["common.video_pages_by_limit"], {})
         self.assertEqual(state["common.manual_reload_video_id"], "video-1")
-        self.assertNotIn("reset_video", query_params)
+        self.assertEqual(query_params, {"page": "1", "limit": "10"})
 
 
 if __name__ == "__main__":

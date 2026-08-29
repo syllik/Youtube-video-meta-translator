@@ -15,6 +15,8 @@ Youtube-video-meta-translator/
 ├── state/                           # Common, universal editor, and prompt state
 ├── ui/                              # Shared and workflow-specific widgets
 │   ├── sidebar.py                   # Persistent channel and video navigation
+│   ├── reset_control.py             # Browser-confirmed reset component bridge
+│   ├── reset_video_component/       # Local component button frontend
 │   ├── faq.py                       # Static FAQ content with no API bootstrap
 │   └── badges.py                    # Shared localization badge renderer
 ├── models.py                        # Shared immutable data models
@@ -84,7 +86,8 @@ success result is `No broken requirements found.`
 - Codex and external-LLM JSON merge into the current draft; they do not replace
   unrelated language entries.
 - Reset languages is the only full-localization deletion path and preserves
-  default metadata through a separate reset payload.
+  default metadata through a separate reset payload. Its confirmed component
+  event calls the API without navigating or changing URL parameters.
 - Numeric Load more appends cached cursor pages; changing URL page resets the
   accumulated visible list. It is hidden for `all`.
 - Translate and the supporting prompt use the same fresh `i18nLanguages.list`

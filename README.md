@@ -97,8 +97,9 @@ thumbnail to open the video on YouTube.
 **Reset languages** is destructive: after the native browser confirmation, all
 localizations for that video are removed while its default title, description,
 language, and required metadata remain. Save translations you need before
-confirming. The FAQ page is static and opens even when YouTube OAuth or the API
-is unavailable.
+confirming. The control calls the server-side reset operation without
+navigating away or changing URL parameters. The FAQ page is static and opens
+even when YouTube OAuth or the API is unavailable.
 
 The language catalog is never hardcoded. No OpenAI or other LLM API key is
 required; YouTube uses the existing OAuth session.

@@ -171,9 +171,9 @@
 - Modify: `tests/test_video_pagination.py`
 
 **Interfaces:**
-- Keep `render_video_list(videos, session_state, ...)` backward-compatible for existing two-argument tests while accepting live catalog codes and current query parameters.
+- Keep `render_video_list(videos, session_state, ...)` backward-compatible for existing two-argument tests while accepting live catalog codes. Reset controls must not consume or write URL parameters.
 - Render each card with title, default language, `Localizations: done / undone`, video ID, full-width Select/Selected, and full-width Reset languages.
-- Render reset as an HTML button/link whose `onclick` returns native `window.confirm()`; only confirmed navigation adds a pending reset query value. Consume that value in the sidebar and call the dedicated reset operation for the exact card id.
+- Render reset through a local component button whose native `window.confirm()` returns a component event only after confirmation. Consume the exact video id in the sidebar and call the dedicated reset operation without navigation or reset query parameters.
 - Render `Load more` only after all cards for numeric limits and wrap batch loading in `st.spinner` with a status guard.
 
 - [x] **Step 1: Add failing source/UI contract tests.**
@@ -194,9 +194,9 @@
 
   Make the channel image occupy the block width, keep all channel text in one column, remove video description/badges, calculate counts from the live catalog helper, add a subtle selected container treatment, and keep the thumbnail external icon visible without a full-image overlay. Keep YouTube thumbnail links intact.
 
-- [x] **Step 4: Implement native confirmation and reset-query handling.**
+- [x] **Step 4: Implement native confirmation and component reset handling.**
 
-  Build a confirmation message containing title/id, deletion warning, default-metadata result, and save-first guidance. Cancel must return false and leave the URL unchanged. On confirmed pending reset, call `ManualLocalizationService.reset`, invalidate common page caches, request selected-draft reload when the id matches, store success/error feedback, remove the pending query, and rerun once after success.
+  Build a confirmation message containing title/id, deletion warning, default-metadata result, and save-first guidance. Cancel must return false and leave the URL unchanged. On the confirmed component event, call `ManualLocalizationService.reset`, invalidate common page caches, request selected-draft reload when the id matches, store success/error feedback, and rerun once after success.
 
 - [x] **Step 5: Implement icon pagination and Load more rendering.**
 

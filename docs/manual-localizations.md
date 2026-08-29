@@ -124,8 +124,9 @@ starts a new visible batch. It is not shown for **all**.
 **Reset languages** is the separate full-deletion operation. It uses the native
 browser confirmation and removes every localization for that video while
 preserving default title, description, default language, and required snippet
-metadata. Save translations you need before selecting **OK**. Cancel does not
-make an API request.
+metadata. The confirmed component event calls the reset API on the current page
+without adding or removing URL parameters. Save translations you need before
+selecting **OK**. Cancel does not make an API request.
 
 ## 🚫 Not supported
 

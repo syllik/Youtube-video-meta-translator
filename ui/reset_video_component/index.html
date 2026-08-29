@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: sans-serif;
+      }
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      button {
+        width: 100%;
+        min-height: 2.25rem;
+        padding: .35rem .5rem;
+        border: 1px solid rgba(180, 60, 60, .35);
+        border-radius: .4rem;
+        color: #a33;
+        background: rgba(180, 60, 60, .08);
+        cursor: pointer;
+        font: inherit;
+        font-size: .8rem;
+      }
+      button:hover,
+      button:focus-visible {
+        background: rgba(180, 60, 60, .16);
+      }
+      button:focus-visible {
+        outline: .18rem solid rgba(66, 153, 225, .9);
+        outline-offset: .1rem;
+      }
+      button:disabled {
+        cursor: wait;
+        opacity: .65;
+      }
+    </style>
+  </head>
+  <body>
+    <button id="reset-button" type="button">Reset languages</button>
+    <script>
+      const button = document.getElementById("reset-button");
+      let componentArgs = {};
+
+      function sendMessage(type, data) {
+        window.parent.postMessage(
+          Object.assign({ isStreamlitMessage: true, type }, data || {}),
+          "*"
+        );
+      }
+
+      function eventId() {
+        if (window.crypto && typeof window.crypto.randomUUID === "function") {
+          return window.crypto.randomUUID();
+        }
+        return String(Date.now()) + "-" + String(Math.random());
+      }
+
+      button.addEventListener("click", function () {
+        if (!window.confirm(componentArgs.warning)) {
+          return;
+        }
+        button.disabled = true;
+        sendMessage("streamlit:setComponentValue", {
+          value: {
+            video_id: componentArgs.video_id,
+            event_id: eventId(),
+          },
+        });
+      });
+
+      window.addEventListener("message", function (event) {
+        if (!event.data || event.data.type !== "streamlit:render") {
+          return;
+        }
+        componentArgs = event.data.args || {};
+        button.textContent = componentArgs.label || "Reset languages";
+        sendMessage("streamlit:setFrameHeight", { height: 42 });
+      });
+
+      sendMessage("streamlit:componentReady", { apiVersion: 1 });
+      sendMessage("streamlit:setFrameHeight", { height: 42 });
+    </script>
+  </body>
+</html>

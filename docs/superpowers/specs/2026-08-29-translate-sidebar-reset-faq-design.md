@@ -106,13 +106,13 @@ warning that all YouTube localizations will be deleted, only default metadata
 will remain, and desired translations must be saved first. Cancel does not
 navigate or call an API.
 
-An affirmed reset navigates with a narrowly scoped pending-reset query value.
-The shared sidebar consumes that value and calls a separate reset service
-operation for the exact video ID. The reset service fetches current video data,
-builds a payload with `localizations: {}`, preserves the default title,
-description, `defaultLanguage`, and the existing writable snippet fields, then
-performs one update. It does not route through an empty manual JSON document,
-which preserves ordinary Publish's omitted-language behavior.
+A confirmed reset emits a local component event without navigating or changing
+URL parameters. The shared sidebar consumes the exact video ID from that event
+and calls a separate reset service operation. The reset service fetches current
+video data, builds a payload with `localizations: {}`, preserves the default
+title, description, `defaultLanguage`, and the existing writable snippet
+fields, then performs one update. It does not route through an empty manual
+JSON document, which preserves ordinary Publish's omitted-language behavior.
 
 On success, page/video caches are invalidated, a selected-video reload is
 requested when applicable, progress is recalculated from fresh data, and a
