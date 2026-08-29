@@ -6,955 +6,1193 @@
   "languages": [
     {
       "code": "ab",
-      "name": "Абхазский"
+      "name": "Абхазский",
+      "englishName": "Abkhazian"
     },
     {
       "code": "az",
-      "name": "Азербайджанский"
+      "name": "Азербайджанский",
+      "englishName": "Azerbaijani"
     },
     {
       "code": "ay",
-      "name": "Аймара"
+      "name": "Аймара",
+      "englishName": "Aymara"
     },
     {
       "code": "ak",
-      "name": "Акан"
+      "name": "Акан",
+      "englishName": "Akan"
     },
     {
       "code": "akk",
-      "name": "Аккадский"
+      "name": "Аккадский",
+      "englishName": "Akkadian"
     },
     {
       "code": "sq",
-      "name": "Албанский"
+      "name": "Албанский",
+      "englishName": "Albanian"
     },
     {
       "code": "am",
-      "name": "Амхарский"
+      "name": "Амхарский",
+      "englishName": "Amharic"
     },
     {
       "code": "en",
-      "name": "Английский"
+      "name": "Английский",
+      "englishName": "English"
     },
     {
       "code": "en-AU",
-      "name": "Английский (Австралия)"
+      "name": "Английский (Австралия)",
+      "englishName": "English (Australia)"
     },
     {
       "code": "en-GB",
-      "name": "Английский (Великобритания)"
+      "name": "Английский (Великобритания)",
+      "englishName": "English (United Kingdom)"
     },
     {
       "code": "en-IN",
-      "name": "Английский (Индия)"
+      "name": "Английский (Индия)",
+      "englishName": "English (India)"
     },
     {
       "code": "en-IE",
-      "name": "Английский (Ирландия)"
+      "name": "Английский (Ирландия)",
+      "englishName": "English (Ireland)"
     },
     {
       "code": "en-CA",
-      "name": "Английский (Канада)"
+      "name": "Английский (Канада)",
+      "englishName": "English (Canada)"
     },
     {
       "code": "en-US",
-      "name": "Английский (Соединенные Штаты)"
+      "name": "Английский (Соединенные Штаты)",
+      "englishName": "English (United States)"
     },
     {
       "code": "ar",
-      "name": "Арабский"
+      "name": "Арабский",
+      "englishName": "Arabic"
     },
     {
       "code": "arc",
-      "name": "Арамейский"
+      "name": "Арамейский",
+      "englishName": "Aramaic"
     },
     {
       "code": "hy",
-      "name": "Армянский"
+      "name": "Армянский",
+      "englishName": "Armenian"
     },
     {
       "code": "as",
-      "name": "Ассамский"
+      "name": "Ассамский",
+      "englishName": "Assamese"
     },
     {
       "code": "aa",
-      "name": "Афарский"
+      "name": "Афарский",
+      "englishName": "Afar"
     },
     {
       "code": "af",
-      "name": "Африкаанс"
+      "name": "Африкаанс",
+      "englishName": "Afrikaans"
     },
     {
       "code": "bm",
-      "name": "Бамбара"
+      "name": "Бамбара",
+      "englishName": "Bambara"
     },
     {
       "code": "eu",
-      "name": "Баскский"
+      "name": "Баскский",
+      "englishName": "Basque"
     },
     {
       "code": "ba",
-      "name": "Башкирский"
+      "name": "Башкирский",
+      "englishName": "Bashkir"
     },
     {
       "code": "be",
-      "name": "Белорусский"
+      "name": "Белорусский",
+      "englishName": "Belarusian"
     },
     {
       "code": "bn",
-      "name": "Бенгальский"
+      "name": "Бенгальский",
+      "englishName": "Bengali"
     },
     {
       "code": "bn-IN",
-      "name": "Бенгальский (Индия)"
+      "name": "Бенгальский (Индия)",
+      "englishName": "Bengali (India)"
     },
     {
       "code": "my",
-      "name": "Бирманский"
+      "name": "Бирманский",
+      "englishName": "Burmese"
     },
     {
       "code": "bi",
-      "name": "Бислама"
+      "name": "Бислама",
+      "englishName": "Bislama"
     },
     {
       "code": "brx",
-      "name": "Бодо"
+      "name": "Бодо",
+      "englishName": "Bodo"
     },
     {
       "code": "bg",
-      "name": "Болгарский"
+      "name": "Болгарский",
+      "englishName": "Bulgarian"
     },
     {
       "code": "bs",
-      "name": "Боснийский"
+      "name": "Боснийский",
+      "englishName": "Bosnian"
     },
     {
       "code": "br",
-      "name": "Бретонский"
+      "name": "Бретонский",
+      "englishName": "Breton"
     },
     {
       "code": "bh",
-      "name": "Бходжпури"
+      "name": "Бходжпури",
+      "englishName": "Bhojpuri"
     },
     {
       "code": "cy",
-      "name": "Валлийский"
+      "name": "Валлийский",
+      "englishName": "Welsh"
     },
     {
       "code": "wa",
-      "name": "Валлонский"
+      "name": "Валлонский",
+      "englishName": "Walloon"
     },
     {
       "code": "hu",
-      "name": "Венгерский"
+      "name": "Венгерский",
+      "englishName": "Hungarian"
     },
     {
       "code": "ve",
-      "name": "Венда"
+      "name": "Венда",
+      "englishName": "Venda"
     },
     {
       "code": "hsb",
-      "name": "Верхнелужицкий"
+      "name": "Верхнелужицкий",
+      "englishName": "Upper Sorbian"
     },
     {
       "code": "wal",
-      "name": "Воламо"
+      "name": "Воламо",
+      "englishName": "Wolaytta"
     },
     {
       "code": "vo",
-      "name": "Волапюк"
+      "name": "Волапюк",
+      "englishName": "Volapük"
     },
     {
       "code": "wo",
-      "name": "Волоф"
+      "name": "Волоф",
+      "englishName": "Wolof"
     },
     {
       "code": "vi",
-      "name": "Вьетнамский"
+      "name": "Вьетнамский",
+      "englishName": "Vietnamese"
     },
     {
       "code": "haw",
-      "name": "Гавайский"
+      "name": "Гавайский",
+      "englishName": "Hawaiian"
     },
     {
       "code": "ht",
-      "name": "Гаитянский"
+      "name": "Гаитянский",
+      "englishName": "Haitian Creole"
     },
     {
       "code": "gl",
-      "name": "Галисийский"
+      "name": "Галисийский",
+      "englishName": "Galician"
     },
     {
       "code": "lg",
-      "name": "Ганда"
+      "name": "Ганда",
+      "englishName": "Ganda"
     },
     {
       "code": "kl",
-      "name": "Гренландский"
+      "name": "Гренландский",
+      "englishName": "Greenlandic"
     },
     {
       "code": "el",
-      "name": "Греческий"
+      "name": "Греческий",
+      "englishName": "Greek"
     },
     {
       "code": "ka",
-      "name": "Грузинский"
+      "name": "Грузинский",
+      "englishName": "Georgian"
     },
     {
       "code": "gn",
-      "name": "Гуарани"
+      "name": "Гуарани",
+      "englishName": "Guarani"
     },
     {
       "code": "gu",
-      "name": "Гуджарати"
+      "name": "Гуджарати",
+      "englishName": "Gujarati"
     },
     {
       "code": "guz",
-      "name": "Гусии"
+      "name": "Гусии",
+      "englishName": "Gusii"
     },
     {
       "code": "gd",
-      "name": "Гэльский"
+      "name": "Гэльский",
+      "englishName": "Scottish Gaelic"
     },
     {
       "code": "da",
-      "name": "Датский"
+      "name": "Датский",
+      "englishName": "Danish"
     },
     {
       "code": "dz",
-      "name": "Дзонг-кэ"
+      "name": "Дзонг-кэ",
+      "englishName": "Dzongkha"
     },
     {
       "code": "doi",
-      "name": "Догри"
+      "name": "Догри",
+      "englishName": "Dogri"
     },
     {
       "code": "fy",
-      "name": "Западнофризский"
+      "name": "Западнофризский",
+      "englishName": "Western Frisian"
     },
     {
       "code": "zu",
-      "name": "Зулу"
+      "name": "Зулу",
+      "englishName": "Zulu"
     },
     {
       "code": "iw",
-      "name": "Иврит"
+      "name": "Иврит",
+      "englishName": "Hebrew"
     },
     {
       "code": "ig",
-      "name": "Игбо"
+      "name": "Игбо",
+      "englishName": "Igbo"
     },
     {
       "code": "yi",
-      "name": "Идиш"
+      "name": "Идиш",
+      "englishName": "Yiddish"
     },
     {
       "code": "id",
-      "name": "Индонезийский"
+      "name": "Индонезийский",
+      "englishName": "Indonesian"
     },
     {
       "code": "ia",
-      "name": "Интерлингва"
+      "name": "Интерлингва",
+      "englishName": "Interlingua"
     },
     {
       "code": "ie",
-      "name": "Интерлингве"
+      "name": "Интерлингве",
+      "englishName": "Interlingue"
     },
     {
       "code": "iu",
-      "name": "Инуктитут"
+      "name": "Инуктитут",
+      "englishName": "Inuktitut"
     },
     {
       "code": "ik",
-      "name": "Инупиак"
+      "name": "Инупиак",
+      "englishName": "Inupiaq"
     },
     {
       "code": "ga",
-      "name": "Ирландский"
+      "name": "Ирландский",
+      "englishName": "Irish"
     },
     {
       "code": "is",
-      "name": "Исландский"
+      "name": "Исландский",
+      "englishName": "Icelandic"
     },
     {
       "code": "es",
-      "name": "Испанский"
+      "name": "Испанский",
+      "englishName": "Spanish"
     },
     {
       "code": "es-ES",
-      "name": "Испанский (Испания)"
+      "name": "Испанский (Испания)",
+      "englishName": "Spanish (Spain)"
     },
     {
       "code": "es-419",
-      "name": "Испанский (Латинская Америка)"
+      "name": "Испанский (Латинская Америка)",
+      "englishName": "Spanish (Latin America)"
     },
     {
       "code": "es-MX",
-      "name": "Испанский (Мексика)"
+      "name": "Испанский (Мексика)",
+      "englishName": "Spanish (Mexico)"
     },
     {
       "code": "es-US",
-      "name": "Испанский (Соединенные Штаты)"
+      "name": "Испанский (Соединенные Штаты)",
+      "englishName": "Spanish (United States)"
     },
     {
       "code": "it",
-      "name": "Итальянский"
+      "name": "Итальянский",
+      "englishName": "Italian"
     },
     {
       "code": "yo",
-      "name": "Йоруба"
+      "name": "Йоруба",
+      "englishName": "Yoruba"
     },
     {
       "code": "kk",
-      "name": "Казахский"
+      "name": "Казахский",
+      "englishName": "Kazakh"
     },
     {
       "code": "kln",
-      "name": "Календжин"
+      "name": "Календжин",
+      "englishName": "Kalenjin"
     },
     {
       "code": "kam",
-      "name": "Камба"
+      "name": "Камба",
+      "englishName": "Kamba"
     },
     {
       "code": "kn",
-      "name": "Каннада"
+      "name": "Каннада",
+      "englishName": "Kannada"
     },
     {
       "code": "yue",
-      "name": "Кантонский"
+      "name": "Кантонский",
+      "englishName": "Cantonese"
     },
     {
       "code": "yue-HK",
-      "name": "Кантонский (Гонконг)"
+      "name": "Кантонский (Гонконг)",
+      "englishName": "Cantonese (Hong Kong)"
     },
     {
       "code": "ca",
-      "name": "Каталанский"
+      "name": "Каталанский",
+      "englishName": "Catalan"
     },
     {
       "code": "ks",
-      "name": "Кашмири"
+      "name": "Кашмири",
+      "englishName": "Kashmiri"
     },
     {
       "code": "qu",
-      "name": "Кечуа"
+      "name": "Кечуа",
+      "englishName": "Quechua"
     },
     {
       "code": "ki",
-      "name": "Кикуйю"
+      "name": "Кикуйю",
+      "englishName": "Kikuyu"
     },
     {
       "code": "rw",
-      "name": "Киньяруанда"
+      "name": "Киньяруанда",
+      "englishName": "Kinyarwanda"
     },
     {
       "code": "ky",
-      "name": "Киргизский"
+      "name": "Киргизский",
+      "englishName": "Kyrgyz"
     },
     {
       "code": "zh",
-      "name": "Китайский"
+      "name": "Китайский",
+      "englishName": "Chinese"
     },
     {
       "code": "zh-HK",
-      "name": "Китайский (Гонконг)"
+      "name": "Китайский (Гонконг)",
+      "englishName": "Chinese (Hong Kong SAR China)"
     },
     {
       "code": "zh-CN",
-      "name": "Китайский (Китай)"
+      "name": "Китайский (Китай)",
+      "englishName": "Chinese (China)"
     },
     {
       "code": "zh-SG",
-      "name": "Китайский (Сингапур)"
+      "name": "Китайский (Сингапур)",
+      "englishName": "Chinese (Singapore)"
     },
     {
       "code": "zh-TW",
-      "name": "Китайский (Тайвань)"
+      "name": "Китайский (Тайвань)",
+      "englishName": "Chinese (Taiwan)"
     },
     {
       "code": "zh-Hant",
-      "name": "Китайский (традиционная)"
+      "name": "Китайский (традиционная)",
+      "englishName": "Chinese (Traditional)"
     },
     {
       "code": "zh-Hans",
-      "name": "Китайский (упрощенная)"
+      "name": "Китайский (упрощенная)",
+      "englishName": "Chinese (Simplified)"
     },
     {
       "code": "tlh",
-      "name": "Клингонский"
+      "name": "Клингонский",
+      "englishName": "Klingon"
     },
     {
       "code": "kok",
-      "name": "Конкани"
+      "name": "Конкани",
+      "englishName": "Konkani"
     },
     {
       "code": "cop",
-      "name": "Коптский"
+      "name": "Коптский",
+      "englishName": "Coptic"
     },
     {
       "code": "ko",
-      "name": "Корейский"
+      "name": "Корейский",
+      "englishName": "Korean"
     },
     {
       "code": "co",
-      "name": "Корсиканский"
+      "name": "Корсиканский",
+      "englishName": "Corsican"
     },
     {
       "code": "xh",
-      "name": "Коса"
+      "name": "Коса",
+      "englishName": "Xhosa"
     },
     {
       "code": "cr",
-      "name": "Кри"
+      "name": "Кри",
+      "englishName": "Cree"
     },
     {
       "code": "ku",
-      "name": "Курдский"
+      "name": "Курдский",
+      "englishName": "Kurdish"
     },
     {
       "code": "km",
-      "name": "Кхмерский"
+      "name": "Кхмерский",
+      "englishName": "Khmer"
     },
     {
       "code": "lad",
-      "name": "Ладино"
+      "name": "Ладино",
+      "englishName": "Ladino"
     },
     {
       "code": "lo",
-      "name": "Лаосский"
+      "name": "Лаосский",
+      "englishName": "Lao"
     },
     {
       "code": "la",
-      "name": "Латинский"
+      "name": "Латинский",
+      "englishName": "Latin"
     },
     {
       "code": "lv",
-      "name": "Латышский"
+      "name": "Латышский",
+      "englishName": "Latvian"
     },
     {
       "code": "ln",
-      "name": "Лингала"
+      "name": "Лингала",
+      "englishName": "Lingala"
     },
     {
       "code": "lt",
-      "name": "Литовский"
+      "name": "Литовский",
+      "englishName": "Lithuanian"
     },
     {
       "code": "jbo",
-      "name": "Ложбан"
+      "name": "Ложбан",
+      "englishName": "Lojban"
     },
     {
       "code": "lu",
-      "name": "Луба-катанга"
+      "name": "Луба-катанга",
+      "englishName": "Luba-Katanga"
     },
     {
       "code": "luo",
-      "name": "Луо"
+      "name": "Луо",
+      "englishName": "Luo"
     },
     {
       "code": "luy",
-      "name": "Лухья"
+      "name": "Лухья",
+      "englishName": "Luyia"
     },
     {
       "code": "lb",
-      "name": "Люксембургский"
+      "name": "Люксембургский",
+      "englishName": "Luxembourgish"
     },
     {
       "code": "mai",
-      "name": "Майтхили"
+      "name": "Майтхили",
+      "englishName": "Maithili"
     },
     {
       "code": "mk",
-      "name": "Македонский"
+      "name": "Македонский",
+      "englishName": "Macedonian"
     },
     {
       "code": "mg",
-      "name": "Малагасийский"
+      "name": "Малагасийский",
+      "englishName": "Malagasy"
     },
     {
       "code": "ms",
-      "name": "Малайский"
+      "name": "Малайский",
+      "englishName": "Malay"
     },
     {
       "code": "ms-SG",
-      "name": "Малайский (Сингапур)"
+      "name": "Малайский (Сингапур)",
+      "englishName": "Malay (Singapore)"
     },
     {
       "code": "ml",
-      "name": "Малаялам"
+      "name": "Малаялам",
+      "englishName": "Malayalam"
     },
     {
       "code": "mt",
-      "name": "Мальтийский"
+      "name": "Мальтийский",
+      "englishName": "Maltese"
     },
     {
       "code": "mni",
-      "name": "Манипурский"
+      "name": "Манипурский",
+      "englishName": "Manipuri"
     },
     {
       "code": "mi",
-      "name": "Маори"
+      "name": "Маори",
+      "englishName": "Māori"
     },
     {
       "code": "mr",
-      "name": "Маратхи"
+      "name": "Маратхи",
+      "englishName": "Marathi"
     },
     {
       "code": "mas",
-      "name": "Масаи"
+      "name": "Масаи",
+      "englishName": "Masai"
     },
     {
       "code": "mer",
-      "name": "Меру"
+      "name": "Меру",
+      "englishName": "Meru"
     },
     {
       "code": "lus",
-      "name": "Мизо"
+      "name": "Мизо",
+      "englishName": "Mizo"
     },
     {
       "code": "nan",
-      "name": "Миньнань"
+      "name": "Миньнань",
+      "englishName": "Min Nan Chinese"
     },
     {
       "code": "nan-TW",
-      "name": "Миньнань (Тайвань)"
+      "name": "Миньнань (Тайвань)",
+      "englishName": "Min Nan Chinese (Taiwan)"
     },
     {
       "code": "mxp",
-      "name": "Михе"
+      "name": "Михе",
+      "englishName": "Mixe"
     },
     {
       "code": "mn",
-      "name": "Монгольский"
+      "name": "Монгольский",
+      "englishName": "Mongolian"
     },
     {
       "code": "mn-Mong",
-      "name": "Монгольский (монгольская)"
+      "name": "Монгольский (монгольская)",
+      "englishName": "Mongolian (Mongolian script)"
     },
     {
       "code": "nv",
-      "name": "Навахо"
+      "name": "Навахо",
+      "englishName": "Navajo"
     },
     {
       "code": "na",
-      "name": "Науру"
+      "name": "Науру",
+      "englishName": "Nauru"
     },
     {
       "code": "de",
-      "name": "Немецкий"
+      "name": "Немецкий",
+      "englishName": "German"
     },
     {
       "code": "de-AT",
-      "name": "Немецкий (Австрия)"
+      "name": "Немецкий (Австрия)",
+      "englishName": "German (Austria)"
     },
     {
       "code": "de-DE",
-      "name": "Немецкий (Германия)"
+      "name": "Немецкий (Германия)",
+      "englishName": "German (Germany)"
     },
     {
       "code": "de-CH",
-      "name": "Немецкий (Швейцария)"
+      "name": "Немецкий (Швейцария)",
+      "englishName": "German (Switzerland)"
     },
     {
       "code": "ne",
-      "name": "Непальский"
+      "name": "Непальский",
+      "englishName": "Nepali"
     },
     {
       "code": "pcm",
-      "name": "Нигерийско-креольский"
+      "name": "Нигерийско-креольский",
+      "englishName": "Nigerian Pidgin"
     },
     {
       "code": "nl",
-      "name": "Нидерландский"
+      "name": "Нидерландский",
+      "englishName": "Dutch"
     },
     {
       "code": "nl-BE",
-      "name": "Нидерландский (Бельгия)"
+      "name": "Нидерландский (Бельгия)",
+      "englishName": "Dutch (Belgium)"
     },
     {
       "code": "nl-NL",
-      "name": "Нидерландский (Нидерланды)"
+      "name": "Нидерландский (Нидерланды)",
+      "englishName": "Dutch (Netherlands)"
     },
     {
       "code": "dsb",
-      "name": "Нижнелужицкий"
+      "name": "Нижнелужицкий",
+      "englishName": "Lower Sorbian"
     },
     {
       "code": "no",
-      "name": "Норвежский"
+      "name": "Норвежский",
+      "englishName": "Norwegian"
     },
     {
       "code": "oc",
-      "name": "Окситанский"
+      "name": "Окситанский",
+      "englishName": "Occitan"
     },
     {
       "code": "or",
-      "name": "Ория"
+      "name": "Ория",
+      "englishName": "Odia"
     },
     {
       "code": "om",
-      "name": "Оромо"
+      "name": "Оромо",
+      "englishName": "Oromo"
     },
     {
       "code": "pa",
-      "name": "Панджаби"
+      "name": "Панджаби",
+      "englishName": "Punjabi"
     },
     {
       "code": "pap",
-      "name": "Папьяменто"
+      "name": "Папьяменто",
+      "englishName": "Papiamento"
     },
     {
       "code": "fa",
-      "name": "Персидский"
+      "name": "Персидский",
+      "englishName": "Persian"
     },
     {
       "code": "fa-AF",
-      "name": "Персидский (Афганистан)"
+      "name": "Персидский (Афганистан)",
+      "englishName": "Persian (Afghanistan)"
     },
     {
       "code": "fa-IR",
-      "name": "Персидский (Иран)"
+      "name": "Персидский (Иран)",
+      "englishName": "Persian (Iran)"
     },
     {
       "code": "pl",
-      "name": "Польский"
+      "name": "Польский",
+      "englishName": "Polish"
     },
     {
       "code": "pt",
-      "name": "Португальский"
+      "name": "Португальский",
+      "englishName": "Portuguese"
     },
     {
       "code": "pt-BR",
-      "name": "Португальский (Бразилия)"
+      "name": "Португальский (Бразилия)",
+      "englishName": "Portuguese (Brazil)"
     },
     {
       "code": "pt-PT",
-      "name": "Португальский (Португалия)"
+      "name": "Португальский (Португалия)",
+      "englishName": "Portuguese (Portugal)"
     },
     {
       "code": "ps",
-      "name": "Пушту"
+      "name": "Пушту",
+      "englishName": "Pashto"
     },
     {
       "code": "rm",
-      "name": "Романшский"
+      "name": "Романшский",
+      "englishName": "Romansh"
     },
     {
       "code": "ro",
-      "name": "Румынский"
+      "name": "Румынский",
+      "englishName": "Romanian"
     },
     {
       "code": "mo",
-      "name": "Румынский (Молдова)"
+      "name": "Румынский (Молдова)",
+      "englishName": "Romanian (Moldova)"
     },
     {
       "code": "rn",
-      "name": "Рунди"
+      "name": "Рунди",
+      "englishName": "Rundi"
     },
     {
       "code": "ru",
-      "name": "Русский"
+      "name": "Русский",
+      "englishName": "Russian"
     },
     {
       "code": "ru-Latn",
-      "name": "Русский (латиница)"
+      "name": "Русский (латиница)",
+      "englishName": "Russian (Latin)"
     },
     {
       "code": "sm",
-      "name": "Самоанский"
+      "name": "Самоанский",
+      "englishName": "Samoan"
     },
     {
       "code": "sg",
-      "name": "Санго"
+      "name": "Санго",
+      "englishName": "Sango"
     },
     {
       "code": "sa",
-      "name": "Санскрит"
+      "name": "Санскрит",
+      "englishName": "Sanskrit"
     },
     {
       "code": "sat",
-      "name": "Сантали"
+      "name": "Сантали",
+      "englishName": "Santali"
     },
     {
       "code": "sc",
-      "name": "Сардинский"
+      "name": "Сардинский",
+      "englishName": "Sardinian"
     },
     {
       "code": "ss",
-      "name": "Свази"
+      "name": "Свази",
+      "englishName": "Swati"
     },
     {
       "code": "nd",
-      "name": "Северный ндебеле"
+      "name": "Северный ндебеле",
+      "englishName": "North Ndebele"
     },
     {
       "code": "nso",
-      "name": "Северный сото"
+      "name": "Северный сото",
+      "englishName": "Northern Sotho"
     },
     {
       "code": "sr",
-      "name": "Сербский"
+      "name": "Сербский",
+      "englishName": "Serbian"
     },
     {
       "code": "sr-Cyrl",
-      "name": "Сербский (кириллица)"
+      "name": "Сербский (кириллица)",
+      "englishName": "Serbian (Cyrillic)"
     },
     {
       "code": "sr-Latn",
-      "name": "Сербский (латиница)"
+      "name": "Сербский (латиница)",
+      "englishName": "Serbian (Latin)"
     },
     {
       "code": "sh",
-      "name": "Сербскохорватский"
+      "name": "Сербскохорватский",
+      "englishName": "Serbo-Croatian"
     },
     {
       "code": "si",
-      "name": "Сингальский"
+      "name": "Сингальский",
+      "englishName": "Sinhala"
     },
     {
       "code": "sd",
-      "name": "Синдхи"
+      "name": "Синдхи",
+      "englishName": "Sindhi"
     },
     {
       "code": "scn",
-      "name": "Сицилийский"
+      "name": "Сицилийский",
+      "englishName": "Sicilian"
     },
     {
       "code": "sk",
-      "name": "Словацкий"
+      "name": "Словацкий",
+      "englishName": "Slovak"
     },
     {
       "code": "sl",
-      "name": "Словенский"
+      "name": "Словенский",
+      "englishName": "Slovenian"
     },
     {
       "code": "so",
-      "name": "Сомали"
+      "name": "Сомали",
+      "englishName": "Somali"
     },
     {
       "code": "sw",
-      "name": "Суахили"
+      "name": "Суахили",
+      "englishName": "Swahili"
     },
     {
       "code": "su",
-      "name": "Сунданский"
+      "name": "Сунданский",
+      "englishName": "Sundanese"
     },
     {
       "code": "tl",
-      "name": "Тагалог"
+      "name": "Тагалог",
+      "englishName": "Tagalog"
     },
     {
       "code": "tg",
-      "name": "Таджикский"
+      "name": "Таджикский",
+      "englishName": "Tajik"
     },
     {
       "code": "th",
-      "name": "Тайский"
+      "name": "Тайский",
+      "englishName": "Thai"
     },
     {
       "code": "ta",
-      "name": "Тамильский"
+      "name": "Тамильский",
+      "englishName": "Tamil"
     },
     {
       "code": "tt",
-      "name": "Татарский"
+      "name": "Татарский",
+      "englishName": "Tatar"
     },
     {
       "code": "tw",
-      "name": "Тви"
+      "name": "Тви",
+      "englishName": "Twi"
     },
     {
       "code": "te",
-      "name": "Телугу"
+      "name": "Телугу",
+      "englishName": "Telugu"
     },
     {
       "code": "bo",
-      "name": "Тибетский"
+      "name": "Тибетский",
+      "englishName": "Tibetan"
     },
     {
       "code": "ti",
-      "name": "Тигринья"
+      "name": "Тигринья",
+      "englishName": "Tigrinya"
     },
     {
       "code": "tpi",
-      "name": "Ток-писин"
+      "name": "Ток-писин",
+      "englishName": "Tok Pisin"
     },
     {
       "code": "tok",
-      "name": "Токипона"
+      "name": "Токипона",
+      "englishName": "Toki Pona"
     },
     {
       "code": "to",
-      "name": "Тонганский"
+      "name": "Тонганский",
+      "englishName": "Tongan"
     },
     {
       "code": "tn",
-      "name": "Тсвана"
+      "name": "Тсвана",
+      "englishName": "Tswana"
     },
     {
       "code": "ts",
-      "name": "Тсонга"
+      "name": "Тсонга",
+      "englishName": "Tsonga"
     },
     {
       "code": "tr",
-      "name": "Турецкий"
+      "name": "Турецкий",
+      "englishName": "Turkish"
     },
     {
       "code": "tk",
-      "name": "Туркменский"
+      "name": "Туркменский",
+      "englishName": "Turkmen"
     },
     {
       "code": "uz",
-      "name": "Узбекский"
+      "name": "Узбекский",
+      "englishName": "Uzbek"
     },
     {
       "code": "ug",
-      "name": "Уйгурский"
+      "name": "Уйгурский",
+      "englishName": "Uyghur"
     },
     {
       "code": "uk",
-      "name": "Украинский"
+      "name": "Украинский",
+      "englishName": "Ukrainian"
     },
     {
       "code": "ur",
-      "name": "Урду"
+      "name": "Урду",
+      "englishName": "Urdu"
     },
     {
       "code": "fo",
-      "name": "Фарерский"
+      "name": "Фарерский",
+      "englishName": "Faroese"
     },
     {
       "code": "fj",
-      "name": "Фиджи"
+      "name": "Фиджи",
+      "englishName": "Fijian"
     },
     {
       "code": "fil",
-      "name": "Филиппинский"
+      "name": "Филиппинский",
+      "englishName": "Filipino"
     },
     {
       "code": "fi",
-      "name": "Финский"
+      "name": "Финский",
+      "englishName": "Finnish"
     },
     {
       "code": "fr",
-      "name": "Французский"
+      "name": "Французский",
+      "englishName": "French"
     },
     {
       "code": "fr-BE",
-      "name": "Французский (Бельгия)"
+      "name": "Французский (Бельгия)",
+      "englishName": "French (Belgium)"
     },
     {
       "code": "fr-CA",
-      "name": "Французский (Канада)"
+      "name": "Французский (Канада)",
+      "englishName": "French (Canada)"
     },
     {
       "code": "fr-FR",
-      "name": "Французский (Франция)"
+      "name": "Французский (Франция)",
+      "englishName": "French (France)"
     },
     {
       "code": "fr-CH",
-      "name": "Французский (Швейцария)"
+      "name": "Французский (Швейцария)",
+      "englishName": "French (Switzerland)"
     },
     {
       "code": "ff",
-      "name": "Фулах"
+      "name": "Фулах",
+      "englishName": "Fula"
     },
     {
       "code": "hak",
-      "name": "Хакка"
+      "name": "Хакка",
+      "englishName": "Hakka Chinese"
     },
     {
       "code": "hak-TW",
-      "name": "Хакка (Тайвань)"
+      "name": "Хакка (Тайвань)",
+      "englishName": "Hakka Chinese (Taiwan)"
     },
     {
       "code": "bgc",
-      "name": "Харианви"
+      "name": "Харианви",
+      "englishName": "Haryanvi"
     },
     {
       "code": "ha",
-      "name": "Хауса"
+      "name": "Хауса",
+      "englishName": "Hausa"
     },
     {
       "code": "hi",
-      "name": "Хинди"
+      "name": "Хинди",
+      "englishName": "Hindi"
     },
     {
       "code": "hi-Latn",
-      "name": "Хинди (латиница)"
+      "name": "Хинди (латиница)",
+      "englishName": "Hindi (Latin)"
     },
     {
       "code": "ho",
-      "name": "Хиримоту"
+      "name": "Хиримоту",
+      "englishName": "Hiri Motu"
     },
     {
       "code": "hr",
-      "name": "Хорватский"
+      "name": "Хорватский",
+      "englishName": "Croatian"
     },
     {
       "code": "chr",
-      "name": "Чероки"
+      "name": "Чероки",
+      "englishName": "Cherokee"
     },
     {
       "code": "cs",
-      "name": "Чешский"
+      "name": "Чешский",
+      "englishName": "Czech"
     },
     {
       "code": "cho",
-      "name": "Чоктавский"
+      "name": "Чоктавский",
+      "englishName": "Choctaw"
     },
     {
       "code": "sv",
-      "name": "Шведский"
+      "name": "Шведский",
+      "englishName": "Swedish"
     },
     {
       "code": "sdp",
-      "name": "Шердукпен"
+      "name": "Шердукпен",
+      "englishName": "Sherdukpen"
     },
     {
       "code": "sn",
-      "name": "Шона"
+      "name": "Шона",
+      "englishName": "Shona"
     },
     {
       "code": "ee",
-      "name": "Эве"
+      "name": "Эве",
+      "englishName": "Ewe"
     },
     {
       "code": "eo",
-      "name": "Эсперанто"
+      "name": "Эсперанто",
+      "englishName": "Esperanto"
     },
     {
       "code": "et",
-      "name": "Эстонский"
+      "name": "Эстонский",
+      "englishName": "Estonian"
     },
     {
       "code": "nr",
-      "name": "Южный ндебеле"
+      "name": "Южный ндебеле",
+      "englishName": "South Ndebele"
     },
     {
       "code": "st",
-      "name": "Южный сото"
+      "name": "Южный сото",
+      "englishName": "Southern Sotho"
     },
     {
       "code": "jv",
-      "name": "Яванский"
+      "name": "Яванский",
+      "englishName": "Javanese"
     },
     {
       "code": "ja",
-      "name": "Японский"
+      "name": "Японский",
+      "englishName": "Japanese"
     },
     {
       "code": "ase",
-      "name": "Ase"
+      "name": "Ase",
+      "englishName": "American Sign Language"
     },
     {
       "code": "frp",
-      "name": "Frp"
+      "name": "Frp",
+      "englishName": "Arpitan"
     },
     {
       "code": "vro",
-      "name": "Vro"
+      "name": "Vro",
+      "englishName": "Võro"
     }
   ]
 }

@@ -3,6 +3,7 @@
 from typing import Any, Callable, MutableMapping, Optional
 
 from localizations import validate_localizations
+from language_labels import format_language_label
 from state.translation_state import (
     clear_translation_draft,
     store_translation_preview,
@@ -20,7 +21,7 @@ def _render_errors(issues) -> None:
         st.error("{}: {}".format(path, issue.message))
 
 
-def _render_report(result: Any) -> None:
+def _render_report(result: Any, catalog: Any = None) -> None:
     import streamlit as st
 
     summary = result.plan.diffs
@@ -34,9 +35,16 @@ def _render_report(result: Any) -> None:
         )
     )
     if preserved:
-        st.caption("Preserved existing languages: {}".format(", ".join(preserved)))
+        st.caption(
+            "Preserved existing languages: {}".format(
+                ", ".join(format_language_label(code, catalog) for code in preserved)
+            )
+        )
     for diff in result.plan.diffs:
-        label = "{} — {}".format(diff.language_code, diff.status.title())
+        label = "{} — {}".format(
+            format_language_label(diff.language_code, catalog),
+            diff.status.title(),
+        )
         with st.expander(label, expanded=diff.status in {"added", "changed"}):
             if diff.existing is None:
                 st.caption("No existing localization")
@@ -66,6 +74,7 @@ def render_preview_publish(
     supported_language_codes,
     widget_prefix: str = "translate",
     on_published: Optional[Callable[[], None]] = None,
+    language_catalog: Any = None,
 ) -> None:
     """Render read-only review controls for one internal translation draft."""
     import streamlit as st
@@ -157,4 +166,4 @@ def render_preview_publish(
                 if not no_changes_rendered:
                     st.info("No localization changes were found.")
             else:
-                _render_report(result)
+                _render_report(result, language_catalog)

@@ -29,6 +29,7 @@ class YouTubeLanguage:
     id: str
     code: str
     name: str
+    english_name: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -157,6 +158,10 @@ def build_metadata_language_catalog(
         name = _metadata_required_string(
             item.get("name"), "languages[{}].name".format(item_index)
         )
+        english_name = _metadata_required_string(
+            item.get("englishName"),
+            "languages[{}].englishName".format(item_index),
+        )
         if not _BCP47_CODE_RE.fullmatch(code):
             raise LanguageCatalogError(
                 "Invalid BCP-47 language code in metadata catalog: {}".format(code)
@@ -167,7 +172,7 @@ def build_metadata_language_catalog(
                 "Duplicate language code in metadata catalog: {}".format(code)
             )
         seen_codes.add(normalized_code)
-        languages.append(YouTubeLanguage(code, code, name))
+        languages.append(YouTubeLanguage(code, code, name, english_name))
 
     languages.sort(
         key=lambda language: (language.name.casefold(), language.code.casefold())

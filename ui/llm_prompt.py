@@ -11,6 +11,7 @@ from llm_localization_package import (
     calculate_llm_translation_progress,
     select_next_llm_languages,
 )
+from language_labels import format_language_label
 from state.llm_state import set_llm_prompt, set_llm_selected_codes
 
 
@@ -100,7 +101,7 @@ def render_llm_prompt_page(
 
     with st.expander("Target languages", expanded=True):
         labels_by_code = {
-            language.code: "{} ({})".format(language.name, language.code)
+            language.code: format_language_label(language.code, catalog)
             for language in progress.missing
         }
         options = tuple(labels_by_code)

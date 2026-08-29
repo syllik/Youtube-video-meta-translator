@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from state.translation_state import store_translation_preview
-from ui.translation_review import render_preview_publish
+from ui.translation_review import _render_report, render_preview_publish
 
 
 class _Block:
@@ -104,6 +104,43 @@ class TranslationReviewTests(unittest.TestCase):
             "video-1",
             state["draft"],
             expected_video=preview.video,
+        )
+
+    def test_preview_report_labels_include_code_name_and_status(self):
+        streamlit = _FakeStreamlit()
+        result = SimpleNamespace(
+            plan=SimpleNamespace(
+                diffs=(
+                    SimpleNamespace(
+                        language_code="ru",
+                        status="changed",
+                        existing=None,
+                        submitted=SimpleNamespace(title="Новый", description="Текст"),
+                    ),
+                ),
+                preserved_language_codes=("de",),
+            )
+        )
+        catalog = SimpleNamespace(
+            languages=(
+                SimpleNamespace(code="ru", english_name="Russian"),
+                SimpleNamespace(code="de", english_name="German"),
+            )
+        )
+
+        with patch.dict(sys.modules, {"streamlit": streamlit}):
+            _render_report(result, catalog)
+
+        self.assertTrue(
+            any(
+                call[0] == "expander"
+                and call[1] == "ru — Russian — Changed"
+                for call in streamlit.calls
+            )
+        )
+        self.assertIn(
+            "Preserved existing languages: de — German",
+            [call[1] for call in streamlit.calls if call[0] == "caption"],
         )
 
     def test_successful_publish_is_the_only_success_outcome(self):

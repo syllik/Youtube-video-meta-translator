@@ -199,6 +199,10 @@ def render_app_sidebar(
             if st.button("Refresh video list",use_container_width=True, key="common-refresh-list"):
                 _refresh_sidebar(session_state)
 
+        _render_danger_zone(context, session_state)
+        if _consume_pending_reset(context, session_state):
+            return get_selected_video_id(session_state)
+
         render_page_size_control(context.selection, query_params)
         render_pagination(
             context.selection,
@@ -210,10 +214,8 @@ def render_app_sidebar(
             context.page.videos,
             session_state,
             supported_language_codes=_catalog_codes(context),
+            language_catalog=getattr(context, "metadata_language_catalog", None),
         )
-        _render_danger_zone(context, session_state)
-        if _consume_pending_reset(context, session_state):
-            return get_selected_video_id(session_state)
         _render_load_more(context, session_state)
 
     return get_selected_video_id(session_state)

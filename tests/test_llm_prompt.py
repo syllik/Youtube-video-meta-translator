@@ -77,19 +77,19 @@ class LlmPromptPageTests(unittest.TestCase):
             fetched_at="2026-08-28T00:00:00.000Z",
             hl="ru",
             languages=(
-                YouTubeLanguage("en", "en", "English"),
-                YouTubeLanguage("de", "de", "German"),
-                YouTubeLanguage("code-0", "code-0", "Zulu"),
-                YouTubeLanguage("code-1", "code-1", "English (United Kingdom)"),
-                YouTubeLanguage("code-2", "code-2", "French"),
-                YouTubeLanguage("code-3", "code-3", "Italian"),
-                YouTubeLanguage("code-4", "code-4", "Japanese"),
-                YouTubeLanguage("code-5", "code-5", "Korean"),
-                YouTubeLanguage("code-6", "code-6", "Portuguese"),
-                YouTubeLanguage("code-7", "code-7", "Spanish"),
-                YouTubeLanguage("code-8", "code-8", "Thai"),
-                YouTubeLanguage("code-9", "code-9", "Ukrainian"),
-                YouTubeLanguage("code-10", "code-10", "Vietnamese"),
+                YouTubeLanguage("en", "en", "Английский", "English"),
+                YouTubeLanguage("de", "de", "Немецкий", "German"),
+                YouTubeLanguage("code-0", "code-0", "Зулу", "Zulu"),
+                YouTubeLanguage("code-1", "code-1", "Английский (Великобритания)", "English (United Kingdom)"),
+                YouTubeLanguage("code-2", "code-2", "Французский", "French"),
+                YouTubeLanguage("code-3", "code-3", "Итальянский", "Italian"),
+                YouTubeLanguage("code-4", "code-4", "Японский", "Japanese"),
+                YouTubeLanguage("code-5", "code-5", "Корейский", "Korean"),
+                YouTubeLanguage("code-6", "code-6", "Португальский", "Portuguese"),
+                YouTubeLanguage("code-7", "code-7", "Испанский", "Spanish"),
+                YouTubeLanguage("code-8", "code-8", "Тайский", "Thai"),
+                YouTubeLanguage("code-9", "code-9", "Украинский", "Ukrainian"),
+                YouTubeLanguage("code-10", "code-10", "Вьетнамский", "Vietnamese"),
             ),
         )
 
@@ -123,9 +123,7 @@ class LlmPromptPageTests(unittest.TestCase):
         self.assertEqual(options, tuple(language.code for language in self.catalog.languages[2:]))
         self.assertEqual(kwargs["default"], options[:10])
         self.assertEqual(kwargs["max_selections"], 10)
-        self.assertEqual(
-            kwargs["format_func"]("code-2"), "French (code-2)"
-        )
+        self.assertEqual(kwargs["format_func"]("code-2"), "code-2 — French")
 
     def test_prompt_page_preserves_explicit_subset_and_builds_prompt_without_existing_content(self):
         from ui.llm_prompt import render_llm_prompt_page

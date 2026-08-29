@@ -135,3 +135,12 @@ Never commit OAuth JSON, `.env`, `token.json`, or `token.pickle`. See
 ## 📜 License
 
 See [LICENSE](LICENSE).
+
+## Support
+
+I spent part of my life building this tool and gave it freely to anyone who
+may need it.
+
+Perhaps you found it exactly when you needed it.
+
+[Support my work →](https://github.com/syllik/syllik/blob/master/SUPPORT.md)

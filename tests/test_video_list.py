@@ -156,10 +156,15 @@ class VideoListTests(unittest.TestCase):
                 (video,),
                 state,
                 supported_language_codes=("en", "de", "fr", "ja"),
+                language_catalog=SimpleNamespace(
+                    languages=(
+                        SimpleNamespace(code="en", english_name="English"),
+                    )
+                ),
             )
 
         text = "\n".join(args[0] for args, _kwargs in streamlit.markdown_calls)
-        self.assertIn("Default language: en", text)
+        self.assertIn("Default language: en — English", text)
         self.assertIn("Localizations: 1 / 2", text)
         self.assertIn("Video ID: video-2", text)
         self.assertNotIn("This description must not render", text)

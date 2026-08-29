@@ -3,20 +3,12 @@
 from typing import Any, Mapping, MutableMapping, Tuple
 
 from llm_localization_package import build_translation_source_candidates
+from language_labels import format_language_label
 from state.common_state import set_source_selection, sync_source_selection
 
 
-def _language_names(catalog) -> Mapping[str, str]:
-    return {
-        language.code.casefold(): language.name
-        for language in getattr(catalog, "languages", ())
-    }
-
-
 def source_label(source: Mapping[str, Any], catalog) -> str:
-    code = source["languageCode"]
-    name = _language_names(catalog).get(code.casefold(), code)
-    return "{} ({})".format(name, code)
+    return format_language_label(source["languageCode"], catalog)
 
 
 def render_source_selection(

@@ -52,9 +52,9 @@ class SourceSelectionTests(unittest.TestCase):
             fetched_at="2026-08-29T00:00:00Z",
             hl="en",
             languages=(
-                YouTubeLanguage("en", "en", "English"),
-                YouTubeLanguage("de", "de", "German"),
-                YouTubeLanguage("fr", "fr", "French"),
+                YouTubeLanguage("en", "en", "Английский", "English"),
+                YouTubeLanguage("de", "de", "Немецкий", "German"),
+                YouTubeLanguage("fr", "fr", "Французский", "French"),
             ),
         )
 
@@ -68,7 +68,7 @@ class SourceSelectionTests(unittest.TestCase):
         self.assertEqual(fake.multiselect_calls[0][0], "Optional reference translations")
         self.assertEqual(fake.multiselect_calls[0][1], ("de", "fr"))
         self.assertNotIn("en", fake.multiselect_calls[0][1])
-        self.assertTrue(any("Primary source: English (en)" in value for value in fake.captions))
+        self.assertTrue(any("Primary source: en — English" in value for value in fake.captions))
 
     def test_empty_references_keep_primary_and_show_guidance(self):
         fake = _FakeStreamlit(selected_codes=())

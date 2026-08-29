@@ -108,7 +108,8 @@ authenticate YouTube. Do not expose or commit either credential or token.
 
 The video metadata language catalog is checked in at
 `data/youtube-metadata-languages.json`; it records its scope, provenance,
-review date, count, and canonical BCP-47 entries. The separate
+review date, count, canonical BCP-47 entries, and deterministic English display
+names. The separate
 `youtube_languages/` helper can fetch the application/UI catalog from
 `i18nLanguages.list`, but the Streamlit metadata workflow does not use it and
 there is no `YOUTUBE_API_KEY` setting in that application flow.

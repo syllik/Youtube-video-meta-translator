@@ -27,8 +27,10 @@ resets when the video changes and is not stored permanently.
 
 The video metadata catalog comes from the checked-in
 `data/youtube-metadata-languages.json` snapshot; codes retain its canonical
-casing. The separate `i18nLanguages.list` helper is not used for metadata
-localization validation. The public Data API documents no exhaustive
+casing and selectors show `code — English name` from its checked-in names. The
+exact codes remain the state and JSON contract. The separate
+`i18nLanguages.list` helper is not used for metadata localization validation.
+The public Data API documents no exhaustive
 `metadataLanguages.list` endpoint, so this reviewable snapshot is intentional.
 
 ## Use an external LLM

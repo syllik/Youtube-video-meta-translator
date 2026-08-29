@@ -18,6 +18,7 @@ from localizations import (
     ParsedLocalizations,
     validate_localizations,
 )
+from language_labels import format_language_label
 from state.translation_state import merge_translation_draft
 from ui.badges import render_language_badges
 
@@ -141,7 +142,11 @@ def render_llm_translation_controls(
                 def on_batch(index, total, codes):
                     progress_placeholder.info(
                         "Generating batch {} / {} — {}".format(
-                            index, total, ", ".join(codes)
+                            index,
+                            total,
+                            ", ".join(
+                                format_language_label(code, catalog) for code in codes
+                            ),
                         )
                     )
 
@@ -195,7 +200,11 @@ def render_llm_translation_controls(
         )
 
     if upload_ready:
-        render_language_badges(target_codes, label="Selected languages")
+        render_language_badges(
+            target_codes,
+            label="Selected languages",
+            catalog=catalog,
+        )
         st.code(
             '{\n  "de": {\n    "title": "Translated title",\n    "description": "Translated description"\n  }\n}',
             language="json",

@@ -17,6 +17,13 @@ class MetadataLanguageCatalogTests(unittest.TestCase):
 
         self.assertEqual(catalog.source, METADATA_LANGUAGE_CATALOG_SOURCE)
         self.assertEqual(len(catalog.languages), 238)
+        self.assertTrue(all(language.english_name for language in catalog.languages))
+        names = {language.code: language.english_name for language in catalog.languages}
+        self.assertEqual(names["en"], "English")
+        self.assertEqual(names["ru"], "Russian")
+        self.assertEqual(names["km"], "Khmer")
+        self.assertEqual(names["pt-BR"], "Portuguese (Brazil)")
+        self.assertEqual(names["es-419"], "Spanish (Latin America)")
         self.assertIn("be", catalog.codes)
         self.assertIn("en-GB", catalog.codes)
         self.assertIn("es-419", catalog.codes)
@@ -57,8 +64,8 @@ class MetadataLanguageCatalogTests(unittest.TestCase):
             "reviewedAt": "2026-08-29",
             "count": 2,
             "languages": [
-                {"code": "en", "name": "English"},
-                {"code": "EN", "name": "English again"},
+                {"code": "en", "name": "Английский", "englishName": "English"},
+                {"code": "EN", "name": "Английский снова", "englishName": "English again"},
             ],
         }
 
@@ -72,3 +79,15 @@ class MetadataLanguageCatalogTests(unittest.TestCase):
 
             with self.assertRaises(LanguageCatalogError):
                 load_metadata_language_catalog(path)
+
+    def test_snapshot_rejects_missing_english_name(self):
+        document = {
+            "scope": "YouTube video metadata localizations",
+            "source": "YouTube Studio metadata language picker",
+            "reviewedAt": "2026-08-29",
+            "count": 1,
+            "languages": [{"code": "en", "name": "Английский"}],
+        }
+
+        with self.assertRaisesRegex(LanguageCatalogError, "englishName"):
+            build_metadata_language_catalog(document)

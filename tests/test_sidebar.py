@@ -225,6 +225,32 @@ class SidebarTests(unittest.TestCase):
             reset_control.render_reset_button.call_args.args[1],
         )
 
+    def test_danger_zone_is_rendered_after_refresh_and_before_video_list(self):
+        import sys
+        from unittest.mock import Mock, patch
+
+        reset_control = SimpleNamespace(
+            render_reset_button=Mock(return_value=None),
+            reset_widget_key=lambda video_id: "common-reset-{}".format(video_id),
+        )
+        fake = _FakeStreamlit()
+        state = {"common.selected_video_id": "video-1"}
+
+        with patch.dict(
+            sys.modules,
+            {"streamlit": fake, "ui.reset_control": reset_control},
+        ):
+            render_app_sidebar(self.context, state, {})
+
+        labels = [
+            call[1]
+            for call in fake.calls
+            if call[0] in {"button", "expander"}
+        ]
+        self.assertLess(labels.index("Refresh video list"), labels.index("Danger zone"))
+        self.assertLess(labels.index("Danger zone"), labels.index("Selected"))
+        self.assertLess(labels.index("Selected"), labels.index("Load more"))
+
     def test_confirmed_reset_targets_card_id_and_invalidates_sidebar_state(self):
         import sys
         from unittest.mock import Mock, patch

@@ -65,6 +65,7 @@ def render_translate_page() -> None:
         catalog.codes,
         widget_prefix="translate",
         on_published=refresh_after_publish,
+        language_catalog=catalog,
     )
 
 

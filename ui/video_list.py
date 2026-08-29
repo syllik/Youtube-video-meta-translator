@@ -4,6 +4,7 @@ import html
 from typing import Any, Iterable, MutableMapping, Sequence, Tuple
 
 from models import VideoSummary
+from language_labels import format_language_label
 from state.common_state import (
     get_selected_video_id,
     init_common_state,
@@ -61,7 +62,9 @@ def _render_thumbnail(video: VideoSummary) -> None:
 
 
 def _render_video_details(
-    video: VideoSummary, supported_language_codes: Iterable[str]
+    video: VideoSummary,
+    supported_language_codes: Iterable[str],
+    language_catalog: Any = None,
 ) -> None:
     import streamlit as st
 
@@ -72,7 +75,11 @@ def _render_video_details(
     )
     st.markdown(
         '<div class="video-default-language">Default language: {}</div>'.format(
-            html.escape(video.default_language_code or "Not set")
+            html.escape(
+                format_language_label(video.default_language_code, language_catalog)
+                if video.default_language_code
+                else "Not set"
+            )
         ),
         unsafe_allow_html=True,
     )
@@ -92,6 +99,7 @@ def render_video_list(
     videos: Sequence[VideoSummary],
     session_state: MutableMapping[str, Any],
     supported_language_codes: Iterable[str] = (),
+    language_catalog: Any = None,
 ):
     """Render cards that read and write only the common video selection."""
     import streamlit as st
@@ -101,7 +109,7 @@ def render_video_list(
     for video in videos:
         is_selected = selected_id == video.id
         with st.container(border=is_selected):
-            _render_video_details(video, supported_language_codes)
+            _render_video_details(video, supported_language_codes, language_catalog)
             if st.button(
                 "Selected" if is_selected else "Select",
                 type="primary" if is_selected else "secondary",

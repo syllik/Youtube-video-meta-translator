@@ -23,6 +23,7 @@ Youtube-video-meta-translator/
 ├── data/                             # Checked-in video metadata catalog snapshot
 │   └── youtube-metadata-languages.json
 ├── language_catalog.py              # Validated application and metadata catalogs
+├── language_labels.py               # Code-first English display labels
 ├── llm_localization_package.py      # Source context, prompt, schema, validation
 ├── codex_localization_runner.py      # Isolated non-interactive Codex batch call
 ├── codex_localization_generator.py   # Missing-target batching/retry/merge
@@ -42,7 +43,9 @@ selected video, source selection, and checked-in metadata catalog stored in
 session state.
 The public Data API has no exhaustive metadata-language listing endpoint, so
 the repository snapshot is deliberately reviewable and versioned; it is not
-derived from captions, audio, ISO lists, or private Studio endpoints.
+derived from captions, audio, ISO lists, or private Studio endpoints. Each
+metadata entry includes the source-localized name and a checked-in English
+display name. The presentation formatter never changes the exact BCP-47 code.
 Translate owns one internal translation draft and Preview/Publish state. The
 prompt page owns only target and prompt/upload state. The default source is
 authoritative and read-only; selected existing localizations are optional
@@ -74,7 +77,7 @@ run them as part of the credential-free suite.
 ## 🧹 Run local checks
 
 ```bash
-python -m compileall -q streamlit_app.py pages models.py language_catalog.py llm_localization_package.py codex_localization_runner.py codex_localization_generator.py generate_codex_localizations.py services state ui youtube_account.py localizations.py localization_service.py tests
+python -m compileall -q streamlit_app.py pages models.py language_catalog.py language_labels.py llm_localization_package.py codex_localization_runner.py codex_localization_generator.py generate_codex_localizations.py services state ui youtube_account.py localizations.py localization_service.py tests
 git diff --check
 git diff --cached --check
 python -m pip check

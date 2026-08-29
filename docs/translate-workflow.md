@@ -23,7 +23,9 @@ references still leaves the primary source selected.
 The target list and sidebar counts use the checked-in
 `data/youtube-metadata-languages.json` metadata catalog. The default language is
 not a target localization. Its snapshot records the scope, provenance, review
-date, count, and canonical BCP-47 codes used by the app.
+date, count, canonical BCP-47 codes, and deterministic English display names
+used by the app. Selectors show each code first, for example `ru — Russian`;
+the exact code remains the state and JSON key.
 
 ## 2. Generate or upload a translation draft
 
@@ -54,7 +56,8 @@ video's live YouTube localizations. Preview is read-only and never calls
 
 The report identifies added, changed, and unchanged draft entries. It also
 reports existing YouTube languages that will be preserved because they are not
-in the draft.
+in the draft. Language labels use the same code-first format, such as
+`ru — Russian`.
 
 ## 4. Publish changes
 
@@ -87,7 +90,8 @@ claim that the cache was refreshed.
 
 **Reset languages** is a separate destructive sidebar action in the collapsed
 **Danger zone** for the current selected video. It is not rendered on every
-video card. After the native browser confirmation, the app:
+video card and appears directly below **Refresh video list**. After the native
+browser confirmation, the app:
 
 1. fetches the latest video resource for the exact selected video;
 2. requires a usable fresh ETag and sends a conditional `If-Match` update;
