@@ -1,6 +1,9 @@
 import unittest
 from unittest.mock import Mock, call
 
+from googleapiclient.errors import HttpError
+from httplib2 import Response
+
 from language_catalog import YouTubeLanguageCatalog
 from models import ChannelInfo, YouTubePage
 from services.youtube_service import YoutubeService, YoutubeResetError
@@ -85,6 +88,7 @@ class YoutubeServiceTests(unittest.TestCase):
         account = Mock()
         source = {
             "id": "video-1",
+            "etag": "etag-1",
             "snippet": {
                 "title": "Title",
                 "description": "Description",
@@ -96,6 +100,7 @@ class YoutubeServiceTests(unittest.TestCase):
         }
         verified = {
             "id": "video-1",
+            "etag": "etag-1",
             "snippet": {
                 "title": "Title",
                 "description": "Description",
@@ -119,6 +124,10 @@ class YoutubeServiceTests(unittest.TestCase):
             [call("video-1"), call("video-1")],
         )
         account.update_video_localizations.assert_called_once()
+        self.assertEqual(
+            account.update_video_localizations.call_args.kwargs["if_match"],
+            "etag-1",
+        )
         payload = account.update_video_localizations.call_args.args[0]
         self.assertEqual(payload["id"], "video-1")
         self.assertEqual(
@@ -131,6 +140,7 @@ class YoutubeServiceTests(unittest.TestCase):
         account = Mock()
         source = {
             "id": "video-1",
+            "etag": "etag-1",
             "snippet": {
                 "title": "Title",
                 "description": "Description",
@@ -160,6 +170,7 @@ class YoutubeServiceTests(unittest.TestCase):
         account = Mock()
         source = {
             "id": "video-1",
+            "etag": "etag-1",
             "snippet": {
                 "title": "Title",
                 "description": "Description",
@@ -182,10 +193,61 @@ class YoutubeServiceTests(unittest.TestCase):
         with self.assertRaisesRegex(YoutubeResetError, "default snippet.title"):
             service.reset_video_localizations("video-1")
 
+    def test_reset_does_not_write_without_a_usable_etag(self):
+        account = Mock()
+        account.get_video_with_localizations.return_value = {
+            "id": "video-1",
+            "snippet": {
+                "title": "Title",
+                "description": "Description",
+                "categoryId": "22",
+                "defaultLanguage": "en",
+            },
+            "localizations": {"de": {"title": "DE", "description": "DE"}},
+        }
+        service = YoutubeService(account)
+
+        with self.assertRaisesRegex(YoutubeResetError, "ETag"):
+            service.reset_video_localizations("video-1")
+
+        account.update_video_localizations.assert_not_called()
+        self.assertEqual(account.get_video_with_localizations.call_count, 1)
+
+    def test_reset_precondition_conflict_does_not_retry_or_verify(self):
+        account = Mock()
+        source = {
+            "id": "video-1",
+            "etag": "etag-1",
+            "snippet": {
+                "title": "Title",
+                "description": "Description",
+                "categoryId": "22",
+                "defaultLanguage": "en",
+            },
+            "localizations": {"de": {"title": "DE", "description": "DE"}},
+        }
+        account.get_video_with_localizations.return_value = source
+        account.update_video_localizations.side_effect = HttpError(
+            Response({"status": "412"}),
+            b'{"error":{"code":412,"message":"Precondition Failed"}}',
+        )
+        service = YoutubeService(account)
+
+        with self.assertRaisesRegex(YoutubeResetError, "changed"):
+            service.reset_video_localizations("video-1")
+
+        account.update_video_localizations.assert_called_once()
+        self.assertEqual(
+            account.update_video_localizations.call_args.kwargs["if_match"],
+            "etag-1",
+        )
+        self.assertEqual(account.get_video_with_localizations.call_count, 1)
+
     def test_reset_does_not_write_without_a_safe_default_language(self):
         account = Mock()
         account.get_video_with_localizations.return_value = {
             "id": "video-1",
+            "etag": "etag-1",
             "snippet": {
                 "title": "Title",
                 "description": "Description",

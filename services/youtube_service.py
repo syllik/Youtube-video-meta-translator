@@ -16,6 +16,12 @@ class YoutubeResetError(RuntimeError):
     """Raised when a localization reset cannot be completed safely."""
 
 
+def _is_precondition_failure(error: Exception) -> bool:
+    response = getattr(error, "resp", None)
+    status = getattr(response, "status", None)
+    return str(status) == "412"
+
+
 class YoutubeService:
     """Adapt the existing account client to stateless UI-facing operations."""
 
@@ -77,12 +83,28 @@ class YoutubeService:
     def reset_video_localizations(self, video_id: str) -> Mapping[str, Any]:
         """Delete all localizations while preserving the video's default metadata."""
         video = self.get_video_with_localizations(video_id)
+        etag = video.get("etag") if isinstance(video, Mapping) else None
+        if not isinstance(etag, str) or not etag.strip():
+            raise YoutubeResetError(
+                "Reset stopped safely because YouTube did not provide a usable ETag. "
+                "Refresh the video and try again."
+            )
         try:
             payload = build_video_reset_update_payload(video)
         except ValueError as error:
             raise YoutubeResetError(str(error)) from error
 
-        result = self.account.update_video_localizations(payload)
+        try:
+            result = self.account.update_video_localizations(
+                payload, if_match=etag
+            )
+        except Exception as error:
+            if _is_precondition_failure(error):
+                raise YoutubeResetError(
+                    "Reset could not be completed because the video changed. "
+                    "Refresh the list and confirm Reset again."
+                ) from error
+            raise
         verified = self.get_video_with_localizations(video_id)
         self._verify_reset(video, verified)
         return result
