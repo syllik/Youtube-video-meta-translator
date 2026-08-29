@@ -60,29 +60,6 @@ def _render_thumbnail(video: VideoSummary) -> None:
     )
 
 
-def _render_reset_control(
-    video: VideoSummary, session_state: MutableMapping[str, Any]
-) -> None:
-    from ui.reset_control import render_reset_button, reset_widget_key
-
-    warning = (
-        "Reset all YouTube localizations for {title} ({video_id})? "
-        "All translations will be deleted. Only the default title, description, "
-        "and language will remain. Save any translations you need before resetting."
-    ).format(title=video.title or "this video", video_id=video.id)
-    event_id = render_reset_button(
-        video.id,
-        warning,
-        key=reset_widget_key(video.id),
-    )
-    if event_id and session_state.get("common.last_reset_event") != (
-        video.id,
-        event_id,
-    ):
-        session_state["common.last_reset_event"] = (video.id, event_id)
-        session_state["common.pending_reset_video_id"] = video.id
-
-
 def _render_video_details(
     video: VideoSummary, supported_language_codes: Iterable[str]
 ) -> None:
@@ -134,5 +111,4 @@ def render_video_list(
             ):
                 set_selected_video_id(session_state, video.id)
                 st.rerun()
-            _render_reset_control(video, session_state)
     return get_selected_video_id(session_state)

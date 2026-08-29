@@ -139,7 +139,7 @@ class VideoListTests(unittest.TestCase):
         self.assertEqual(len(streamlit.button_calls), 1)
         self.assertTrue(streamlit.button_calls[0]["use_container_width"])
 
-    def test_video_cards_show_compact_live_catalog_metadata_and_reset(self):
+    def test_video_cards_show_compact_live_catalog_metadata_without_reset(self):
         state = {}
         streamlit = _FakeStreamlit("not-clicked")
         video = VideoSummary(
@@ -165,10 +165,10 @@ class VideoListTests(unittest.TestCase):
         self.assertNotIn("This description must not render", text)
         self.assertNotIn("localization-badge", text)
 
-    def test_confirmed_reset_uses_a_component_event_without_url_navigation(self):
+    def test_video_cards_do_not_render_destructive_reset_controls(self):
         state = {}
         streamlit = _FakeStreamlit("not-clicked")
-        render_reset_button = Mock(return_value="event-1")
+        render_reset_button = Mock()
         reset_control = SimpleNamespace(
             render_reset_button=render_reset_button,
             reset_widget_key=lambda video_id: "common-reset-{}".format(video_id),
@@ -190,13 +190,9 @@ class VideoListTests(unittest.TestCase):
                 state,
             )
 
-        render_reset_button.assert_called_once_with(
-            "video-2",
-            ANY,
-            key="common-reset-video-2",
-        )
+        render_reset_button.assert_not_called()
         self.assertNotIn("reset_video=", Path("ui/video_list.py").read_text())
-        self.assertEqual(state.get("common.pending_reset_video_id"), "video-2")
+        self.assertIsNone(state.get("common.pending_reset_video_id"))
 
     def test_reset_component_confirms_in_browser_and_does_not_navigate(self):
         source = Path("ui/reset_video_component/index.html").read_text()

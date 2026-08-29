@@ -36,6 +36,10 @@ class _FakeStreamlit:
     def caption(self, value, **kwargs):
         self.calls.append(("caption", value, kwargs))
 
+    def expander(self, label, **kwargs):
+        self.calls.append(("expander", label, kwargs))
+        return _Block()
+
     def subheader(self, value, **kwargs):
         self.calls.append(("subheader", value, kwargs))
 
@@ -170,6 +174,57 @@ class SidebarTests(unittest.TestCase):
             Path("ui/reset_video_component/index.html").read_text(),
         )
 
+    def test_danger_zone_is_hidden_without_a_selected_video(self):
+        import sys
+        from unittest.mock import Mock, patch
+
+        reset_control = SimpleNamespace(
+            render_reset_button=Mock(),
+            reset_widget_key=lambda video_id: "common-reset-{}".format(video_id),
+        )
+        fake = _FakeStreamlit()
+
+        with patch.dict(
+            sys.modules,
+            {"streamlit": fake, "ui.reset_control": reset_control},
+        ):
+            render_app_sidebar(self.context, {}, {})
+
+        reset_control.render_reset_button.assert_not_called()
+        self.assertFalse(
+            any(call[0] == "expander" and call[1] == "Danger zone" for call in fake.calls)
+        )
+
+    def test_danger_zone_targets_only_the_current_selected_video(self):
+        import sys
+        from unittest.mock import Mock, patch
+
+        reset_control = SimpleNamespace(
+            render_reset_button=Mock(return_value=None),
+            reset_widget_key=lambda video_id: "common-reset-{}".format(video_id),
+        )
+        fake = _FakeStreamlit()
+        state = {"common.selected_video_id": "video-1"}
+
+        with patch.dict(
+            sys.modules,
+            {"streamlit": fake, "ui.reset_control": reset_control},
+        ):
+            render_app_sidebar(self.context, state, {})
+
+        reset_control.render_reset_button.assert_called_once()
+        self.assertEqual(
+            reset_control.render_reset_button.call_args.args[0], "video-1"
+        )
+        self.assertIn(
+            "First video",
+            reset_control.render_reset_button.call_args.args[1],
+        )
+        self.assertIn(
+            "video-1",
+            reset_control.render_reset_button.call_args.args[1],
+        )
+
     def test_confirmed_reset_targets_card_id_and_invalidates_sidebar_state(self):
         import sys
         from unittest.mock import Mock, patch
@@ -221,6 +276,31 @@ class SidebarTests(unittest.TestCase):
         self.assertIsNone(state["llm"]["prompt_video_id"])
         self.assertEqual(state["llm"]["prompt_text"], "")
         self.assertEqual(query_params, {"page": "1", "limit": "10"})
+
+    def test_pending_reset_is_rejected_when_selection_changed(self):
+        import sys
+        from unittest.mock import Mock, patch
+
+        reset = Mock()
+        context = SimpleNamespace(
+            service=SimpleNamespace(reset_video_localizations=reset),
+            metadata_language_catalog=SimpleNamespace(codes=("en", "de")),
+            page=self.context.page,
+        )
+        state = {
+            "common.selected_video_id": "video-2",
+            "common.pending_reset_video_id": "video-1",
+        }
+        fake = _FakeStreamlit()
+
+        with patch.dict(sys.modules, {"streamlit": fake}):
+            handled = _consume_pending_reset(context, state)
+
+        self.assertTrue(handled)
+        reset.assert_not_called()
+        self.assertTrue(
+            any(call[0] == "error" and "changed" in call[1] for call in fake.calls)
+        )
 
 
 if __name__ == "__main__":

@@ -72,17 +72,54 @@ def _render_pending_feedback(session_state) -> None:
     getattr(st, level)(message)
 
 
+def _render_danger_zone(context: Any, session_state: MutableMapping[str, Any]) -> None:
+    import streamlit as st
+
+    video_id = get_selected_video_id(session_state)
+    if not video_id:
+        return
+
+    visible_videos = {video.id: video for video in context.page.videos}
+    video = visible_videos.get(video_id)
+    title = video.title if video is not None and video.title else None
+    selected_label = "{} ({})".format(title, video_id) if title else video_id
+    warning = (
+        "Reset all YouTube localizations for {selected}? "
+        "All translations will be deleted. Only the default title, description, "
+        "and language will remain. Save any translations you need before resetting."
+    ).format(selected=selected_label)
+
+    from ui.reset_control import render_reset_button, reset_widget_key
+
+    with st.expander("Danger zone", expanded=False):
+        st.caption("Selected video: {}".format(selected_label))
+        event_id = render_reset_button(
+            video_id,
+            warning,
+            key=reset_widget_key(video_id),
+        )
+    if event_id and session_state.get("common.last_reset_event") != (
+        video_id,
+        event_id,
+    ):
+        session_state["common.last_reset_event"] = (video_id, event_id)
+        session_state["common.pending_reset_video_id"] = video_id
+
+
 def _consume_pending_reset(context, session_state) -> bool:
     import streamlit as st
 
     video_id = session_state.pop("common.pending_reset_video_id", None)
     if not video_id:
         return False
+    if get_selected_video_id(session_state) != video_id:
+        st.error(
+            "Reset was cancelled because the selected video changed. "
+            "Select the video again and confirm Reset languages."
+        )
+        return True
     visible_videos = {video.id: video for video in context.page.videos}
     video = visible_videos.get(video_id)
-    if video is None:
-        st.error("The selected video is not available. Refresh the video list and try again.")
-        return True
 
     if session_state.get("common.video_operation_status") == "resetting":
         return True
@@ -109,7 +146,7 @@ def _consume_pending_reset(context, session_state) -> bool:
         session_state["common.pending_sidebar_feedback"] = (
             "success",
             "All YouTube localizations were reset for '{}'.".format(
-                video.title or video.id
+                video.title if video is not None and video.title else video_id
             ),
         )
         session_state["common.video_operation_status"] = "idle"
@@ -174,6 +211,7 @@ def render_app_sidebar(
             session_state,
             supported_language_codes=_catalog_codes(context),
         )
+        _render_danger_zone(context, session_state)
         if _consume_pending_reset(context, session_state):
             return get_selected_video_id(session_state)
         _render_load_more(context, session_state)
