@@ -7,7 +7,10 @@ from localizations import (
     ParsedLocalizations,
     build_localization_diff,
     build_localization_plan,
+    build_manual_draft_json,
+    build_video_reset_update_payload,
     build_video_update_payload,
+    merge_localization_documents,
     merge_localizations,
     parse_localizations_json,
 )
@@ -227,6 +230,64 @@ class LocalizationDiffTests(unittest.TestCase):
 
         self.assertTrue(plan.is_valid)
         self.assertEqual(plan.preserved_language_codes, ("fr",))
+
+
+class ManualDraftTests(unittest.TestCase):
+    def test_manual_draft_excludes_default_language(self):
+        raw_json = build_manual_draft_json(VIDEO_RESOURCE)
+
+        self.assertEqual(
+            json.loads(raw_json),
+            {
+                "de": {"title": "Alt", "description": "Alt"},
+                "fr": {"title": "Même", "description": "Même"},
+            },
+        )
+        self.assertNotIn("defaultLanguage", json.loads(raw_json))
+
+    def test_reset_payload_clears_localizations_and_preserves_default_metadata(self):
+        payload = build_video_reset_update_payload(VIDEO_RESOURCE)
+
+        self.assertEqual(payload["id"], "video-1")
+        self.assertEqual(payload["localizations"], {})
+        self.assertEqual(
+            payload["snippet"],
+            {
+                "title": "Original title",
+                "description": "Original description",
+                "categoryId": "22",
+                "defaultLanguage": "en",
+                "tags": ["keep-me"],
+            },
+        )
+        self.assertEqual(VIDEO_RESOURCE["localizations"]["de"]["title"], "Alt")
+
+    def test_merge_localization_documents_replaces_only_overlapping_codes(self):
+        current = json.dumps(
+            {
+                "de": {"title": "Old DE", "description": "Old"},
+                "fr": {"title": "FR", "description": "FR"},
+                "es": {"title": "ES", "description": "ES"},
+            }
+        )
+
+        merged = merge_localization_documents(
+            current,
+            {
+                "DE": {"title": "New DE", "description": "New"},
+                "ja": {"title": "JA", "description": "JA"},
+            },
+        )
+
+        self.assertEqual(
+            json.loads(merged),
+            {
+                "DE": {"title": "New DE", "description": "New"},
+                "fr": {"title": "FR", "description": "FR"},
+                "es": {"title": "ES", "description": "ES"},
+                "ja": {"title": "JA", "description": "JA"},
+            },
+        )
 
 
 if __name__ == "__main__":

@@ -9,9 +9,11 @@ from codex_localization_generator import CodexGenerationError
 from codex_localization_runner import CodexLocalizationError
 from ui import llm_package
 from state.manual_state import (
+    load_manual_draft,
     manual_can_publish,
     manual_fingerprint,
     manual_preview_is_current,
+    request_manual_reload,
     set_manual_json,
     sync_manual_video,
 )
@@ -163,6 +165,46 @@ def _llm_generation_inputs(codes=("en", "de", "fr")):
 
 
 class ManualStateTests(unittest.TestCase):
+    def test_manual_draft_loads_live_localizations_once_and_preserves_rerun_edits(self):
+        resource = {
+            "id": "video-1",
+            "snippet": {"defaultLanguage": "en"},
+            "localizations": {
+                "de": {"title": "Live DE", "description": "Live"},
+            },
+        }
+        state = {"bound_video_id": "video-1", "raw_json": ""}
+
+        self.assertTrue(load_manual_draft(state, resource))
+        first_draft = state["raw_json"]
+        state["raw_json"] = '{"de":{"title":"Edited","description":"Draft"}}'
+
+        self.assertFalse(load_manual_draft(state, resource))
+        self.assertNotEqual(state["raw_json"], first_draft)
+        self.assertIn("Edited", state["raw_json"])
+
+    def test_manual_draft_reload_refreshes_after_video_change_or_explicit_request(self):
+        resource_one = {
+            "id": "video-1",
+            "snippet": {"defaultLanguage": "en"},
+            "localizations": {"de": {"title": "One", "description": "One"}},
+        }
+        resource_two = {
+            "id": "video-2",
+            "snippet": {"defaultLanguage": "fr"},
+            "localizations": {"es": {"title": "Two", "description": "Two"}},
+        }
+        state = {"bound_video_id": "video-1"}
+
+        load_manual_draft(state, resource_one)
+        sync_manual_video(state, "video-2")
+        self.assertTrue(load_manual_draft(state, resource_two))
+        self.assertIn("Two", state["raw_json"])
+
+        state["raw_json"] = '{"es":{"title":"Edited","description":"Draft"}}'
+        request_manual_reload(state)
+        self.assertTrue(load_manual_draft(state, resource_two))
+        self.assertIn("\"Two\"", state["raw_json"])
     def test_manual_example_codes_prioritize_live_codes_and_exclude_default(self):
         supported = ("zh-CN", "en", "pt-BR", "fr", "de", "es", "ja")
 
@@ -321,6 +363,60 @@ class ManualStateTests(unittest.TestCase):
         self.assertNotIn("\\u00fc", canonical_json)
         self.assertEqual(tuple(json.loads(canonical_json)), ("DE", "fr"))
         self.assertNotIn("localizations", json.loads(canonical_json))
+
+    def test_generated_localizations_merge_into_existing_editor_draft(self):
+        state = {
+            "raw_json": json.dumps(
+                {
+                    "de": {"title": "Old DE", "description": "Old"},
+                    "fr": {"title": "FR", "description": "FR"},
+                }
+            )
+        }
+
+        llm_package.apply_generated_localizations(
+            state,
+            {
+                "DE": {"title": "New DE", "description": "New"},
+                "ja": {"title": "JA", "description": "JA"},
+            },
+        )
+
+        self.assertEqual(
+            json.loads(state["raw_json"]),
+            {
+                "DE": {"title": "New DE", "description": "New"},
+                "fr": {"title": "FR", "description": "FR"},
+                "ja": {"title": "JA", "description": "JA"},
+            },
+        )
+
+    def test_uploaded_localizations_merge_into_existing_editor_draft(self):
+        state = {
+            "raw_json": json.dumps(
+                {
+                    "de": {"title": "DE", "description": "DE"},
+                    "fr": {"title": "Old FR", "description": "Old"},
+                }
+            )
+        }
+
+        result = llm_package.apply_llm_upload(
+            state,
+            b'{"fr":{"title":"New FR","description":"New"},'
+            b'"ja":{"title":"JA","description":"JA"}}',
+            ("fr", "ja"),
+        )
+
+        self.assertTrue(result.is_valid)
+        self.assertEqual(
+            json.loads(state["raw_json"]),
+            {
+                "de": {"title": "DE", "description": "DE"},
+                "fr": {"title": "New FR", "description": "New"},
+                "ja": {"title": "JA", "description": "JA"},
+            },
+        )
 
     def test_generate_button_checks_login_and_calls_generator_with_live_inputs(self):
         video_resource, catalog = _llm_generation_inputs()

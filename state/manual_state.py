@@ -3,9 +3,13 @@
 import hashlib
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
+from localizations import build_manual_draft_json
+
 
 MANUAL_DEFAULTS = {
     "bound_video_id": None,
+    "draft_video_id": None,
+    "reload_requested": False,
     "scroll_to_form": False,
     "raw_json": "",
     "local_validation": None,
@@ -50,8 +54,41 @@ def sync_manual_video(state: MutableMapping[str, Any], video_id: Optional[str]) 
     """Bind Manual form state to the current shared video selection."""
     if state.get("bound_video_id") != video_id:
         state["bound_video_id"] = video_id
+        state["draft_video_id"] = None
+        state["reload_requested"] = False
         _clear_translation_form(state)
         state["scroll_to_form"] = bool(video_id)
+
+
+def request_manual_reload(state: MutableMapping[str, Any]) -> None:
+    """Request a fresh live draft on the next selected-video load."""
+    state["reload_requested"] = True
+    _clear_preview(state)
+
+
+def load_manual_draft(
+    state: MutableMapping[str, Any],
+    video_resource: Mapping[str, Any],
+    force: bool = False,
+) -> bool:
+    """Load live localizations only when the draft lifecycle requires it."""
+    video_id = video_resource.get("id")
+    if not video_id:
+        return False
+    if (
+        not force
+        and not state.get("reload_requested")
+        and state.get("draft_video_id") == video_id
+    ):
+        return False
+
+    state["raw_json"] = build_manual_draft_json(video_resource)
+    state["draft_video_id"] = video_id
+    state["reload_requested"] = False
+    state["local_validation"] = None
+    state["operation_status"] = "idle"
+    _clear_preview(state)
+    return True
 
 
 def set_manual_json(state: MutableMapping[str, Any], raw_json: str) -> None:

@@ -19,6 +19,89 @@ WRITABLE_SNIPPET_FIELDS = (
 )
 
 
+def build_manual_draft_json(video_resource: Mapping[str, Any]) -> str:
+    """Serialize current YouTube localizations without the default language."""
+    snippet = video_resource.get("snippet") if isinstance(video_resource, Mapping) else {}
+    default_code = (
+        snippet.get("defaultLanguage")
+        if isinstance(snippet, Mapping)
+        else None
+    )
+    default_folded = (
+        default_code.casefold() if isinstance(default_code, str) else None
+    )
+    localizations = video_resource.get("localizations") or {}
+    draft = {}
+    if isinstance(localizations, Mapping):
+        for language_code, value in localizations.items():
+            if (
+                isinstance(language_code, str)
+                and language_code.casefold() != default_folded
+            ):
+                draft[language_code] = copy.deepcopy(value)
+    return json.dumps(draft, ensure_ascii=False, indent=2)
+
+
+def build_video_reset_update_payload(
+    video_resource: Mapping[str, Any],
+) -> Dict[str, Any]:
+    """Build a safe update that removes every localization from one video."""
+    issues = _source_issues(video_resource)
+    if issues:
+        raise ValueError(issues[0].message)
+
+    resource = copy.deepcopy(dict(video_resource))
+    snippet = resource["snippet"]
+    payload = {
+        "id": resource["id"],
+        "snippet": {},
+        "localizations": {},
+    }
+    for field in WRITABLE_SNIPPET_FIELDS:
+        if field in snippet:
+            payload["snippet"][field] = copy.deepcopy(snippet[field])
+    return payload
+
+
+def merge_localization_documents(
+    current_raw_json: str, incoming_document: Mapping[str, Any]
+) -> str:
+    """Merge incoming direct localization JSON into the current editor draft."""
+    try:
+        current_document = json.loads(current_raw_json or "")
+    except (TypeError, ValueError):
+        current_document = {}
+    if not isinstance(current_document, dict):
+        current_document = {}
+    if not isinstance(incoming_document, Mapping):
+        incoming_document = {}
+
+    incoming_items = tuple(incoming_document.items())
+    incoming_by_folded = {
+        key.casefold(): (key, value)
+        for key, value in incoming_items
+        if isinstance(key, str)
+    }
+    merged = {}
+    consumed = set()
+    for key, value in current_document.items():
+        folded = key.casefold() if isinstance(key, str) else None
+        replacement = incoming_by_folded.get(folded)
+        if replacement is not None:
+            incoming_key, incoming_value = replacement
+            merged[incoming_key] = copy.deepcopy(incoming_value)
+            consumed.add(folded)
+        else:
+            merged[key] = copy.deepcopy(value)
+    for key, value in incoming_items:
+        folded = key.casefold() if isinstance(key, str) else None
+        if folded not in consumed:
+            merged[key] = copy.deepcopy(value)
+            if folded is not None:
+                consumed.add(folded)
+    return json.dumps(merged, ensure_ascii=False, indent=2)
+
+
 @dataclass(frozen=True)
 class LocalizationValue:
     title: str

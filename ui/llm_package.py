@@ -13,7 +13,11 @@ from llm_localization_package import (
     calculate_llm_translation_progress,
     parse_llm_upload_json,
 )
-from localizations import LocalizationIssue, ParsedLocalizations
+from localizations import (
+    LocalizationIssue,
+    ParsedLocalizations,
+    merge_localization_documents,
+)
 from state.manual_state import set_manual_json
 from ui.badges import render_language_badges
 from ui.manual_editor import localization_editor_key
@@ -37,13 +41,12 @@ def apply_llm_upload(
     if not parsed.is_valid:
         return parsed
 
-    canonical_json = json.dumps(
-        {
-            language_code: value.to_dict()
-            for language_code, value in parsed.entries.items()
-        },
-        ensure_ascii=False,
-        indent=2,
+    incoming_document = {
+        language_code: value.to_dict()
+        for language_code, value in parsed.entries.items()
+    }
+    canonical_json = merge_localization_documents(
+        state.get("raw_json", ""), incoming_document
     )
     set_manual_json(state, canonical_json)
     return parsed
@@ -53,7 +56,9 @@ def apply_generated_localizations(
     state: MutableMapping[str, Any], document
 ) -> str:
     """Hand generated localizations to the existing editable JSON form."""
-    canonical_json = json.dumps(document, ensure_ascii=False, indent=2)
+    canonical_json = merge_localization_documents(
+        state.get("raw_json", ""), document
+    )
     set_manual_json(state, canonical_json)
     return canonical_json
 
