@@ -137,6 +137,60 @@ class LocalizationServiceTests(unittest.TestCase):
         self.assertEqual(api.update_if_matches, ["etag-1"])
         self.assertEqual(len(api.update_calls), 1)
 
+    def test_etag_only_preview_drift_does_not_block_and_uses_fresh_etag(self):
+        api = FakeYoutubeApi({**VIDEO_RESOURCE, "etag": "etag-preview"})
+        draft = {"de": {"title": "New", "description": "New"}}
+        preview = preview_localizations(api, "video-1", draft, {"de"})
+        api.video["etag"] = "etag-fresh"
+
+        result = publish_localizations(
+            api,
+            "video-1",
+            draft,
+            {"de"},
+            expected_video=preview.video,
+        )
+
+        self.assertTrue(result.wrote)
+        self.assertEqual(api.update_if_matches, ["etag-fresh"])
+        self.assertEqual(len(api.update_calls), 1)
+
+    def test_read_only_snippet_drift_does_not_block_publish(self):
+        api = FakeYoutubeApi({**VIDEO_RESOURCE, "etag": "etag-1"})
+        draft = {"de": {"title": "New", "description": "New"}}
+        preview = preview_localizations(api, "video-1", draft, {"de"})
+        api.video["snippet"]["publishedAt"] = "2026-08-29T00:00:00Z"
+
+        result = publish_localizations(
+            api,
+            "video-1",
+            draft,
+            {"de"},
+            expected_video=preview.video,
+        )
+
+        self.assertTrue(result.wrote)
+        self.assertEqual(len(api.update_calls), 1)
+
+    def test_writable_snippet_drift_blocks_publish_without_write(self):
+        api = FakeYoutubeApi({**VIDEO_RESOURCE, "etag": "etag-1"})
+        draft = {"de": {"title": "New", "description": "New"}}
+        preview = preview_localizations(api, "video-1", draft, {"de"})
+        api.video["snippet"]["tags"] = ["changed-by-collaborator"]
+
+        result = publish_localizations(
+            api,
+            "video-1",
+            draft,
+            {"de"},
+            expected_video=preview.video,
+        )
+
+        self.assertFalse(result.wrote)
+        self.assertFalse(result.plan.is_valid)
+        self.assertEqual(api.update_calls, [])
+        self.assertIn("changed after Preview", result.plan.issues[0].message)
+
     def test_api_precondition_conflict_does_not_report_a_successful_write(self):
         api = FakeYoutubeApi({**VIDEO_RESOURCE, "etag": "etag-1"})
         api.update_error = _PreconditionFailedError()

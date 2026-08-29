@@ -238,6 +238,37 @@ Each value must contain only a string `title` and `description`; wrapper keys,
 Markdown fences, prose, duplicate keys, extra codes, and missing codes are
 rejected. Correct the file in the external LLM and upload it again.
 
+## 🎯 No target languages are available or selected
+
+**Translate** shows only missing languages from the checked-in
+`data/youtube-metadata-languages.json` catalog. The default source, selected
+source references, and existing YouTube localizations are excluded. A new
+video selects all remaining targets by default; if you clear the selection,
+choose at least one target before clicking **Generate missing translations**.
+The primary Translate selector can contain more than ten languages. The
+supporting **LLM Translation prompt** page intentionally remains limited to
+ten.
+
+## ⏸️ Codex generation stopped after a batch
+
+Codex generation on **Translate** runs one batch of up to ten targets per page
+interaction. A validated batch is merged into the internal draft immediately;
+use **Download JSON** to save it before continuing with **Generate missing
+translations**. If a later batch fails, that failed batch was not merged but
+earlier checkpoints remain in the draft. Retry skips valid selected target
+entries already present in the draft. The download contains the direct
+localization map from the current draft and is disabled only while that draft
+is empty.
+
+## ⚠️ Preview asks you to Preview again
+
+Any new draft entry, including a Codex checkpoint or valid external upload,
+invalidates the old Preview. Preview the complete current draft again before
+publishing. Publish compares the video ID, writable snippet fields, and
+localizations; an ETag-only or read-only response-field change does not cause a
+false conflict. A real publish-relevant change blocks the write. The final
+fresh fetch still uses `If-Match`, so HTTP 412 is also a no-write conflict.
+
 ## 🧾 An upload reports an unknown or malformed language code
 
 Only the exact direct YouTube localization map belongs in an upload. Remove

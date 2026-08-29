@@ -18,7 +18,8 @@ Youtube-video-meta-translator/
 │   ├── reset_control.py             # Browser-confirmed reset component bridge
 │   ├── reset_video_component/       # Local component button frontend
 │   ├── faq.py                       # Static FAQ content with no API bootstrap
-│   └── badges.py                    # Shared localization badge renderer
+│   ├── badges.py                    # Shared localization badge renderer
+│   └── target_selection.py          # Primary Translate target selector
 ├── models.py                        # Shared immutable data models
 ├── data/                             # Checked-in video metadata catalog snapshot
 │   └── youtube-metadata-languages.json
@@ -46,16 +47,19 @@ the repository snapshot is deliberately reviewable and versioned; it is not
 derived from captions, audio, ISO lists, or private Studio endpoints. Each
 metadata entry includes the source-localized name and a checked-in English
 display name. The presentation formatter never changes the exact BCP-47 code.
-Translate owns one internal translation draft and Preview/Publish state. The
-prompt page owns only target and prompt/upload state. The default source is
+Translate owns one internal translation draft, target selection, resumable
+Codex batch checkpoints, and Preview/Publish state. The prompt page owns only
+its ten-target selection and prompt/upload state. The default source is
 authoritative and read-only; selected existing localizations are optional
-verified references with real title/description metadata. Source selection
-resets when the selected video changes. The persistent sidebar renders compact
-cards, metadata-catalog counts, cursor-backed Load more, and destructive Reset
-languages only in the selected-video Danger zone. Reset uses fresh ETag
-conditional writes and post-write verification. Successful Publish invalidates
-video-page cache before rerun. FAQ is static and intentionally bypasses
-YouTube bootstrap and OAuth.
+verified references with real title/description metadata. Source and target
+selection reset or normalize when the selected video or sources change.
+Translate runs one Codex batch per interaction, merges validated checkpoints
+into the draft, and downloads that direct map between batches. The persistent
+sidebar renders compact cards, metadata-catalog counts, cursor-backed Load
+more, and destructive Reset languages only in the selected-video Danger zone.
+Reset uses fresh ETag conditional writes and post-write verification.
+Successful Publish invalidates video-page cache before rerun. FAQ is static
+and intentionally bypasses YouTube bootstrap and OAuth.
 
 ## 🧪 Run automated tests
 
@@ -89,8 +93,9 @@ success result is `No broken requirements found.`
 ## 🧩 Workflow boundaries
 
 - Local JSON validation runs before preview; preview never writes.
-- Publish validates again, refetches current state, rejects changes since
-  Preview, and performs at most one conditional update for one video.
+- Publish validates again, refetches current state, compares only the video ID,
+  writable snippet fields, and localizations against Preview, and performs at
+  most one conditional update for one video using the fresh ETag.
 - Existing localizations omitted from submitted JSON are preserved.
 - Codex and valid external-LLM JSON become one internal translation draft; they
   do not replace unrelated draft entries.
@@ -104,14 +109,21 @@ success result is `No broken requirements found.`
 - Translate and the supporting prompt use the same checked-in metadata catalog
   and source selection for the Streamlit session.
 - Progress excludes the default language and all selected source languages;
-  prompt targets are a metadata-catalog subset of missing languages, with the
-  first ten selected by default and a hard limit of ten.
+  primary Translate targets default to all remaining metadata-catalog
+  languages with no ten-language selection cap, while prompt targets select the
+  first ten by default and have a hard limit of ten.
+- Codex generation accepts explicit catalog-ordered target codes, batches them
+  by `LLM_BATCH_SIZE`, and emits a completion callback only after exact JSON
+  validation and merge. Translate runs one bounded batch per interaction,
+  merges it into the current draft, skips valid draft entries on retry, and
+  exposes the direct current draft through **Download JSON**.
 - Codex and external prompts receive the same primary/reference source model.
   An uploaded file must be an exact direct language-keyed YouTube map; wrapper
   metadata is never accepted.
 - Preview never writes. Publish revalidates, refetches current state, rejects
-  stale Preview state, conditionally writes when an ETag is available, merges
-  omitted localizations, and refreshes the displayed YouTube progress.
+  stale publish-relevant Preview state, conditionally writes when an ETag is
+  available, merges omitted localizations, and refreshes the displayed YouTube
+  progress. Any draft mutation invalidates Preview.
 - `FAQ` can render without YouTube service construction, OAuth, or API access.
 
 Read [Translate workflow](translate-workflow.md) and

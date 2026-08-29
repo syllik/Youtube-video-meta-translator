@@ -17,7 +17,9 @@ For the selected video:
 - references clarify intent, tone, and nuance but never compete with the
   primary source;
 - target languages are currently missing metadata-catalog languages, excluding
-  the default and every selected source language.
+  the default and every selected source language. On **Translate**, all
+  missing targets are selected by default and the user can choose any subset;
+  the supporting prompt page selects the first ten and remains limited to ten.
 
 Source selection is shared between **Translate** and this supporting page while
 the same video is selected. The primary source is displayed separately as
@@ -51,8 +53,10 @@ or this page. Choose up to ten missing target languages; the first ten are
 selected by default. Copy the prepared prompt from the native read-only code
 block, paste it into an external LLM, and ask for one downloadable UTF-8 JSON
 file. Return to **Translate** and upload the file; it becomes the internal
-translation draft after validation. Then click **Preview changes**, review the
-diff, and explicitly **Publish changes**.
+translation draft after validation. The primary **Translate** workflow also
+offers local Codex generation for an uncapped selection, internally batching
+targets in groups of ten. Then click **Preview changes**, review the diff, and
+explicitly **Publish changes**.
 
 The app does not send data to linked websites or require an LLM provider API
 key. Convenience links are available for [ChatGPT](https://chatgpt.com/),
@@ -134,9 +138,13 @@ codex login status
 
 The app starts Codex child processes with an explicit runtime/auth environment
 allowlist, uses ephemeral read-only execution, bounds login and batch execution
-time, validates every batch, retries a failed batch once, merges the results,
-and loads the direct document into the same Translate draft. Every batch
-receives the same selected primary/reference source context.
+time, validates every batch, retries a failed batch once, and passes a
+post-validation completion checkpoint to Translate. The page runs one bounded
+batch per interaction, merges it into the same draft immediately, and exposes
+**Download JSON** before the next batch. Retry subtracts valid target entries
+already in the current draft; a failed later batch leaves earlier checkpoints
+available. Every batch receives the same selected primary/reference source
+context.
 
 Run a small generation-only smoke test:
 
@@ -157,9 +165,12 @@ only that entry.
 
 Generation and upload never publish automatically. Preview never writes to
 YouTube. Publish revalidates the JSON, refetches current YouTube state, rejects
-changes since the reviewed Preview, conditionally writes when an ETag is
-available, merges submitted localizations with the current set, preserves
-omitted languages, and requires a current valid Preview.
+publish-relevant changes since the reviewed Preview, conditionally writes with
+the fresh ETag when available, merges submitted localizations with the current
+set, preserves omitted languages, and requires a current valid Preview. ETag
+or read-only response-field drift alone does not invalidate a Preview, while
+HTTP 412 still prevents the write. Any draft mutation, including a batch
+checkpoint, requires Preview again.
 
 Use **Reset languages** only when you intentionally want to delete every
 localization for one video. It is a separate destructive operation with native

@@ -17,6 +17,10 @@ class TranslationStateTests(unittest.TestCase):
         state.update(
             {
                 "bound_video_id": "video-1",
+                "target_video_id": "video-1",
+                "selected_target_codes": ("de",),
+                "generation_video_id": "video-1",
+                "generation_completed_codes": ("de",),
                 "draft": {"de": {"title": "DE", "description": "DE"}},
                 "preview_result": object(),
                 "preview_fingerprint": ("video-1", "fingerprint"),
@@ -31,6 +35,10 @@ class TranslationStateTests(unittest.TestCase):
         self.assertIsNone(state["preview_result"])
         self.assertIsNone(state["preview_fingerprint"])
         self.assertFalse(state["published"])
+        self.assertIsNone(state["target_video_id"])
+        self.assertEqual(state["selected_target_codes"], ())
+        self.assertIsNone(state["generation_video_id"])
+        self.assertEqual(state["generation_completed_codes"], ())
 
     def test_same_video_keeps_current_draft(self):
         state = init_translation_state({})
@@ -82,6 +90,24 @@ class TranslationStateTests(unittest.TestCase):
 
         state["draft"]["de"]["title"] = "Changed after preview"
 
+        self.assertFalse(translation_preview_is_current(state))
+        self.assertFalse(translation_can_publish(state))
+
+    def test_merging_a_new_draft_entry_invalidates_preview(self):
+        state = init_translation_state({})
+        state["bound_video_id"] = "video-1"
+        state["draft"] = {"de": {"title": "DE", "description": "DE"}}
+        result = SimpleNamespace(
+            plan=SimpleNamespace(is_valid=True, has_changes=True)
+        )
+        store_translation_preview(state, result)
+
+        merge_translation_draft(
+            state,
+            {"fr": {"title": "FR", "description": "FR"}},
+        )
+
+        self.assertIsNone(state["preview_result"])
         self.assertFalse(translation_preview_is_current(state))
         self.assertFalse(translation_can_publish(state))
 

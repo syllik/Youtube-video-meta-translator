@@ -45,6 +45,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
         source = Path("pages/1_Translate.py").read_text()
         section_calls = (
             "    source_codes = render_source_selection(",
+            "    target_codes = render_target_selection(",
             "        render_llm_translation_controls(",
             "    render_preview_publish(",
         )
@@ -60,6 +61,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertIn("render_preview_publish", source)
         self.assertIn("render_llm_translation_controls", source)
         self.assertIn("render_source_selection", source)
+        self.assertIn("render_target_selection", source)
         self.assertNotIn("Manual edit", source)
         self.assertNotIn("text_area", source)
         self.assertNotIn("localization_editor_key", source)

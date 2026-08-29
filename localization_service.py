@@ -7,6 +7,7 @@ from typing import Any, Collection, Mapping, Optional
 from localizations import (
     LocalizationIssue,
     LocalizationPlan,
+    WRITABLE_SNIPPET_FIELDS,
     build_localization_diff,
     build_localization_plan,
     validate_localizations,
@@ -52,14 +53,17 @@ def _resource_snapshot(video_resource: Mapping[str, Any]):
     if not isinstance(localizations, Mapping):
         localizations = {}
 
-    snapshot = {
+    return {
         "id": video_resource.get("id"),
-        "snippet": copy.deepcopy(dict(snippet)),
+        "snippet": copy.deepcopy(
+            {
+                field: snippet[field]
+                for field in WRITABLE_SNIPPET_FIELDS
+                if field in snippet
+            }
+        ),
         "localizations": copy.deepcopy(dict(localizations)),
     }
-    if video_resource.get("etag") is not None:
-        snapshot["etag"] = video_resource.get("etag")
-    return snapshot
 
 
 def _resource_matches_video_id(

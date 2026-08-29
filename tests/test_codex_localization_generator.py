@@ -82,6 +82,173 @@ class CodexLocalizationGeneratorTests(unittest.TestCase):
 
         self.assertEqual(calls, [["fr", "es"], ["ja"]])
 
+    def test_explicit_target_codes_are_normalized_and_respected(self):
+        calls = []
+
+        def run_batch(package, schema):
+            calls.append(package["expectedLanguageCodes"])
+            return self._success_batch(package, schema)
+
+        result = generator_module.generate_missing_localizations(
+            self.video_resource,
+            self.catalog,
+            target_codes=("JA", "fr"),
+            run_batch=run_batch,
+        )
+
+        self.assertEqual(calls, [["fr", "ja"]])
+        self.assertEqual(tuple(result), ("fr", "ja"))
+
+    def test_empty_explicit_target_codes_skip_generation(self):
+        calls = []
+
+        def run_batch(package, schema):
+            calls.append(package)
+            return self._success_batch(package, schema)
+
+        result = generator_module.generate_missing_localizations(
+            self.video_resource,
+            self.catalog,
+            target_codes=(),
+            run_batch=run_batch,
+        )
+
+        self.assertEqual(result, {})
+        self.assertEqual(calls, [])
+
+    def test_explicit_target_codes_reject_unknown_existing_source_and_duplicate(self):
+        for target_codes in (("unknown",), ("de",), ("en",), ("fr", "FR")):
+            with self.subTest(target_codes=target_codes):
+                with self.assertRaises(ValueError):
+                    generator_module.generate_missing_localizations(
+                        self.video_resource,
+                        self.catalog,
+                        target_codes=target_codes,
+                        run_batch=self._success_batch,
+                    )
+
+    def test_explicit_selection_larger_than_ten_is_batched_by_llm_batch_size(self):
+        languages = tuple(
+            [YouTubeLanguage("en", "en", "English")]
+            + [YouTubeLanguage("code-{}".format(index), "code-{}".format(index), "Language")
+               for index in range(12)]
+        )
+        catalog = YouTubeLanguageCatalog(
+            source="test",
+            fetched_at="2026-08-29T00:00:00Z",
+            hl="en",
+            languages=languages,
+        )
+        video = {
+            "snippet": {
+                "defaultLanguage": "en",
+                "title": "Waterfall",
+                "description": "Wind above the falls.",
+            },
+            "localizations": {},
+        }
+        calls = []
+
+        def run_batch(package, schema):
+            calls.append(package["expectedLanguageCodes"])
+            return self._success_batch(package, schema)
+
+        result = generator_module.generate_missing_localizations(
+            video,
+            catalog,
+            target_codes=tuple("code-{}".format(index) for index in range(12)),
+            run_batch=run_batch,
+        )
+
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(calls[0]), 10)
+        self.assertEqual(len(calls[1]), 2)
+        self.assertEqual(tuple(result), tuple("code-{}".format(index) for index in range(12)))
+
+    def test_completion_callback_receives_validated_batch_and_cumulative_document(self):
+        callbacks = []
+
+        def on_batch_completed(index, total, codes, batch_document, cumulative_document):
+            callbacks.append(
+                (index, total, codes, batch_document, cumulative_document)
+            )
+
+        generator_module.generate_missing_localizations(
+            self.video_resource,
+            self.catalog,
+            batch_size=2,
+            run_batch=self._success_batch,
+            on_batch_completed=on_batch_completed,
+        )
+
+        self.assertEqual(
+            callbacks,
+            [
+                (
+                    1,
+                    2,
+                    ("fr", "es"),
+                    {
+                        "fr": {"title": "Title fr", "description": "Text fr"},
+                        "es": {"title": "Title es", "description": "Text es"},
+                    },
+                    {
+                        "fr": {"title": "Title fr", "description": "Text fr"},
+                        "es": {"title": "Title es", "description": "Text es"},
+                    },
+                ),
+                (
+                    2,
+                    2,
+                    ("ja",),
+                    {"ja": {"title": "Title ja", "description": "Text ja"}},
+                    {
+                        "fr": {"title": "Title fr", "description": "Text fr"},
+                        "es": {"title": "Title es", "description": "Text es"},
+                        "ja": {"title": "Title ja", "description": "Text ja"},
+                    },
+                ),
+            ],
+        )
+
+    def test_invalid_batch_does_not_fire_completion_callback(self):
+        callbacks = []
+
+        def invalid_batch(package, schema):
+            return {"fr": {"title": "missing description"}}
+
+        with self.assertRaises(generator_module.CodexGenerationError):
+            generator_module.generate_missing_localizations(
+                self.video_resource,
+                self.catalog,
+                run_batch=invalid_batch,
+                retry_count=0,
+                on_batch_completed=lambda *args: callbacks.append(args),
+            )
+
+        self.assertEqual(callbacks, [])
+
+    def test_prior_completion_callback_survives_a_later_failed_batch(self):
+        callbacks = []
+
+        def run_batch(package, schema):
+            if package["expectedLanguageCodes"] == ["ja"]:
+                raise CodexLocalizationError("persistent failure")
+            return self._success_batch(package, schema)
+
+        with self.assertRaises(generator_module.CodexGenerationError):
+            generator_module.generate_missing_localizations(
+                self.video_resource,
+                self.catalog,
+                batch_size=2,
+                run_batch=run_batch,
+                retry_count=0,
+                on_batch_completed=lambda *args: callbacks.append(args),
+            )
+
+        self.assertEqual(len(callbacks), 1)
+        self.assertEqual(callbacks[0][0:3], (1, 2, ("fr", "es")))
+
     def test_every_batch_receives_the_same_selected_source_context(self):
         packages = []
 
@@ -177,7 +344,8 @@ class CodexLocalizationGeneratorTests(unittest.TestCase):
         self.assertIn("fr, es", message)
         self.assertIn("temporary Codex failure", message)
         self.assertIn("retry", message.lower())
-        self.assertIn("No partial result", message)
+        self.assertIn("failed batch was not merged", message)
+        self.assertIn("Previously completed batches remain available", message)
 
     def test_invalid_batch_size_max_languages_and_retry_count_are_rejected(self):
         for batch_size in (0, 11):

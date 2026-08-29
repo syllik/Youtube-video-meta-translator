@@ -1,9 +1,37 @@
 import unittest
 
-from ui.llm_package import apply_generated_localizations, apply_llm_upload
+from ui.llm_package import (
+    apply_generated_localizations,
+    apply_llm_upload,
+    remaining_translation_target_codes,
+    serialize_translation_draft,
+)
 
 
 class TranslationDraftHandoffTests(unittest.TestCase):
+    def test_current_draft_serializes_as_direct_utf8_localization_json(self):
+        serialized = serialize_translation_draft(
+            {
+                "de": {"title": "Grüße", "description": "Text"},
+                "fr": {"title": "Titre", "description": "Texte"},
+            }
+        )
+
+        self.assertEqual(
+            serialized,
+            '{\n  "de": {\n    "title": "Grüße",\n    "description": "Text"\n  },\n'
+            '  "fr": {\n    "title": "Titre",\n    "description": "Texte"\n  }\n}\n',
+        )
+
+    def test_retry_remaining_targets_skip_valid_entries_already_in_draft(self):
+        remaining = remaining_translation_target_codes(
+            ("de", "fr"),
+            {"DE": {"title": "DE", "description": "DE"}},
+            ("de", "fr"),
+        )
+
+        self.assertEqual(remaining, ("fr",))
+
     def test_valid_upload_becomes_internal_draft_without_editable_json(self):
         state = {
             "draft": {"fr": {"title": "FR", "description": "FR"}}

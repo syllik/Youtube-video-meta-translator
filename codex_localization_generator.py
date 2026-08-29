@@ -1,5 +1,6 @@
 """Batch orchestration for local Codex YouTube localization generation."""
 
+import copy
 import json
 import os
 import tempfile
@@ -9,6 +10,7 @@ from llm_localization_package import (
     LLM_BATCH_SIZE,
     build_llm_localization_schema,
     build_llm_translation_package,
+    build_selected_llm_languages,
     calculate_llm_translation_progress,
     parse_llm_upload_json,
 )
@@ -22,7 +24,8 @@ class CodexGenerationError(RuntimeError):
 def _batch_failure_message(batch_index, total_batches, codes, reason):
     return (
         "Codex batch {} / {} failed for [{}]: {}. "
-        "No partial result from this failed generation was merged into the draft. "
+        "The failed batch was not merged. Previously completed batches remain "
+        "available in the current draft. "
         "Check the local Codex CLI session and retry."
     ).format(batch_index, total_batches, ", ".join(codes), reason)
 
@@ -42,6 +45,8 @@ def generate_missing_localizations(
     run_batch=run_codex_batch,
     on_batch=None,
     selected_source_codes=(),
+    target_codes=None,
+    on_batch_completed=None,
 ):
     if batch_size < 1 or batch_size > LLM_BATCH_SIZE:
         raise ValueError(
@@ -57,7 +62,12 @@ def generate_missing_localizations(
         catalog,
         excluded_source_codes=selected_source_codes,
     )
-    targets = progress.missing
+    if target_codes is None:
+        targets = progress.missing
+    else:
+        targets = build_selected_llm_languages(
+            progress, target_codes, max_count=None
+        )
     if max_languages is not None:
         targets = targets[:max_languages]
     if not targets:
@@ -115,6 +125,18 @@ def generate_missing_localizations(
         }
         for code in codes:
             merged[code] = parsed_entries_by_code[code.casefold()].to_dict()
+
+        batch_document = {
+            code: copy.deepcopy(merged[code]) for code in codes
+        }
+        if on_batch_completed is not None:
+            on_batch_completed(
+                batch_index,
+                len(batches),
+                codes,
+                copy.deepcopy(batch_document),
+                copy.deepcopy(merged),
+            )
 
     expected_codes = tuple(language.code for language in targets)
     parsed_merged = parse_llm_upload_json(

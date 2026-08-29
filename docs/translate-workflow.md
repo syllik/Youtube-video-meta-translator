@@ -5,6 +5,7 @@ The Translate page uses one safe flow for a selected video:
 ```text
 Select video
 → Primary source + optional reference translations
+→ Target languages
 → Codex or External LLM
 → Preview changes
 → Publish changes
@@ -27,13 +28,23 @@ date, count, canonical BCP-47 codes, and deterministic English display names
 used by the app. Selectors show each code first, for example `ru — Russian`;
 the exact code remains the state and JSON key.
 
+Immediately after **Source languages**, **Target languages** contains only
+currently missing catalog languages and excludes every selected source code.
+The primary Translate page selects all of those targets by default and allows
+any subset, including more than ten languages. Target selection is scoped to
+the selected video and is recalculated when the video or source selection
+changes. The supporting **LLM Translation prompt** page remains capped at ten
+targets.
+
 ## 2. Generate or upload a translation draft
 
 Choose one of these paths on **Translate**:
 
 - **Generate missing translations with Codex** uses the locally authenticated
-  Codex CLI and validates the generated document before it becomes the internal
-  translation draft.
+  Codex CLI, validates each batch, and merges each successful batch into the
+  internal translation draft before starting the next one. Each interaction
+  runs one batch of up to ten targets so the page returns to the user between
+  batches.
 - **Upload JSON from an external LLM** uses the prompt from **LLM Translation
   prompt**. Upload one UTF-8 JSON file containing exactly the requested language
   codes. The file is validated before it becomes the internal translation draft.
@@ -42,6 +53,16 @@ The draft is read-only in the application. A valid generated or uploaded entry
 replaces the matching draft language; other draft entries remain available for
 review. An invalid upload shows validation errors and leaves the current valid
 draft unchanged.
+
+The **Download JSON** control is beside generation on **Translate**. It is
+disabled for an empty draft and downloads the whole current internal draft as
+`<video-id>-localizations.json`, not a raw Codex response or YouTube resource.
+After a successful Codex batch, the download is available immediately, before
+the remaining batches run. Click **Generate missing translations** again to
+continue. Retry work subtracts every valid selected target already present in
+the draft, whether it came from an earlier Codex checkpoint or an external
+upload. If a later batch fails, that failed batch is not merged and earlier
+checkpoints remain available for Preview and Download.
 
 Each localization value must contain only `title` and `description`. Titles may
 contain at most 100 characters and descriptions at most 5,000 characters. Do
@@ -63,11 +84,15 @@ in the draft. Language labels use the same code-first format, such as
 
 Click **Publish changes** only after a current valid Preview. Publish validates
 the draft again and fetches the selected video immediately before writing. It
-compares the fetched resource with the resource reviewed in Preview; if YouTube
-changed in the meantime, no update is sent and the app asks you to Preview
-again. When YouTube provides an ETag, the update also uses it as a conditional
-write guard. After a successful write, the sidebar video-page cache is cleared
-before rerun, so the localization count is fetched again automatically.
+compares a semantic publish-relevant snapshot with the resource reviewed in
+Preview: the video ID, `WRITABLE_SNIPPET_FIELDS`, and `localizations`. ETag
+changes and read-only response fields alone do not create a false conflict.
+If publish-relevant YouTube state changed in the meantime, no update is sent
+and the app asks you to Preview again. When YouTube provides an ETag, the
+freshly fetched value is still used as the conditional `If-Match` write guard;
+a race that returns HTTP 412 remains a no-write conflict. After a successful
+write, the sidebar video-page cache is cleared before rerun, so the
+localization count is fetched again automatically.
 
 The update uses safe merge semantics:
 
@@ -85,6 +110,10 @@ Publish has mutually exclusive visible outcomes: a successful write clears the
 cache and refreshes the page; a valid no-change result reports that there is
 nothing to publish; a conflict or service error reports failure and does not
 claim that the cache was refreshed.
+
+Any draft mutation, including a newly checkpointed batch or a valid upload,
+invalidates the previous Preview. Preview the complete current draft again
+before publishing.
 
 ## Reset languages
 

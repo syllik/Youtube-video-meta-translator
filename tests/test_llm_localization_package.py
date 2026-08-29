@@ -126,6 +126,22 @@ class LlmLocalizationPackageTests(unittest.TestCase):
 
         self.assertEqual([language.code for language in selected], ["es", "fr"])
 
+    def test_selected_codes_can_disable_the_batch_limit_for_translate(self):
+        progress = calculate_llm_translation_progress(
+            self.video_resource, self.eleven_language_catalog
+        )
+
+        selected = build_selected_llm_languages(
+            progress,
+            tuple(language.code for language in progress.missing),
+            max_count=None,
+        )
+
+        self.assertEqual(
+            [language.code for language in selected],
+            [language.code for language in progress.missing],
+        )
+
     def test_selected_codes_reject_default_existing_unknown_duplicate_and_eleventh(self):
         progress = calculate_llm_translation_progress(
             self.video_resource, self.eleven_language_catalog

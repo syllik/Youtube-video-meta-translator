@@ -10,6 +10,7 @@ from streamlit_app import bootstrap_app_context, configure_page
 from ui.feedback import render_service_error
 from ui.llm_package import render_llm_translation_controls
 from ui.source_selection import render_source_selection
+from ui.target_selection import render_target_selection
 from ui.translation_review import render_preview_publish
 
 
@@ -42,6 +43,9 @@ def render_translate_page() -> None:
         return
 
     source_codes = render_source_selection(st.session_state, video_resource, catalog)
+    target_codes = render_target_selection(
+        st.session_state, video_resource, catalog, source_codes=source_codes
+    )
     service = LocalizationService(context.service, catalog.codes)
     with st.expander("Generate translations", expanded=True):
         render_llm_translation_controls(
@@ -51,6 +55,7 @@ def render_translate_page() -> None:
             widget_prefix="translate",
             prompt_state=prompt_state,
             source_codes=source_codes,
+            target_codes=target_codes,
         )
 
     def refresh_after_publish() -> None:

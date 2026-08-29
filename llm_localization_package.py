@@ -2,7 +2,7 @@
 
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Sequence, Tuple
+from typing import Any, Dict, Mapping, Optional, Sequence, Tuple
 
 from language_catalog import YouTubeLanguage, YouTubeLanguageCatalog
 from localizations import LocalizationIssue, ParsedLocalizations, validate_localizations
@@ -96,10 +96,10 @@ def select_next_llm_languages(
 def build_selected_llm_languages(
     progress: LlmTranslationProgress,
     selected_codes: Sequence[str],
-    max_count: int = LLM_BATCH_SIZE,
+    max_count: Optional[int] = LLM_BATCH_SIZE,
 ) -> Tuple[YouTubeLanguage, ...]:
     """Normalize and validate an explicit subset of missing languages."""
-    if max_count <= 0:
+    if max_count is not None and max_count <= 0:
         raise ValueError("max_count must be positive")
 
     selected = []
@@ -113,7 +113,7 @@ def build_selected_llm_languages(
         normalized.add(code)
         selected.append(code)
 
-    if len(selected) > max_count:
+    if max_count is not None and len(selected) > max_count:
         raise ValueError(
             "no more than {} languages may be selected".format(max_count)
         )

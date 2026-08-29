@@ -5,9 +5,20 @@ import hashlib
 import json
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
+from llm_localization_package import build_selected_llm_languages
+
 
 TRANSLATION_DEFAULTS = {
     "bound_video_id": None,
+    "target_video_id": None,
+    "selected_target_codes": (),
+    "generation_video_id": None,
+    "generation_target_codes": (),
+    "generation_completed_codes": (),
+    "generation_completed_batch_count": 0,
+    "generation_total_batches": 0,
+    "generation_last_batch_codes": (),
+    "generation_error": None,
     "draft": {},
     "draft_validation": None,
     "preview_result": None,
@@ -35,10 +46,24 @@ def _clear_preview(state: MutableMapping[str, Any]) -> None:
 
 
 def clear_translation_draft(state: MutableMapping[str, Any]) -> None:
+    state["target_video_id"] = None
+    state["selected_target_codes"] = ()
+    clear_translation_generation(state)
     state["draft"] = {}
     state["draft_validation"] = None
     state["operation_status"] = "idle"
     _clear_preview(state)
+
+
+def clear_translation_generation(state: MutableMapping[str, Any]) -> None:
+    """Clear resumable Codex checkpoints for the active video."""
+    state["generation_video_id"] = None
+    state["generation_target_codes"] = ()
+    state["generation_completed_codes"] = ()
+    state["generation_completed_batch_count"] = 0
+    state["generation_total_batches"] = 0
+    state["generation_last_batch_codes"] = ()
+    state["generation_error"] = None
 
 
 def sync_translation_video(
@@ -48,6 +73,61 @@ def sync_translation_video(
     if state.get("bound_video_id") != video_id:
         state["bound_video_id"] = video_id
         clear_translation_draft(state)
+
+
+def _normalize_persisted_target_selection(progress, selected_codes):
+    available = {
+        language.code.casefold(): language.code for language in progress.missing
+    }
+    filtered = []
+    seen = set()
+    for raw_code in selected_codes or ():
+        if not isinstance(raw_code, str):
+            continue
+        code = raw_code.strip().casefold()
+        if code in available and code not in seen:
+            filtered.append(available[code])
+            seen.add(code)
+    return tuple(
+        language.code
+        for language in build_selected_llm_languages(
+            progress, filtered, max_count=None
+        )
+    )
+
+
+def sync_translation_target_selection(
+    state: MutableMapping[str, Any], video_id: Optional[str], progress
+) -> Tuple[str, ...]:
+    """Keep target choices scoped to one video and current source exclusions."""
+    for key, default in TRANSLATION_DEFAULTS.items():
+        state.setdefault(key, copy.deepcopy(default))
+    if state.get("target_video_id") != video_id:
+        state["target_video_id"] = video_id
+        state["selected_target_codes"] = tuple(
+            language.code for language in progress.missing
+        )
+    else:
+        state["selected_target_codes"] = _normalize_persisted_target_selection(
+            progress, state.get("selected_target_codes")
+        )
+    return tuple(state["selected_target_codes"])
+
+
+def set_translation_target_selection(
+    state: MutableMapping[str, Any],
+    video_id: Optional[str],
+    progress,
+    selected_codes,
+) -> Tuple[str, ...]:
+    """Store an explicit, catalog-ordered target subset for one video."""
+    if state.get("target_video_id") != video_id:
+        state["target_video_id"] = video_id
+    selected = build_selected_llm_languages(
+        progress, selected_codes, max_count=None
+    )
+    state["selected_target_codes"] = tuple(language.code for language in selected)
+    return tuple(state["selected_target_codes"])
 
 
 def _merge_entries(

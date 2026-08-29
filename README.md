@@ -3,10 +3,10 @@
 A local Streamlit app for managing YouTube video titles and descriptions.
 
 The app has one primary workflow, **Translate**. Select a video, choose its
-source languages, generate translations with the local Codex CLI or upload a
-UTF-8 JSON result from an external LLM, then preview and publish the validated
-draft safely. The supporting **LLM Translation prompt** page prepares a prompt
-for users who do not use local Codex.
+source and target languages, generate translations with the local Codex CLI or
+upload a UTF-8 JSON result from an external LLM, then preview and publish the
+validated draft safely. The supporting **LLM Translation prompt** page prepares
+a prompt for users who do not use local Codex.
 
 Both pages use the same selected video and source-language state. The default
 YouTube language is always the authoritative primary source. Existing
@@ -71,6 +71,7 @@ streamlit run streamlit_app.py
 ```text
 Select video
 → Primary source + optional reference translations
+→ Target languages
 → Codex or External LLM
 → Preview
 → Publish
@@ -81,22 +82,29 @@ Select video
 2. In **Source languages**, keep the default source selected and optionally
    select existing localizations as verified references. A video with only its
    default source uses it automatically without a multiselect.
-3. In **Generate translations**, choose **Codex** or the visible **External
+3. In **Target languages**, all currently missing metadata languages are
+   selected by default. Remove any languages you do not want to generate; the
+   primary Translate selector is not limited to ten languages.
+4. In **Generate translations**, choose **Codex** or the visible **External
    LLM** three-step path: **Prepare prompt**, generate JSON externally, then
-   upload the downloaded UTF-8 JSON file. Each valid result becomes the
-   internal translation draft; an overlapping language replaces only that
-   entry.
-4. Click **Preview changes**. Preview never writes to YouTube.
-5. Click **Publish changes** only after reviewing a valid current preview.
+   upload the downloaded UTF-8 JSON file. Codex generates one batch of up to
+   ten targets per interaction, checkpoints each successful batch into the
+   internal draft, and offers **Download JSON** after the first checkpoint.
+   Click **Generate missing translations** again to continue remaining work.
+5. Click **Preview changes**. Preview never writes to YouTube.
+6. Click **Publish changes** only after reviewing a valid current preview.
    Publish refetches the current video, preserves omitted existing
    localizations, and updates one selected video.
-6. Confirm the result in YouTube Studio. A successful Publish clears the cached
+7. Confirm the result in YouTube Studio. A successful Publish clears the cached
    video pages so the sidebar count is refreshed automatically.
 
 The prompt page uses the same source selection as Translate. It offers only
 currently missing languages from the checked-in
-`data/youtube-metadata-languages.json` metadata catalog, allows at most ten
-targets, and never includes selected source languages as targets.
+`data/youtube-metadata-languages.json` metadata catalog, selects the first ten
+by default, allows at most ten targets, and never includes selected source
+languages as targets. **Download JSON** always contains the current internal
+draft as a direct localization map; a later failed Codex batch does not remove
+earlier checkpoints.
 
 The persistent sidebar shows compact channel details, YouTube/RSS links,
 refresh, page-size controls, pagination, and compact video cards. Cards show

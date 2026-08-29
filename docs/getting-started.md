@@ -78,10 +78,12 @@ The **Translate** workflow and supporting prompt page use the same YouTube
 OAuth session and current selected video. Their source selection is shared:
 the default language is the primary source and selected existing localizations
 are optional verified references. Changing video resets that selection and any
-draft workflow state. The external-LLM path creates a source-aware prompt and
-validates the downloaded JSON file when you upload it; the automatic Codex
-path additionally uses the local Codex login. Neither path requires a provider
-API key.
+draft workflow state. On **Translate**, **Target languages** defaults to every
+currently missing metadata language and can be narrowed to a subset. The
+external-LLM path creates a source-aware prompt and validates the downloaded
+JSON file when you upload it; the automatic Codex path additionally uses the
+local Codex login and checkpoints successful batches into the draft. Neither
+path requires a provider API key.
 
 ## 4️⃣ Check the environment
 
