@@ -11,7 +11,7 @@ what you want to do, then follow the numbered steps inside it.
 | --- | --- | --- |
 | 🚀 | [Getting started](getting-started.md) | You are installing the project or launching it for the first time. |
 | 🔐 | [Configuration](configuration.md) | Set up the YouTube OAuth client. |
-| ▶️ | [Translate workflow](manual-localizations.md) | Generate or provide JSON, edit, validate, preview, and publish. |
+| ▶️ | [Translate workflow](translate-workflow.md) | Generate or upload translations, preview, and publish. |
 | ✨ | [LLM Translation prompt](llm-localizations.md) | Prepare an external-LLM prompt or use local Codex generation. |
 | ❓ | [FAQ](../pages/3_FAQ.py) | Read short answers about the workflow and safe publishing. |
 | 🆘 | [Troubleshooting](troubleshooting.md) | Setup, OAuth, ports, dependencies, or API calls are failing. |

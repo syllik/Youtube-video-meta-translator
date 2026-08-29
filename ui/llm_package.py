@@ -16,9 +16,9 @@ from llm_localization_package import (
 from localizations import (
     LocalizationIssue,
     ParsedLocalizations,
-    merge_localization_documents,
+    validate_localizations,
 )
-from state.manual_state import request_manual_editor_update
+from state.translation_state import merge_translation_draft
 from ui.badges import render_language_badges
 
 
@@ -27,7 +27,7 @@ def apply_llm_upload(
     file_content: bytes,
     expected_language_codes: Sequence[str],
 ) -> ParsedLocalizations:
-    """Validate an uploaded UTF-8 batch and hand valid JSON to the editor."""
+    """Validate an uploaded UTF-8 batch and merge it into the translation draft."""
     try:
         raw_json = file_content.decode("utf-8")
     except UnicodeDecodeError:
@@ -40,26 +40,31 @@ def apply_llm_upload(
     if not parsed.is_valid:
         return parsed
 
-    incoming_document = {
-        language_code: value.to_dict()
-        for language_code, value in parsed.entries.items()
-    }
-    canonical_json = merge_localization_documents(
-        state.get("raw_json", ""), incoming_document
+    merge_translation_draft(
+        state,
+        {
+            language_code: value.to_dict()
+            for language_code, value in parsed.entries.items()
+        },
     )
-    request_manual_editor_update(state, canonical_json)
     return parsed
 
 
 def apply_generated_localizations(
-    state: MutableMapping[str, Any], document
-) -> str:
-    """Hand generated localizations to the existing editable JSON form."""
-    canonical_json = merge_localization_documents(
-        state.get("raw_json", ""), document
+    state: MutableMapping[str, Any], document, supported_language_codes
+) -> ParsedLocalizations:
+    """Validate generated localizations and merge them into the translation draft."""
+    parsed = validate_localizations(document, supported_language_codes)
+    if not parsed.is_valid:
+        return parsed
+    merge_translation_draft(
+        state,
+        {
+            language_code: value.to_dict()
+            for language_code, value in parsed.entries.items()
+        },
     )
-    request_manual_editor_update(state, canonical_json)
-    return canonical_json
+    return parsed
 
 
 def _render_issues(issues) -> None:
@@ -93,7 +98,7 @@ def render_llm_translation_controls(
     prompt_state: MutableMapping[str, Any] = None,
     source_codes: Sequence[str] = (),
 ) -> None:
-    """Show generation, prompt handoff, and upload controls for one editor state."""
+    """Show generation, prompt handoff, and upload controls for one translation state."""
     import streamlit as st
     import streamlit.components.v1 as components
 
@@ -162,7 +167,12 @@ def render_llm_translation_controls(
             st.success("All supported YouTube localizations are complete.")
             return
 
-        apply_generated_localizations(state, generated_document)
+        parsed_generation = apply_generated_localizations(
+            state, generated_document, catalog.codes
+        )
+        if not parsed_generation.is_valid:
+            _render_issues(parsed_generation.issues)
+            return
         st.rerun()
         return
 

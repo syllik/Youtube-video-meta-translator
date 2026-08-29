@@ -16,9 +16,9 @@
 ## Active workflow rules
 
 - The application has one primary Translate workflow and one supporting LLM
-  Translation prompt page. Do not reintroduce separate Manual translate or LLM
-  translate workflows, a Machine translate page, provider, state namespace,
-  control, dependency, or documentation flow.
+  Translation prompt page. Do not reintroduce separate legacy translate
+  workflows, a Machine translate page, provider, state namespace, control,
+  dependency, or documentation flow.
 - The live YouTube Data API v3 `i18nLanguages.list` OAuth response is the only
   source of valid localization language codes. Never restore a hardcoded
   language map or infer a code from a translated language name.
@@ -30,7 +30,7 @@
   not a third application workflow or an in-app LLM provider integration. It may
   invoke an installed Codex CLI using saved local authentication, but it must
   never require provider API-key environment variables or publish to YouTube.
-  Its generated direct localization JSON is reviewed in the Translate editor.
+  Its generated direct localization JSON becomes the internal Translate draft.
 - Progress is `current / total` from live YouTube state, excluding the selected
   video's default language. The supporting LLM Translation prompt page offers
   only currently missing live-catalog languages, selects the first ten by
@@ -45,12 +45,19 @@
   keyed by exactly the requested language codes, with only `title` and
   `description` for every key. Never accept wrapper metadata such as `catalog`,
   `languages`, `outputContract`, `schemaVersion`, or `source`.
-- Treat uploads as untrusted: validate them before populating the editable
-  form. The shared editor validates before Preview, Preview never writes, and
-  Publish revalidates, merges omitted existing localizations, and refreshes the
-  selected video from YouTube before showing the next progress value.
-- The Translate Manual edit draft is initialized from the selected video's current live localizations, excluding its default language. Normal Streamlit reruns preserve the draft; only video changes, explicit Refresh, successful Publish, or successful Reset reload it.
-- Codex and valid external-LLM uploads merge into the current Manual edit draft. Overlapping language codes replace only that entry; omitted keys remain in the draft and normal Publish preserves omitted existing YouTube localizations.
-- Reset languages is a separate destructive service operation. Its local component requires native browser confirmation, sends an explicit empty `localizations` payload while preserving default metadata, invalidates sidebar state without changing URL parameters, and must never be implemented as an empty Manual edit JSON publish.
+- Treat uploads as untrusted: validate them before they become the internal
+  translation draft. Preview never writes, and Publish revalidates, merges
+  omitted existing localizations, and refreshes the selected video from YouTube
+  before showing the next progress value.
+- Codex and valid external-LLM uploads merge into the current translation draft.
+  Overlapping language codes replace only that entry; existing YouTube
+  localizations omitted from the draft remain preserved during normal Publish.
+  Changing the selected video clears its draft and Preview state.
+- Reset languages is a separate destructive service operation. Its local
+  component requires native browser confirmation, sends only the canonical
+  default-language localization with current default title/description as the
+  YouTube API workaround, verifies the fresh post-write resource, invalidates
+  related state without changing URL parameters, and never uses normal Publish
+  merge semantics.
 - Sidebar video cards are compact and use live catalog counts: `done` is existing non-default localizations and `undone` is missing non-default codes from the current catalog. Numeric Load more appends cursor-backed batches; URL page changes reset only the accumulated visible list.
 - `FAQ` is a static navigation page. It must not construct a YouTube service, start OAuth, fetch API data, or render the persistent video sidebar, so it remains available when YouTube access fails.

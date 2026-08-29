@@ -5,12 +5,16 @@ from typing import Any, MutableMapping, Optional
 
 from state.common_state import (
     can_load_more,
+    clear_source_selection,
     get_selected_video_id,
     init_common_state,
     load_more_video_page,
     reset_video_cache,
 )
-from services.manual_localization_service import ManualLocalizationService
+from state.llm_state import clear_llm_prompt
+from state.translation_state import clear_translation_draft
+from services.localization_service import LocalizationService
+from services.youtube_service import YoutubeResetError
 from ui.pagination import render_page_size_control, render_pagination
 from ui.video_list import render_video_list
 
@@ -56,7 +60,6 @@ def _refresh_sidebar(session_state: MutableMapping[str, Any]) -> None:
     import streamlit as st
 
     reset_video_cache(session_state)
-    session_state["common.manual_reload_video_id"] = get_selected_video_id(session_state)
     session_state["common.channel"] = None
     session_state["common.active_limit"] = None
     st.rerun()
@@ -94,12 +97,23 @@ def _consume_pending_reset(context, session_state) -> bool:
     session_state["common.video_operation_status"] = "resetting"
     try:
         catalog_codes = _catalog_codes(context)
-        reset_service = ManualLocalizationService(context.service, catalog_codes)
+        reset_service = LocalizationService(context.service, catalog_codes)
         with st.spinner("Resetting YouTube localizations..."):
             reset_service.reset(video_id)
         reset_video_cache(session_state)
-        if get_selected_video_id(session_state) == video_id:
-            session_state["common.manual_reload_video_id"] = video_id
+        clear_source_selection(session_state, video_id)
+        translation_state = session_state.get("translation")
+        if (
+            isinstance(translation_state, dict)
+            and translation_state.get("bound_video_id") == video_id
+        ):
+            clear_translation_draft(translation_state)
+        prompt_state = session_state.get("llm")
+        if (
+            isinstance(prompt_state, dict)
+            and prompt_state.get("bound_video_id") == video_id
+        ):
+            clear_llm_prompt(prompt_state)
         session_state["common.pending_sidebar_feedback"] = (
             "success",
             "All YouTube localizations were reset for '{}'.".format(
@@ -108,6 +122,9 @@ def _consume_pending_reset(context, session_state) -> bool:
         )
         session_state["common.video_operation_status"] = "idle"
         st.rerun()
+    except YoutubeResetError as error:
+        session_state["common.video_operation_status"] = "idle"
+        st.error(str(error))
     except Exception:
         session_state["common.video_operation_status"] = "idle"
         st.error("YouTube could not reset this video's localizations. Try again.")

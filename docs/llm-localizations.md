@@ -4,7 +4,7 @@
 handoff. The supporting **LLM Translation prompt** page is for users who do not
 use the local Codex CLI.
 
-⬅️ [Back to documentation](README.md) · ➡️ [Translate workflow](manual-localizations.md)
+⬅️ [Back to documentation](README.md) · ➡️ [Translate workflow](translate-workflow.md)
 
 ## Source and target model
 
@@ -35,9 +35,9 @@ retain the catalog's canonical casing.
    default.
 3. Copy the prepared prompt from the native read-only code block.
 4. Paste it into an external LLM and ask for one downloadable UTF-8 JSON file.
-5. Return to **Translate**, upload the file, and review the merged result in
-   **Manual edit**.
-6. Validate, **Preview changes**, review the diff, and explicitly **Publish
+5. Return to **Translate** and upload the file; it becomes the internal
+   translation draft after validation.
+6. Click **Preview changes**, review the diff, and explicitly **Publish
    changes**.
 
 The app does not send data to linked websites or require an LLM provider API
@@ -121,7 +121,7 @@ codex login status
 The app removes `OPENAI_API_KEY` and `CODEX_API_KEY` from Codex child-process
 environment variables, uses ephemeral read-only execution, validates every
 batch, retries a failed batch once, merges the results, and loads the direct
-JSON into the same Translate editor. Every batch receives the same selected
+document into the same Translate draft. Every batch receives the same selected
 primary/reference source context.
 
 Run a small generation-only smoke test:
@@ -134,9 +134,10 @@ npm run youtube:codex-localize -- \
 python -m json.tool /tmp/smoke.json
 ```
 
-The output is local JSON only. Review it in **Translate** before publishing. It
-merges into the current **Manual edit** draft instead of replacing unrelated
-language entries. An overlapping language code replaces only that entry.
+The output is a local translation document only. Review it in **Translate**
+before publishing. It merges into the current translation draft instead of
+replacing unrelated language entries. An overlapping language code replaces
+only that entry.
 
 ## Safety boundary
 

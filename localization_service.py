@@ -1,4 +1,4 @@
-"""Orchestration for previewing and publishing manual localizations."""
+"""Orchestration for previewing and publishing translation drafts."""
 
 from dataclasses import dataclass
 from typing import Any, Collection, Mapping, Optional
@@ -7,7 +7,7 @@ from localizations import (
     LocalizationPlan,
     build_localization_diff,
     build_localization_plan,
-    parse_localizations_json,
+    validate_localizations,
 )
 
 
@@ -28,8 +28,8 @@ def _invalid_result(parsed) -> LocalizationOperationResult:
     return LocalizationOperationResult(video=None, plan=plan, wrote=False)
 
 
-def _prepare_plan(youtube_api, video_id, raw_json, supported_language_codes):
-    parsed = parse_localizations_json(raw_json, supported_language_codes)
+def _prepare_plan(youtube_api, video_id, draft, supported_language_codes):
+    parsed = validate_localizations(draft, supported_language_codes)
     if not parsed.is_valid:
         invalid_result = _invalid_result(parsed)
         return None, invalid_result.plan
@@ -41,12 +41,12 @@ def _prepare_plan(youtube_api, video_id, raw_json, supported_language_codes):
 def preview_localizations(
     youtube_api: Any,
     video_id: str,
-    raw_json: str,
+    draft: Mapping[str, Any],
     supported_language_codes: Collection[str],
 ) -> LocalizationOperationResult:
-    """Validate and preview a localization update without writing."""
+    """Validate and preview a translation draft without writing."""
     video, plan = _prepare_plan(
-        youtube_api, video_id, raw_json, supported_language_codes
+        youtube_api, video_id, draft, supported_language_codes
     )
     return LocalizationOperationResult(video=video, plan=plan, wrote=False)
 
@@ -54,12 +54,12 @@ def preview_localizations(
 def publish_localizations(
     youtube_api: Any,
     video_id: str,
-    raw_json: str,
+    draft: Mapping[str, Any],
     supported_language_codes: Collection[str],
 ) -> LocalizationOperationResult:
-    """Validate, fetch current state, and publish at most one update."""
+    """Validate, refetch current state, and publish at most one update."""
     video, plan = _prepare_plan(
-        youtube_api, video_id, raw_json, supported_language_codes
+        youtube_api, video_id, draft, supported_language_codes
     )
     if plan.is_valid and plan.has_changes:
         youtube_api.update_video_localizations(plan.payload)

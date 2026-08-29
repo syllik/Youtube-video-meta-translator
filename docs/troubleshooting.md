@@ -212,9 +212,9 @@ Each value must contain only a string `title` and `description`; wrapper keys,
 Markdown fences, prose, duplicate keys, extra codes, and missing codes are
 rejected. Correct the file in the external LLM and upload it again.
 
-## 🧾 The form reports unsupported language codes
+## 🧾 An upload reports unsupported language codes
 
-Only the exact direct YouTube localization map belongs in the form. Remove
+Only the exact direct YouTube localization map belongs in an upload. Remove
 wrapper keys such as `catalog`, `languages`, `outputContract`, `schemaVersion`,
 or `source`. The valid code list comes from the fresh `i18nLanguages.list`
 response shown by the selected workflow.
@@ -226,9 +226,11 @@ large channel lists, and start with one selected video.
 
 ## 🧨 Reset languages was selected
 
-Reset is intentionally destructive. It removes all localizations for the video
-after the native browser confirmation and preserves only default metadata. If
-you clicked **Cancel**, no YouTube request is made and the current page URL is
+Reset is intentionally destructive. It removes all non-default localizations
+after the native browser confirmation and preserves the current default
+metadata. The app verifies the fresh YouTube resource after the update; a
+verification failure is reported as an error rather than success. If you
+clicked **Cancel**, no YouTube request is made and the current page URL is
 unchanged. A confirmed reset calls the API without navigating away. If the
 reset failed, review the error, refresh the list, and verify the video in
 YouTube Studio before trying again.

@@ -4,7 +4,6 @@ import streamlit as st
 from googleapiclient.errors import HttpError
 
 from state.llm_state import init_llm_state, sync_llm_video
-from state.manual_state import init_manual_state, sync_manual_video
 from streamlit_app import bootstrap_app_context, configure_page
 from ui.llm_prompt import render_llm_prompt_page, render_source_quality_guide
 from ui.source_selection import render_source_selection
@@ -14,14 +13,14 @@ def render_llm_prompt_support_page() -> None:
     configure_page("LLM Translation prompt")
     st.title("LLM Translation prompt")
     st.caption(
-        "Prepare a prompt for an external LLM, then return to Translate to upload or edit its JSON result."
+        "Prepare a prompt for an external LLM, then return to Translate to upload its JSON result."
     )
     with st.expander("How to use this page", expanded=False):
         st.markdown(
             """
 1. Select source and target languages and copy the prepared prompt.
 2. Paste it into a web LLM and download its UTF-8 `.json` result.
-3. Return to **Translate**, upload the file, and review it in **Manual edit**.
+3. Return to **Translate** and upload the file.
 4. Preview the changes, then publish them to YouTube.
 
 The app needs only the Google YouTube OAuth setup. It does not send your video
@@ -34,9 +33,7 @@ data to linked LLM websites or require an LLM API key.
     if context is None:
         return
 
-    translation_state = init_manual_state(st.session_state)
     prompt_state = init_llm_state(st.session_state)
-    sync_manual_video(translation_state, context.selected_video_id)
     sync_llm_video(prompt_state, context.selected_video_id)
     if not context.selected_video_id:
         st.info("Select one video from the sidebar to begin.")

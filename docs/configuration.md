@@ -105,6 +105,6 @@ project or opening an issue.
 ## ➡️ Next step
 
 - [Start the app](getting-started.md)
-- [Use Translate](manual-localizations.md)
+- [Use Translate](translate-workflow.md)
 - [Use LLM Translation prompt](llm-localizations.md)
 - [Troubleshoot OAuth and JSON uploads](troubleshooting.md)

@@ -1,9 +1,9 @@
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 from language_catalog import YouTubeLanguageCatalog
 from models import ChannelInfo, YouTubePage
-from services.youtube_service import YoutubeService
+from services.youtube_service import YoutubeService, YoutubeResetError
 
 
 class YoutubeServiceTests(unittest.TestCase):
@@ -81,9 +81,9 @@ class YoutubeServiceTests(unittest.TestCase):
 
         self.assertEqual(result.videos[0].default_language_code, "en")
 
-    def test_reset_video_localizations_uses_current_resource_and_dedicated_update(self):
+    def test_reset_fetches_updates_and_verifies_the_fresh_resource(self):
         account = Mock()
-        account.get_video_with_localizations.return_value = {
+        source = {
             "id": "video-1",
             "snippet": {
                 "title": "Title",
@@ -94,18 +94,111 @@ class YoutubeServiceTests(unittest.TestCase):
             },
             "localizations": {"de": {"title": "DE", "description": "DE"}},
         }
+        verified = {
+            "id": "video-1",
+            "snippet": {
+                "title": "Title",
+                "description": "Description",
+                "categoryId": "22",
+                "defaultLanguage": "en",
+                "tags": ["keep"],
+            },
+            "localizations": {
+                "en": {"title": "Title", "description": "Description"}
+            },
+        }
+        account.get_video_with_localizations.side_effect = [source, verified]
         account.update_video_localizations.return_value = {"id": "video-1"}
         service = YoutubeService(account)
 
         result = service.reset_video_localizations("video-1")
 
         self.assertEqual(result, {"id": "video-1"})
-        account.get_video_with_localizations.assert_called_once_with("video-1")
+        self.assertEqual(
+            account.get_video_with_localizations.call_args_list,
+            [call("video-1"), call("video-1")],
+        )
         account.update_video_localizations.assert_called_once()
         payload = account.update_video_localizations.call_args.args[0]
         self.assertEqual(payload["id"], "video-1")
-        self.assertEqual(payload["localizations"], {})
+        self.assertEqual(
+            payload["localizations"],
+            {"en": {"title": "Title", "description": "Description"}},
+        )
         self.assertEqual(payload["snippet"]["defaultLanguage"], "en")
+
+    def test_reset_fails_when_non_default_localization_survives_verification(self):
+        account = Mock()
+        source = {
+            "id": "video-1",
+            "snippet": {
+                "title": "Title",
+                "description": "Description",
+                "categoryId": "22",
+                "defaultLanguage": "en",
+            },
+            "localizations": {"de": {"title": "DE", "description": "DE"}},
+        }
+        verified = {
+            **source,
+            "localizations": {
+                "en": {"title": "Title", "description": "Description"},
+                "de": {"title": "DE", "description": "DE"},
+            },
+        }
+        account.get_video_with_localizations.side_effect = [source, verified]
+        account.update_video_localizations.return_value = {"id": "video-1"}
+        service = YoutubeService(account)
+
+        with self.assertRaisesRegex(YoutubeResetError, "verification"):
+            service.reset_video_localizations("video-1")
+
+        account.update_video_localizations.assert_called_once()
+        self.assertEqual(account.get_video_with_localizations.call_count, 2)
+
+    def test_reset_fails_when_default_metadata_changes_during_verification(self):
+        account = Mock()
+        source = {
+            "id": "video-1",
+            "snippet": {
+                "title": "Title",
+                "description": "Description",
+                "categoryId": "22",
+                "defaultLanguage": "en",
+            },
+            "localizations": {"de": {"title": "DE", "description": "DE"}},
+        }
+        verified = {
+            **source,
+            "snippet": {**source["snippet"], "title": "Changed"},
+            "localizations": {
+                "en": {"title": "Changed", "description": "Description"}
+            },
+        }
+        account.get_video_with_localizations.side_effect = [source, verified]
+        account.update_video_localizations.return_value = {"id": "video-1"}
+        service = YoutubeService(account)
+
+        with self.assertRaisesRegex(YoutubeResetError, "default snippet.title"):
+            service.reset_video_localizations("video-1")
+
+    def test_reset_does_not_write_without_a_safe_default_language(self):
+        account = Mock()
+        account.get_video_with_localizations.return_value = {
+            "id": "video-1",
+            "snippet": {
+                "title": "Title",
+                "description": "Description",
+                "categoryId": "22",
+            },
+            "localizations": {"de": {"title": "DE", "description": "DE"}},
+        }
+        service = YoutubeService(account)
+
+        with self.assertRaisesRegex(YoutubeResetError, "defaultLanguage"):
+            service.reset_video_localizations("video-1")
+
+        account.update_video_localizations.assert_not_called()
 
     def test_language_catalog_comes_from_youtube_and_is_cached(self):
         account = Mock()

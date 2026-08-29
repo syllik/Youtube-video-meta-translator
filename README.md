@@ -3,10 +3,10 @@
 A local Streamlit app for managing YouTube video titles and descriptions.
 
 The app has one primary workflow, **Translate**. Select a video, choose its
-source languages, generate translations with the local Codex CLI or provide
-JSON manually/from an external LLM, then edit, validate, preview, and publish
-the result safely. The supporting **LLM Translation prompt** page prepares a
-prompt for users who do not use local Codex.
+source languages, generate translations with the local Codex CLI or upload a
+UTF-8 JSON result from an external LLM, then preview and publish the validated
+draft safely. The supporting **LLM Translation prompt** page prepares a prompt
+for users who do not use local Codex.
 
 Both pages use the same selected video and source-language state. The default
 YouTube language is always the authoritative primary source. Existing
@@ -14,9 +14,9 @@ localizations may be selected as optional verified reference translations; the
 selection resets when the video changes.
 
 The optional Codex CLI helper can automate missing-language generation outside
-Streamlit. It produces direct localization JSON for review in the Translate
-editor, never publishes by itself, and uses local ChatGPT/Codex authentication
-without an API key; see [LLM localizations](docs/llm-localizations.md).
+Streamlit. It produces a direct localization document for review in Translate,
+never publishes by itself, and uses local ChatGPT/Codex authentication without
+an API key; see [LLM localizations](docs/llm-localizations.md).
 
 ## 🧭 Start here
 
@@ -26,7 +26,7 @@ without an API key; see [LLM localizations](docs/llm-localizations.md).
 | --- | --- | --- |
 | 🚀 | [Getting started](docs/getting-started.md) | Install the project and launch it for the first time. |
 | 🔐 | [Configuration](docs/configuration.md) | Set up the YouTube OAuth client. |
-| ▶️ | [Translate workflow](docs/manual-localizations.md) | Generate or provide JSON, edit, validate, preview, and publish. |
+| ▶️ | [Translate workflow](docs/translate-workflow.md) | Generate or upload translations, preview, and publish. |
 | ✨ | [LLM Translation prompt](docs/llm-localizations.md) | Prepare an external-LLM prompt or use local Codex generation. |
 | ❓ | [FAQ](pages/3_FAQ.py) | Get short answers about the workflow and safe publishing. |
 | 🆘 | [Troubleshooting](docs/troubleshooting.md) | Fix setup, OAuth, dependency, port, or API problems. |
@@ -70,17 +70,15 @@ streamlit run streamlit_app.py
 2. In **Source languages**, keep the default source selected and optionally
    select existing localizations as verified references. A video with only its
    default source uses it automatically without a multiselect.
-3. Review **Localization JSON Example**, then use **Manual edit** if you want
-   to enter or change direct localization JSON.
-4. In **Generate translations**, click **Generate missing translations** for
-   local Codex generation, or open **LLM Translation prompt** for an external
-   LLM. Generated and uploaded entries merge into the current Manual edit
-   draft; an overlapping language replaces only that entry.
-5. Click **Preview changes**. Preview never writes to YouTube.
-6. Click **Publish changes** only after reviewing a valid current preview.
+3. In **Generate translations**, click **Generate missing translations** for
+   local Codex generation, or open **LLM Translation prompt** and upload the
+   downloaded UTF-8 JSON file. Each valid result becomes the internal
+   translation draft; an overlapping language replaces only that entry.
+4. Click **Preview changes**. Preview never writes to YouTube.
+5. Click **Publish changes** only after reviewing a valid current preview.
    Publish refetches the current video, preserves omitted existing
    localizations, and updates one selected video.
-7. Confirm the result in YouTube Studio.
+6. Confirm the result in YouTube Studio.
 
 The prompt page uses the same source selection as Translate. It offers only
 currently missing languages from YouTube's live `i18nLanguages.list` catalog,
@@ -95,9 +93,9 @@ next cursor-backed batch; changing the page starts a new visible batch. Click a
 thumbnail to open the video on YouTube.
 
 **Reset languages** is destructive: after the native browser confirmation, all
-localizations for that video are removed while its default title, description,
-language, and required metadata remain. Save translations you need before
-confirming. The control calls the server-side reset operation without
+non-default localizations for that video are removed while its default title,
+description, language, and required metadata remain. Save translations you need
+before confirming. The control calls the server-side reset operation without
 navigating away or changing URL parameters. The FAQ page is static and opens
 even when YouTube OAuth or the API is unavailable.
 

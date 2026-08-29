@@ -18,7 +18,6 @@ def init_common_state(state: MutableMapping[str, Any]) -> MutableMapping[str, An
     state.setdefault("common.selected_source_codes", ())
     state.setdefault("common.video_accumulation", None)
     state.setdefault("common.video_operation_status", "idle")
-    state.setdefault("common.manual_reload_video_id", None)
     state.setdefault("common.pending_sidebar_feedback", None)
     state.setdefault("common.pending_reset_video_id", None)
     state.setdefault("common.last_reset_event", None)
@@ -138,6 +137,16 @@ def set_selected_video_id(
         return False
     state["common.selected_video_id"] = video_id
     return True
+
+
+def clear_source_selection(
+    state: MutableMapping[str, Any], video_id: Optional[str]
+) -> None:
+    """Clear source choices that belong to a reset video."""
+    init_common_state(state)
+    if state.get("common.source_video_id") == video_id:
+        state["common.source_video_id"] = None
+        state["common.selected_source_codes"] = ()
 
 
 def reset_video_cache(state: MutableMapping[str, Any]) -> None:

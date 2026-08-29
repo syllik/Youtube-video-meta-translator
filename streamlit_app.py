@@ -13,7 +13,7 @@ PAGE_TITLES = {
 }
 
 PAGE_DESCRIPTIONS = {
-    "translate": "Generate, edit, validate, preview, and publish YouTube localization JSON.",
+    "translate": "Generate or upload translations, preview the changes, and publish them safely.",
     "prompt": "Prepare a source-aware prompt for an external LLM when local Codex is unavailable.",
     "faq": "Answers to common questions about the YouTube localization workflow.",
 }

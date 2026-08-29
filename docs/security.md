@@ -39,6 +39,6 @@ video before publishing larger changes.
 
 The application does not connect to an LLM provider or store an LLM API key.
 Uploaded localization JSON remains in the local Streamlit session until the
-user edits or publishes it.
+translation draft is published or the selected video changes.
 
 ➡️ [Return to the setup guide](getting-started.md)

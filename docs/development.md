@@ -12,7 +12,7 @@ Youtube-video-meta-translator/
 ├── streamlit_app.py                 # Streamlit entry point and common bootstrap
 ├── pages/                           # Translate, prompt, and static FAQ pages
 ├── services/                        # YouTube and localization boundaries
-├── state/                           # Common, universal editor, and prompt state
+├── state/                           # Common, translation draft, and prompt state
 ├── ui/                              # Shared and workflow-specific widgets
 │   ├── sidebar.py                   # Persistent channel and video navigation
 │   ├── reset_control.py             # Browser-confirmed reset component bridge
@@ -37,12 +37,11 @@ Youtube-video-meta-translator/
 
 The Translate page and supporting prompt page share the YouTube boundary,
 selected video, source selection, and live catalog stored in session state.
-Translate owns one universal Manual edit/preview/publish state. The prompt page
-owns only target and prompt/upload state. The default source is authoritative;
-selected existing localizations are optional verified references with real
-title/description metadata. Source selection resets when the selected video
-changes. Manual edit drafts survive normal reruns and reload only on explicit
-lifecycle events. The persistent sidebar renders compact cards, live-catalog
+Translate owns one internal translation draft and Preview/Publish state. The
+prompt page owns only target and prompt/upload state. The default source is
+authoritative; selected existing localizations are optional verified references
+with real title/description metadata. Source selection resets when the selected
+video changes. The persistent sidebar renders compact cards, live-catalog
 counts, cursor-backed Load more, and destructive Reset languages on both pages.
 FAQ is static and intentionally bypasses YouTube bootstrap and OAuth.
 
@@ -81,10 +80,10 @@ success result is `No broken requirements found.`
 - Publish validates again, refetches current state, and performs at most one
   update for one video.
 - Existing localizations omitted from submitted JSON are preserved.
-- Manual edit starts from current live localizations, while deleting a key in the
-  draft does not delete it from YouTube during normal Publish.
-- Codex and external-LLM JSON merge into the current draft; they do not replace
-  unrelated language entries.
+- Codex and valid external-LLM JSON become one internal translation draft; they
+  do not replace unrelated draft entries.
+- Generated or uploaded languages replace matching YouTube entries while
+  omitted existing localizations remain preserved during normal Publish.
 - Reset languages is the only full-localization deletion path and preserves
   default metadata through a separate reset payload. Its confirmed component
   event calls the API without navigating or changing URL parameters.
@@ -102,7 +101,7 @@ success result is `No broken requirements found.`
   omitted localizations, and refreshes the displayed YouTube progress.
 - `FAQ` can render without YouTube service construction, OAuth, or API access.
 
-Read [Translate workflow](manual-localizations.md) and
+Read [Translate workflow](translate-workflow.md) and
 [LLM Translation prompt](llm-localizations.md) for the product constraints.
 
 ## 📝 Documentation changes

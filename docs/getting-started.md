@@ -131,7 +131,7 @@ and migrated to the safer JSON format.
 
 ## ➡️ Next step
 
-- [Use Translate](manual-localizations.md)
+- [Use Translate](translate-workflow.md)
 - [Use LLM Translation prompt](llm-localizations.md)
 - [Read the FAQ](../pages/3_FAQ.py)
 - [Troubleshoot setup](troubleshooting.md)

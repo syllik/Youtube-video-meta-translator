@@ -12,11 +12,7 @@ FAQ_ENTRIES = (
     ),
     (
         "What is the basic workflow?",
-        "Select a video, review source languages, generate or edit JSON, preview the changes, and publish only after checking the diff.",
-    ),
-    (
-        "What is Manual edit?",
-        "It is the editable direct JSON draft for the selected video's current localizations.",
+        "Select a video, review source languages, generate or upload translations, preview the changes, and publish only after checking the diff.",
     ),
     (
         "What does Codex do?",
@@ -39,8 +35,8 @@ FAQ_ENTRIES = (
         "It permanently removes all localizations for the selected video and keeps only its default metadata.",
     ),
     (
-        "Does deleting JSON keys delete YouTube translations?",
-        "No. Normal Publish preserves existing languages omitted from your JSON. Use Reset languages to remove all localizations.",
+        "What happens to existing translations?",
+        "Normal Publish preserves existing YouTube localizations that are not included in the generated or uploaded draft. Use Reset languages to remove all localizations.",
     ),
     (
         "Is Reset destructive?",
@@ -48,7 +44,7 @@ FAQ_ENTRIES = (
     ),
     (
         "What is the safest recommended workflow?",
-        "Save important translations, select useful source references, generate or edit carefully, preview the diff, then publish one video at a time.",
+        "Save important translations, select useful source references, generate or upload carefully, preview the diff, then publish one video at a time.",
     ),
     (
         "What happens if something fails?",

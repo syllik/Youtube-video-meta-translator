@@ -1,8 +1,7 @@
-import json
 import unittest
 from unittest.mock import Mock
 
-from services.manual_localization_service import ManualLocalizationService
+from services.localization_service import LocalizationService
 from youtube_account import YoutubeVideoNotFoundError
 
 
@@ -42,21 +41,19 @@ class FakeYoutubeService:
         return {"id": payload["id"]}
 
 
-class ManualLocalizationServiceTests(unittest.TestCase):
+class LocalizationServiceApiTests(unittest.TestCase):
     def setUp(self):
         self.youtube = FakeYoutubeService()
-        self.service = ManualLocalizationService(self.youtube)
+        self.service = LocalizationService(self.youtube, ("de", "es", "fr"))
 
     def test_preview_serializes_all_diff_statuses_and_never_writes(self):
         result = self.service.preview(
             "video-1",
-            json.dumps(
-                {
-                    "de": {"title": "Alt DE", "description": "Alt DE"},
-                    "es": {"title": "Nuevo ES", "description": "Nuevo ES"},
-                    "fr": {"title": "New FR", "description": "Old FR"},
-                }
-            ),
+            {
+                "de": {"title": "Alt DE", "description": "Alt DE"},
+                "es": {"title": "Nuevo ES", "description": "Nuevo ES"},
+                "fr": {"title": "New FR", "description": "Old FR"},
+            },
         )
 
         self.assertTrue(result.plan.is_valid)
@@ -72,7 +69,7 @@ class ManualLocalizationServiceTests(unittest.TestCase):
     def test_publish_revalidates_and_returns_write_status(self):
         result = self.service.publish(
             "video-1",
-            json.dumps({"es": {"title": "Nuevo ES", "description": "Nuevo ES"}}),
+            {"es": {"title": "Nuevo ES", "description": "Nuevo ES"}},
         )
 
         self.assertTrue(result.wrote)
@@ -80,12 +77,12 @@ class ManualLocalizationServiceTests(unittest.TestCase):
         self.assertEqual(len(self.youtube.update_calls), 1)
         self.assertIn("fr", self.youtube.update_calls[0]["localizations"])
 
-    def test_invalid_raw_json_returns_validation_error_without_fetch_or_write(self):
-        result = self.service.publish("video-1", '{"es":')
+    def test_invalid_draft_returns_validation_error_without_fetch_or_write(self):
+        result = self.service.publish("video-1", {"es": {"title": 4}})
 
         self.assertFalse(result.plan.is_valid)
         self.assertFalse(result.wrote)
-        self.assertIsNone(result.plan.issues[0].path)
+        self.assertEqual(result.plan.issues[0].path, "es.description")
         self.assertEqual(self.youtube.events, [])
         self.assertEqual(self.youtube.update_calls, [])
 
@@ -97,7 +94,7 @@ class ManualLocalizationServiceTests(unittest.TestCase):
         with self.assertRaises(RuntimeError) as error:
             self.service.preview(
                 "video-1",
-                json.dumps({"es": {"title": "New", "description": "New"}}),
+                {"es": {"title": "New", "description": "New"}},
             )
 
         self.assertEqual(str(error.exception), "private test detail")
@@ -110,7 +107,7 @@ class ManualLocalizationServiceTests(unittest.TestCase):
         with self.assertRaises(YoutubeVideoNotFoundError):
             self.service.preview(
                 "missing-video",
-                json.dumps({"es": {"title": "New", "description": "New"}}),
+                {"es": {"title": "New", "description": "New"}},
             )
 
 

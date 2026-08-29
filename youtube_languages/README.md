@@ -4,13 +4,13 @@ This folder contains a small helper tool that fetches the current list of
 languages exposed by YouTube. The list is not hard-coded: every run calls the
 official YouTube Data API v3 `i18nLanguages.list` endpoint.
 
-The tool supports the manual video-localization workflow:
+The tool supports the translation workflow:
 
 1. fetch fresh YouTube BCP-47 language codes;
 2. pass the codes and the source `title` and `description` to a translation
    generation system;
-3. paste the resulting JSON into the web application;
-4. review the preview and publish the video localizations to YouTube.
+3. upload the resulting UTF-8 JSON file on the Translate page;
+4. review the Preview changes report and publish the video localizations to YouTube.
 
 The script does not translate text or publish videos. It only refreshes the
 language catalog so a generation system can use the current list.
@@ -106,7 +106,7 @@ translated language names.
 Prompt template:
 
 ```text
-You are a YouTube localization editor.
+You are a YouTube localization specialist.
 
 Source video title:
 <SOURCE_TITLE>
@@ -146,19 +146,21 @@ Return only the JSON object.
 Before sending the result to the application, verify that it is a localization
 object and not a wrapper such as `{"languages": [...]}`.
 
-### 4. Paste JSON into the web application
+### 4. Upload JSON to the web application
 
-1. Open the web application and choose the **Manual translate** page.
+1. Open the web application and choose **Translate**.
 2. Click **Select** on the required video card.
-3. Paste the localization object into **Localizations JSON**.
+3. Open **LLM Translation prompt** if you need to prepare an external-LLM result,
+   then return to **Translate** and upload the UTF-8 JSON file.
 4. Click **Preview changes**.
 5. Review added, changed, unchanged, and invalid languages.
 6. Click **Publish changes** only after reviewing the preview.
 
-The web application fetches the current video state again before publishing and
-merges the submitted localizations with existing ones. Languages omitted from
-the submitted JSON are therefore preserved. Only localizations included in the
-JSON and accepted by the YouTube/API validation are updated.
+The web application validates the uploaded document, fetches the current video
+state again before publishing, and merges submitted localizations with existing
+ones. Languages omitted from the submitted JSON are therefore preserved. Only
+localizations included in the JSON and accepted by YouTube/API validation are
+updated.
 
 Minimal application format:
 

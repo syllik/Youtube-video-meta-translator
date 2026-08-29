@@ -7,10 +7,8 @@ from localizations import (
     ParsedLocalizations,
     build_localization_diff,
     build_localization_plan,
-    build_manual_draft_json,
     build_video_reset_update_payload,
     build_video_update_payload,
-    merge_localization_documents,
     merge_localizations,
     parse_localizations_json,
 )
@@ -278,24 +276,20 @@ class LocalizationDiffTests(unittest.TestCase):
         self.assertEqual(plan.preserved_language_codes, ("fr",))
 
 
-class ManualDraftTests(unittest.TestCase):
-    def test_manual_draft_excludes_default_language(self):
-        raw_json = build_manual_draft_json(VIDEO_RESOURCE)
-
-        self.assertEqual(
-            json.loads(raw_json),
-            {
-                "de": {"title": "Alt", "description": "Alt"},
-                "fr": {"title": "Même", "description": "Même"},
-            },
-        )
-        self.assertNotIn("defaultLanguage", json.loads(raw_json))
-
-    def test_reset_payload_clears_localizations_and_preserves_default_metadata(self):
+class LocalizationResetPayloadTests(unittest.TestCase):
+    def test_reset_payload_uses_default_localization_and_preserves_metadata(self):
         payload = build_video_reset_update_payload(VIDEO_RESOURCE)
 
         self.assertEqual(payload["id"], "video-1")
-        self.assertEqual(payload["localizations"], {})
+        self.assertEqual(
+            payload["localizations"],
+            {
+                "en": {
+                    "title": "Original title",
+                    "description": "Original description",
+                }
+            },
+        )
         self.assertEqual(
             payload["snippet"],
             {
@@ -308,33 +302,28 @@ class ManualDraftTests(unittest.TestCase):
         )
         self.assertEqual(VIDEO_RESOURCE["localizations"]["de"]["title"], "Alt")
 
-    def test_merge_localization_documents_replaces_only_overlapping_codes(self):
-        current = json.dumps(
-            {
-                "de": {"title": "Old DE", "description": "Old"},
-                "fr": {"title": "FR", "description": "FR"},
-                "es": {"title": "ES", "description": "ES"},
-            }
-        )
-
-        merged = merge_localization_documents(
-            current,
-            {
-                "DE": {"title": "New DE", "description": "New"},
-                "ja": {"title": "JA", "description": "JA"},
+    def test_reset_payload_rejects_missing_default_language(self):
+        resource = {
+            **VIDEO_RESOURCE,
+            "snippet": {
+                key: value
+                for key, value in VIDEO_RESOURCE["snippet"].items()
+                if key != "defaultLanguage"
             },
-        )
+        }
 
-        self.assertEqual(
-            json.loads(merged),
-            {
-                "DE": {"title": "New DE", "description": "New"},
-                "fr": {"title": "FR", "description": "FR"},
-                "es": {"title": "ES", "description": "ES"},
-                "ja": {"title": "JA", "description": "JA"},
-            },
-        )
+        with self.assertRaisesRegex(ValueError, "defaultLanguage"):
+            build_video_reset_update_payload(resource)
 
+    def test_reset_payload_keeps_youtube_default_language_casing(self):
+        resource = {
+            **VIDEO_RESOURCE,
+            "snippet": {**VIDEO_RESOURCE["snippet"], "defaultLanguage": "pt-BR"},
+        }
+
+        payload = build_video_reset_update_payload(resource)
+
+        self.assertEqual(tuple(payload["localizations"]), ("pt-BR",))
 
 if __name__ == "__main__":
     unittest.main()

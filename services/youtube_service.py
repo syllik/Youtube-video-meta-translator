@@ -3,9 +3,13 @@
 from typing import Any, Dict, Mapping, Optional
 
 from language_catalog import YouTubeLanguageCatalog, build_language_catalog
-from localizations import build_video_reset_update_payload
+from localizations import WRITABLE_SNIPPET_FIELDS, build_video_reset_update_payload
 from models import ChannelInfo, PageLimit, VideoSummary, YouTubePage
 from youtube_account import YoutubeApi
+
+
+class YoutubeResetError(RuntimeError):
+    """Raised when a localization reset cannot be completed safely."""
 
 
 class YoutubeService:
@@ -58,8 +62,63 @@ class YoutubeService:
     def reset_video_localizations(self, video_id: str) -> Mapping[str, Any]:
         """Delete all localizations while preserving the video's default metadata."""
         video = self.get_video_with_localizations(video_id)
-        payload = build_video_reset_update_payload(video)
-        return self.account.update_video_localizations(payload)
+        try:
+            payload = build_video_reset_update_payload(video)
+        except ValueError as error:
+            raise YoutubeResetError(str(error)) from error
+
+        result = self.account.update_video_localizations(payload)
+        verified = self.get_video_with_localizations(video_id)
+        self._verify_reset(video, verified)
+        return result
+
+    @staticmethod
+    def _verify_reset(
+        source: Mapping[str, Any], verified: Mapping[str, Any]
+    ) -> None:
+        if (
+            not isinstance(source, Mapping)
+            or not isinstance(verified, Mapping)
+            or verified.get("id") != source.get("id")
+        ):
+            raise YoutubeResetError(
+                "Reset verification failed: YouTube returned a different video"
+            )
+        source_snippet = source.get("snippet") or {}
+        verified_snippet = verified.get("snippet") or {}
+        if not isinstance(source_snippet, Mapping) or not isinstance(
+            verified_snippet, Mapping
+        ):
+            raise YoutubeResetError(
+                "Reset verification failed: YouTube returned invalid snippet metadata"
+            )
+        default_language = source_snippet.get("defaultLanguage")
+        default_folded = default_language.casefold()
+        localizations = verified.get("localizations") or {}
+        if not isinstance(localizations, Mapping):
+            raise YoutubeResetError(
+                "Reset verification failed: YouTube returned invalid localizations"
+            )
+
+        remaining = tuple(
+            code
+            for code in localizations
+            if not isinstance(code, str) or code.casefold() != default_folded
+        )
+        if remaining:
+            raise YoutubeResetError(
+                "Reset verification failed: non-default localizations remain ({})".format(
+                    ", ".join(str(code) for code in remaining)
+                )
+            )
+
+        for field in WRITABLE_SNIPPET_FIELDS:
+            if field in source_snippet and verified_snippet.get(field) != source_snippet[field]:
+                raise YoutubeResetError(
+                    "Reset verification failed: default snippet.{} changed".format(
+                        field
+                    )
+                )
 
     @staticmethod
     def _to_video_summary(video: Any) -> VideoSummary:

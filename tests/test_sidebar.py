@@ -182,10 +182,24 @@ class SidebarTests(unittest.TestCase):
         )
         state = {
             "common.selected_video_id": "video-1",
+            "common.source_video_id": "video-1",
+            "common.selected_source_codes": ("en", "de"),
             "common.page_tokens_by_limit": {10: {2: "token"}},
             "common.video_pages_by_limit": {10: {1: self.context.page}},
             "common.video_accumulation": {"page": 1, "limit": 10, "through_page": 1},
             "common.pending_reset_video_id": "video-1",
+            "translation": {
+                "bound_video_id": "video-1",
+                "draft": {"de": {"title": "DE", "description": "DE"}},
+                "preview_result": object(),
+            },
+            "llm": {
+                "bound_video_id": "video-1",
+                "prompt_video_id": "video-1",
+                "prompt_target_codes": ("fr",),
+                "selected_target_codes": ("fr",),
+                "prompt_text": "translate",
+            },
         }
         query_params = {"page": "1", "limit": "10"}
         fake = _FakeStreamlit()
@@ -197,7 +211,12 @@ class SidebarTests(unittest.TestCase):
         reset.assert_called_once_with("video-1")
         self.assertEqual(state["common.page_tokens_by_limit"], {})
         self.assertEqual(state["common.video_pages_by_limit"], {})
-        self.assertEqual(state["common.manual_reload_video_id"], "video-1")
+        self.assertIsNone(state["common.source_video_id"])
+        self.assertEqual(state["common.selected_source_codes"], ())
+        self.assertEqual(state["translation"]["draft"], {})
+        self.assertIsNone(state["translation"]["preview_result"])
+        self.assertIsNone(state["llm"]["prompt_video_id"])
+        self.assertEqual(state["llm"]["prompt_text"], "")
         self.assertEqual(query_params, {"page": "1", "limit": "10"})
 
 
