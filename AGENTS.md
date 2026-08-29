@@ -2,9 +2,13 @@
 
 ## Documentation language and maintenance
 
-- Keep baseline project documentation in English only. Do not add Russian or
-  other-language prose to `README.md`, `docs/`, or tool-specific guides until
-  an explicit localization policy is introduced.
+- Keep canonical project documentation in English. Ordinary-user localized
+  guides are allowed only at `docs/i18n/<locale>/README.md`.
+- Update localized guides only after the canonical English documentation is
+  current. Keep `docs/development.md` English-only and never translate or use
+  `docs/superpowers/**` as current user documentation.
+- Preserve technical identifiers, repository paths, BCP-47 codes, product
+  names, shell commands, and literal UI labels in localized guides.
 - Update the relevant documentation in the same change as any code, UI, UX, or
   workflow change. Do not defer documentation updates to a separate task.
 - Keep documentation aligned with the current implementation. Remove or revise

@@ -4,15 +4,11 @@ The Translate page uses one safe flow for a selected video:
 
 ```text
 Select video
-    ↓
-Source languages
-    ↓
-Generate missing translations with Codex
-or upload JSON from an external LLM
-    ↓
-Preview changes
-    ↓
-Publish changes
+→ Primary source + optional reference translations
+→ Codex or External LLM
+→ Preview changes
+→ Publish changes
+→ refreshed current state
 ```
 
 ## 1. Select a video and source languages
@@ -20,6 +16,9 @@ Publish changes
 Select one video in the sidebar. Keep the video's default language selected as
 the authoritative source. Existing YouTube localizations may be selected as
 optional verified references. Source selection is scoped to the selected video.
+The primary source is shown as read-only information. Only existing
+localizations can be selected as optional reference translations; clearing all
+references still leaves the primary source selected.
 
 The target list and sidebar counts use the checked-in
 `data/youtube-metadata-languages.json` metadata catalog. The default language is
@@ -64,7 +63,8 @@ the draft again and fetches the selected video immediately before writing. It
 compares the fetched resource with the resource reviewed in Preview; if YouTube
 changed in the meantime, no update is sent and the app asks you to Preview
 again. When YouTube provides an ETag, the update also uses it as a conditional
-write guard.
+write guard. After a successful write, the sidebar video-page cache is cleared
+before rerun, so the localization count is fetched again automatically.
 
 The update uses safe merge semantics:
 
@@ -73,24 +73,35 @@ The update uses safe merge semantics:
 - the default language is kept as the video's primary metadata, not treated as
   a target localization.
 
-After publishing, confirm the result in YouTube Studio. If the selected video
-changes, its draft and Preview state are cleared.
+After publishing, confirm the result in YouTube Studio. A successful Publish
+clears the video-page cache before rerun, so the sidebar count reflects the
+fresh YouTube state without a manual Refresh. If the selected video changes,
+its draft and Preview state are cleared.
+
+Publish has mutually exclusive visible outcomes: a successful write clears the
+cache and refreshes the page; a valid no-change result reports that there is
+nothing to publish; a conflict or service error reports failure and does not
+claim that the cache was refreshed.
 
 ## Reset languages
 
-**Reset languages** is a separate destructive sidebar action. After the native
-browser confirmation, the app:
+**Reset languages** is a separate destructive sidebar action in the collapsed
+**Danger zone** for the current selected video. It is not rendered on every
+video card. After the native browser confirmation, the app:
 
-1. fetches the latest video resource;
-2. preserves the canonical `snippet.defaultLanguage`, current default title and
+1. fetches the latest video resource for the exact selected video;
+2. requires a usable fresh ETag and sends a conditional `If-Match` update;
+3. preserves the canonical `snippet.defaultLanguage`, current default title,
    description, and writable snippet metadata;
-3. sends the default language entry as the YouTube API reset workaround;
-4. fetches the video again and verifies that every non-default localization is
+4. sends the default language entry as the YouTube API reset workaround;
+5. fetches the video again and verifies that every non-default localization is
    gone and the default metadata is unchanged.
 
-If the default language cannot be determined safely, no destructive update is
-sent. If post-write verification finds a remaining non-default localization or
-changed default metadata, the operation is reported as failed and no success is
-shown. A confirmed successful reset clears the selected video's draft, Preview,
-source selection, prompt/upload state, and sidebar cache before refetching live
-data.
+Reset never falls back to an unconditional destructive update. A changed
+selection or HTTP 412 is a no-write conflict with no automatic retry and
+requires a new explicit confirmation. The reset also refuses to write when the
+default language or a usable ETag is unavailable. If post-write verification
+finds a remaining non-default localization or changed default metadata, the
+operation is reported as failed and no success is shown. A confirmed
+successful reset clears the selected video's draft, Preview, source selection,
+prompt/upload state, and sidebar cache before refetching live data.

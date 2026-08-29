@@ -20,9 +20,10 @@ For the selected video:
   the default and every selected source language.
 
 Source selection is shared between **Translate** and this supporting page while
-the same video is selected. It resets when the video changes and is not stored
-permanently. A video with only its default source uses that source automatically
-without a meaningless one-option multiselect.
+the same video is selected. The primary source is displayed separately as
+read-only information. Only existing localizations are optional reference
+choices; clearing them still leaves the primary source selected. The selection
+resets when the video changes and is not stored permanently.
 
 The video metadata catalog comes from the checked-in
 `data/youtube-metadata-languages.json` snapshot; codes retain its canonical
@@ -32,16 +33,24 @@ localization validation. The public Data API documents no exhaustive
 
 ## Use an external LLM
 
-1. Select a video in the sidebar and choose source languages on **Translate** or
-   this page.
-2. Choose up to ten missing target languages. The first ten are selected by
-   default.
-3. Copy the prepared prompt from the native read-only code block.
-4. Paste it into an external LLM and ask for one downloadable UTF-8 JSON file.
-5. Return to **Translate** and upload the file; it becomes the internal
-   translation draft after validation.
-6. Click **Preview changes**, review the diff, and explicitly **Publish
-   changes**.
+On **Translate**, the complete external path is visible before preparation:
+
+1. **Prepare prompt** on the supporting **LLM Translation prompt** page.
+2. Generate JSON in an external LLM.
+3. **Upload JSON** on **Translate**.
+
+The upload control stays inactive until the prepared prompt matches the current
+video and exact target-language tuple. Its binding includes the video ID,
+target codes, and uploaded file SHA-256. A stale prompt or target set cannot
+unlock the uploader.
+
+On the prompt page, select a video and choose source languages on **Translate**
+or this page. Choose up to ten missing target languages; the first ten are
+selected by default. Copy the prepared prompt from the native read-only code
+block, paste it into an external LLM, and ask for one downloadable UTF-8 JSON
+file. Return to **Translate** and upload the file; it becomes the internal
+translation draft after validation. Then click **Preview changes**, review the
+diff, and explicitly **Publish changes**.
 
 The app does not send data to linked websites or require an LLM provider API
 key. Convenience links are available for [ChatGPT](https://chatgpt.com/),
@@ -152,6 +161,9 @@ omitted languages, and requires a current valid Preview.
 
 Use **Reset languages** only when you intentionally want to delete every
 localization for one video. It is a separate destructive operation with native
-browser confirmation; normal omitted-key Publish behavior is unchanged.
+browser confirmation in the selected-video **Danger zone**. It requires a fresh
+ETag and conditional `If-Match` write; missing ETag, changed selection, or HTTP
+412 means no accepted write and no automatic retry. Normal omitted-key Publish
+behavior is unchanged.
 
 ➡️ [Troubleshooting](troubleshooting.md)

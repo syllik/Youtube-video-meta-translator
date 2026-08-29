@@ -45,11 +45,14 @@ the repository snapshot is deliberately reviewable and versioned; it is not
 derived from captions, audio, ISO lists, or private Studio endpoints.
 Translate owns one internal translation draft and Preview/Publish state. The
 prompt page owns only target and prompt/upload state. The default source is
-authoritative; selected existing localizations are optional verified references
-with real title/description metadata. Source selection resets when the selected
-video changes. The persistent sidebar renders compact cards, metadata-catalog
-counts, cursor-backed Load more, and destructive Reset languages on both pages.
-FAQ is static and intentionally bypasses YouTube bootstrap and OAuth.
+authoritative and read-only; selected existing localizations are optional
+verified references with real title/description metadata. Source selection
+resets when the selected video changes. The persistent sidebar renders compact
+cards, metadata-catalog counts, cursor-backed Load more, and destructive Reset
+languages only in the selected-video Danger zone. Reset uses fresh ETag
+conditional writes and post-write verification. Successful Publish invalidates
+video-page cache before rerun. FAQ is static and intentionally bypasses
+YouTube bootstrap and OAuth.
 
 ## 🧪 Run automated tests
 

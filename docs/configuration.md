@@ -72,6 +72,20 @@ Automatic generation is a separate local option. It uses the installed Codex
 CLI and its local authentication session; follow [Automatic local Codex CLI generation](llm-localizations.md#automatic-local-codex-cli-generation)
 for installation, sign-in, and smoke-test commands.
 
+### First-run recovery
+
+- If the OAuth client is missing, create a **Desktop app** client and save it at
+  `config/account_client_secrets_main.json`.
+- If the file is malformed or is the wrong client type, download a new Desktop
+  app JSON file and replace it.
+- If the browser callback cannot connect, keep the app terminal open and allow
+  local access to `127.0.0.1:8080`, then restart authorization.
+- If authorization is expired or revoked, restart the flow with the same Google
+  account. Remove `token.json` only when a fresh authorization is required.
+
+The app displays an actionable error for each case. Do not paste OAuth JSON,
+token contents, or full diagnostic environment output into an issue.
+
 ### Credential boundary
 
 YouTube and Codex authentication are separate:

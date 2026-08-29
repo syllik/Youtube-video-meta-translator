@@ -137,9 +137,16 @@ explicitly reports `Not logged in`. Interpret the other outcomes as follows:
 - If the CLI works in the terminal but fails only in the UI → restart
   Streamlit from that same working terminal environment.
 
-## 🔑 `FileNotFoundError` for the OAuth file
+## 🔑 OAuth client file is missing
 
-Check that:
+The app expects this exact path:
+
+```text
+config/account_client_secrets_main.json
+```
+
+Download a Google OAuth client JSON for a **Desktop app**, save it at this exact
+path, then restart the app. Check that:
 
 1. the command runs from the project root;
 2. the file is inside `config/`;
@@ -150,6 +157,13 @@ find config -maxdepth 1 -type f -print
 ```
 
 See [Configuration](configuration.md) for the complete OAuth setup.
+
+## 🔧 OAuth client JSON is malformed or the wrong type
+
+The file was found, but Google cannot use it. Create a Google OAuth client of
+type **Desktop app**, download a replacement, and save it as
+`config/account_client_secrets_main.json`. Do not use a Web application client
+for this local flow. The app does not display the credential contents.
 
 ## 🚫 Google says access is restricted
 
@@ -173,7 +187,19 @@ http://127.0.0.1:8501
 ## 🔄 The browser does not open after Google login
 
 Complete the Google authorization page opened by the app and wait for the
-terminal to finish the callback on port `8080`. Keep Streamlit running.
+terminal to finish the callback on `localhost:8080`. Keep Streamlit running.
+
+## 🚪 OAuth callback on `localhost:8080` failed
+
+Close the process using port `8080` or restart the app and complete Google
+authorization again. Do not delete the token automatically; if authorization
+is no longer valid, follow the recovery below.
+
+## 🔐 Authorization expired or was revoked
+
+The app refreshes authorization when possible. If YouTube reports that
+authorization is no longer valid, restart authorization; if necessary remove
+the local `token.json` and restart Streamlit. Never share the token contents.
 
 ## 🔗 `redirect_uri_mismatch`
 
@@ -222,21 +248,33 @@ invalid BCP-47 code means the key has malformed syntax such as `en_US` or
 `en--GB`; an unknown metadata localization language is syntactically plausible
 but absent from the snapshot.
 
-## 📊 YouTube quota errors
+## 📊 YouTube quota is exhausted
 
-YouTube Data API requests consume project quota. Avoid repeatedly reloading
-large channel lists, and start with one selected video.
+YouTube API quota is exhausted. Wait for the quota reset before trying again.
+Do not use an automatic retry loop. Avoid repeatedly reloading large channel
+lists, and start with one selected video after the reset.
 
-## 🧨 Reset languages was selected
+## 🎬 The selected video was not found
 
-Reset is intentionally destructive. It removes all non-default localizations
-after the native browser confirmation and preserves the current default
-metadata. The app verifies the fresh YouTube resource after the update; a
+The selected video may have been deleted or become unavailable. Refresh the list
+and select it again. Preview and Publish use the same recovery message and do
+not write when the exact selected video cannot be fetched.
+
+## 🌐 YouTube/Google cannot be reached
+
+Could not reach YouTube/Google. Check the connection and retry. The app shows a
+safe summary instead of a stack trace or raw API diagnostics.
+
+## 🧨 Reset languages conflict or failure
+
+Reset is intentionally destructive and exists only in the selected-video
+**Danger zone**. It fetches a fresh resource and requires a usable ETag before
+using conditional `If-Match`. A changed selection, missing ETag, or HTTP 412 is
+a no-write conflict with no automatic retry; refresh the list and confirm
+again. The app verifies the fresh YouTube resource after an accepted update; a
 verification failure is reported as an error rather than success. If you
 clicked **Cancel**, no YouTube request is made and the current page URL is
-unchanged. A confirmed reset calls the API without navigating away. If the
-reset failed, review the error, refresh the list, and verify the video in
-YouTube Studio before trying again.
+unchanged. A confirmed reset calls the API without navigating away.
 
 ## ➡️ Still blocked?
 

@@ -42,8 +42,10 @@ icon that matches your task and open the linked guide.
 - Keep historical design records and implementation plans separate from user
   setup help; do not use `superpowers` records as current instructions.
 - Update links when a guide is renamed.
-- Write baseline documentation in English only until a localization policy is
-  introduced.
+- Keep canonical documentation in English. Ordinary-user localized guides live
+  only under `docs/i18n/<locale>/README.md` and follow the canonical guides.
+- Keep `docs/development.md` English-only. Historical `docs/superpowers/**`
+  files are not user documentation and must not be translated.
 - Update the relevant documentation in the same change as code, UI, UX, or
   workflow changes.
 

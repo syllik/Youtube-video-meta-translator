@@ -12,7 +12,7 @@ FAQ_ENTRIES = (
     ),
     (
         "What is the basic workflow?",
-        "Select a video, review source languages, generate or upload translations, preview the changes, and publish only after checking the diff.",
+        "Select a video, review the read-only primary source and optional references, generate or upload translations, preview the changes, and publish only after checking the diff.",
     ),
     (
         "What does Codex do?",
@@ -31,8 +31,12 @@ FAQ_ENTRIES = (
         "Preview only compares your draft with YouTube. Publish performs the YouTube update and requires a current valid preview.",
     ),
     (
+        "What happens after a successful Publish?",
+        "The sidebar video-page cache is cleared and the current localization count is fetched again automatically. A no-change result or conflict does not pretend to refresh state.",
+    ),
+    (
         "What does Reset languages do?",
-        "It permanently removes all localizations for the selected video and keeps only its default metadata.",
+        "It permanently removes all non-default localizations for the selected video and keeps only its default metadata. Reset is available only in the selected-video Danger zone.",
     ),
     (
         "What happens to existing translations?",
@@ -40,7 +44,7 @@ FAQ_ENTRIES = (
     ),
     (
         "Is Reset destructive?",
-        "Yes. Confirm the native browser warning only after saving translations you want to keep.",
+        "Yes. Confirm the native browser warning only after saving translations you want to keep. Reset requires a fresh ETag and conditional write; a changed selection or HTTP 412 performs no accepted write.",
     ),
     (
         "What is the safest recommended workflow?",
@@ -49,6 +53,10 @@ FAQ_ENTRIES = (
     (
         "What happens if something fails?",
         "The tool shows an error and does not silently publish a partial result. Check the connection, refresh the list, and try again.",
+    ),
+    (
+        "How do I fix first-run authorization errors?",
+        "Save a Google Desktop app OAuth client at config/account_client_secrets_main.json. If authorization expires, restart authorization and remove the local token.json only when necessary. Never share credential contents.",
     ),
 )
 

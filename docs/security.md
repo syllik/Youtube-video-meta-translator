@@ -29,7 +29,8 @@ into GitHub issues, chats, screenshots, or bug reports.
 - Remove the secret from local logs and shared screenshots.
 
 Removing a file from the latest working tree is not enough if it was committed
-before; rotate the credential first.
+before; rotate the credential first. Do not publish diagnostic dumps containing
+credential contents, tokens, raw OAuth errors, or arbitrary environment values.
 
 ## 👤 Least privilege
 

@@ -129,6 +129,13 @@ stop it. After authorization, `token.json` is created in the project root and
 future launches normally reuse it. An older `token.pickle` is accepted once
 and migrated to the safer JSON format.
 
+If first authorization fails, follow the action shown in the app: restore the
+Desktop OAuth file at `config/account_client_secrets_main.json`, replace a
+malformed client JSON, allow the local callback on `127.0.0.1:8080`, or restart
+authorization if the account's consent has expired or been revoked. Delete
+`token.json` only for a deliberate re-authorization, and never share its
+contents.
+
 ## ➡️ Next step
 
 - [Use Translate](translate-workflow.md)

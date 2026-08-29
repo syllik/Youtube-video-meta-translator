@@ -18,6 +18,8 @@ Streamlit. It produces a direct localization document for review in Translate,
 never publishes by itself, and uses local ChatGPT/Codex authentication without
 an API key; see [LLM localizations](docs/llm-localizations.md).
 
+**Language navigation:** **English** · [简体中文](docs/i18n/zh-Hans/README.md) · [繁體中文](docs/i18n/zh-Hant/README.md) · [Español](docs/i18n/es/README.md) · [हिन्दी](docs/i18n/hi/README.md) · [Português (Brasil)](docs/i18n/pt-BR/README.md) · [বাংলা](docs/i18n/bn/README.md) · [Русский](docs/i18n/ru/README.md) · [日本語](docs/i18n/ja/README.md) · [پنجابی](docs/i18n/pa-Arab/README.md) · [Türkçe](docs/i18n/tr/README.md) · [Tiếng Việt](docs/i18n/vi/README.md) · [العربية](docs/i18n/ar/README.md) · [मराठी](docs/i18n/mr/README.md) · [తెలుగు](docs/i18n/te/README.md) · [한국어](docs/i18n/ko/README.md) · [தமிழ்](docs/i18n/ta/README.md) · [اردو](docs/i18n/ur/README.md) · [Bahasa Indonesia](docs/i18n/id/README.md) · [Deutsch](docs/i18n/de/README.md) · [Français](docs/i18n/fr/README.md) · [Basa Jawa](docs/i18n/jv/README.md) · [فارسی](docs/i18n/fa/README.md) · [Italiano](docs/i18n/it/README.md) · [Hausa](docs/i18n/ha/README.md) · [ગુજરાતી](docs/i18n/gu/README.md) · [भोजपुरी](docs/i18n/bho/README.md)
+
 ## 🧭 Start here
 
 👉 **[Open the documentation hub](docs/README.md)** to choose a path.
@@ -66,19 +68,30 @@ streamlit run streamlit_app.py
 
 ## ✅ Translate workflow
 
+```text
+Select video
+→ Primary source + optional reference translations
+→ Codex or External LLM
+→ Preview
+→ Publish
+→ refreshed current state
+```
+
 1. Select one video in the persistent sidebar.
 2. In **Source languages**, keep the default source selected and optionally
    select existing localizations as verified references. A video with only its
    default source uses it automatically without a multiselect.
-3. In **Generate translations**, click **Generate missing translations** for
-   local Codex generation, or open **LLM Translation prompt** and upload the
-   downloaded UTF-8 JSON file. Each valid result becomes the internal
-   translation draft; an overlapping language replaces only that entry.
+3. In **Generate translations**, choose **Codex** or the visible **External
+   LLM** three-step path: **Prepare prompt**, generate JSON externally, then
+   upload the downloaded UTF-8 JSON file. Each valid result becomes the
+   internal translation draft; an overlapping language replaces only that
+   entry.
 4. Click **Preview changes**. Preview never writes to YouTube.
 5. Click **Publish changes** only after reviewing a valid current preview.
    Publish refetches the current video, preserves omitted existing
    localizations, and updates one selected video.
-6. Confirm the result in YouTube Studio.
+6. Confirm the result in YouTube Studio. A successful Publish clears the cached
+   video pages so the sidebar count is refreshed automatically.
 
 The prompt page uses the same source selection as Translate. It offers only
 currently missing languages from the checked-in
@@ -87,17 +100,20 @@ targets, and never includes selected source languages as targets.
 
 The persistent sidebar shows compact channel details, YouTube/RSS links,
 refresh, page-size controls, pagination, and compact video cards. Cards show
-metadata-catalog localization counts as `done / undone`,
-full-width Select/Selected, and Reset languages. Use **Load more** to append the
-next cursor-backed batch; changing the page starts a new visible batch. Click a
-thumbnail to open the video on YouTube.
+metadata-catalog localization counts as `done / undone` and full-width
+Select/Selected controls. Use **Load more** to append the next cursor-backed
+batch; changing the page starts a new visible batch. Click a thumbnail to open
+the video on YouTube. Destructive **Reset languages** appears only in the
+selected-video **Danger zone**.
 
-**Reset languages** is destructive: after the native browser confirmation, all
-non-default localizations for that video are removed while its default title,
-description, language, and required metadata remain. Save translations you need
-before confirming. The control calls the server-side reset operation without
-navigating away or changing URL parameters. The FAQ page is static and opens
-even when YouTube OAuth or the API is unavailable.
+**Reset languages** is destructive: after the native browser confirmation, the
+app fetches the selected video again, requires a usable fresh ETag, and sends a
+conditional `If-Match` update. All non-default localizations are removed while
+the default title, description, language, and required metadata remain. A
+changed selection, missing ETag, or HTTP 412 is a no-write failure; refresh and
+confirm again. Save translations you need before confirming. The control does
+not navigate or change URL parameters. The FAQ page is static and opens even
+when YouTube OAuth or the API is unavailable.
 
 The metadata language catalog is a checked-in snapshot with explicit scope,
 provenance, review date, count, and canonical BCP-47 entries. The application
