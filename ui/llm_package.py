@@ -120,14 +120,12 @@ def render_llm_translation_controls(
     st.caption(
         "YouTube translations: {} / {}".format(progress.current, progress.total)
     )
-    st.page_link(
-        "pages/2_LLM_prompt.py",
-        label="LLM Translation prompt",
-    )
     if not progress.missing:
         st.success("All metadata localizations are complete.")
         return
 
+    st.page_link("pages/2_LLM_prompt.py", label="LLM Translation prompt")
+    st.markdown("**Codex**")
     if st.button(
         "Generate missing translations",
         key="llm-generate-missing-{}".format(video_resource["id"]),
@@ -176,24 +174,44 @@ def render_llm_translation_controls(
         st.rerun()
         return
 
+    st.markdown("**External LLM**")
+    st.markdown(
+        "1. Prepare prompt\n"
+        "2. Generate JSON in an external LLM\n"
+        "3. Upload JSON"
+    )
+
     prompt_video_id = prompt_state.get("prompt_video_id")
     target_codes = prompt_state.get("prompt_target_codes", ())
     prompt = prompt_state.get("prompt_text", "")
-    if prompt_video_id != video_resource.get("id") or not target_codes or not prompt:
-        return
-
-    render_language_badges(target_codes, label="Selected languages")
-    st.code(
-        '{\n  "de": {\n    "title": "Translated title",\n    "description": "Translated description"\n  }\n}',
-        language="json",
+    upload_ready = bool(
+        prompt_video_id == video_resource.get("id") and target_codes and prompt
     )
+
+    if not upload_ready:
+        st.caption(
+            "Prepare a prompt first so the upload can be bound to this video "
+            "and target-language set."
+        )
+
+    if upload_ready:
+        render_language_badges(target_codes, label="Selected languages")
+        st.code(
+            '{\n  "de": {\n    "title": "Translated title",\n    "description": "Translated description"\n  }\n}',
+            language="json",
+        )
 
     uploaded_file = st.file_uploader(
         "Upload JSON file",
         type=["json"],
         key="llm-localizations-upload-{}".format(video_resource["id"]),
+        disabled=not upload_ready,
+        help=(
+            "Prepare a prompt first so the upload can be bound to this video "
+            "and target-language set."
+        ),
     )
-    if uploaded_file is None:
+    if not upload_ready or uploaded_file is None:
         return
 
     file_content = uploaded_file.getvalue()

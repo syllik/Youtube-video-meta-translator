@@ -41,45 +41,59 @@ def render_source_selection(
             return ()
 
         st.caption(
-            "Primary source: {}. Existing localizations are optional verified reference translations.".format(
-                source_label(candidates[0], catalog)
-            )
+            "Primary source: {}".format(source_label(candidates[0], catalog))
         )
-        if len(candidates) == 1:
-            st.info(
-                "Using the default source automatically: {}.".format(
-                    source_label(candidates[0], catalog)
-                )
+        reference_candidates = candidates[1:]
+        if not reference_candidates:
+            st.info("No reference translations available.")
+            return set_source_selection(
+                session_state, video_id, (default_code,), default_code, codes
             )
-            return current
 
+        reference_codes = tuple(
+            source["languageCode"] for source in reference_candidates
+        )
         labels_by_code = {
             source["languageCode"]: source_label(source, catalog)
-            for source in candidates
+            for source in reference_candidates
         }
         widget_key = "common-source-languages-{}".format(video_id)
+        selected_references = tuple(
+            code
+            for code in current
+            if code.casefold() != default_code.casefold()
+        )
 
         def restore_primary_source() -> None:
             values = st.session_state.get(widget_key, ())
             normalized = set_source_selection(
                 session_state,
                 video_id,
-                values,
+                (default_code, *values),
                 default_code,
                 codes,
             )
-            st.session_state[widget_key] = list(normalized)
+            st.session_state[widget_key] = [
+                code
+                for code in normalized
+                if code.casefold() != default_code.casefold()
+            ]
 
-        selected = tuple(
-            st.multiselect(
-                "Source languages",
-                codes,
-                default=current,
-                format_func=lambda code: labels_by_code[code],
-                key=widget_key,
-                on_change=restore_primary_source,
+        with st.expander("Optional reference translations", expanded=False):
+            selected = tuple(
+                st.multiselect(
+                    "Optional reference translations",
+                    reference_codes,
+                    default=selected_references,
+                    format_func=lambda code: labels_by_code[code],
+                    key=widget_key,
+                    on_change=restore_primary_source,
+                )
             )
-        )
         return set_source_selection(
-            session_state, video_id, selected, default_code, codes
+            session_state,
+            video_id,
+            (default_code, *selected),
+            default_code,
+            codes,
         )

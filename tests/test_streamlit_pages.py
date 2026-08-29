@@ -140,6 +140,15 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertNotIn("build_llm_translation_prompt", source)
         self.assertNotIn("select_next_llm_languages", source)
 
+    def test_external_llm_flow_is_visible_before_prompt_preparation(self):
+        source = Path("ui/llm_package.py").read_text()
+
+        self.assertIn("External LLM", source)
+        self.assertIn("1. Prepare prompt", source)
+        self.assertIn("2. Generate JSON in an external LLM", source)
+        self.assertIn("3. Upload JSON", source)
+        self.assertIn("disabled=not upload_ready", source)
+
     def test_llm_guide_describes_selected_references_in_external_context(self):
         guide = Path("docs/llm-localizations.md").read_text()
 
