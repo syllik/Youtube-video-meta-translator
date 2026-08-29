@@ -15,7 +15,7 @@ from llm_localization_package import (
     LLM_BATCH_SIZE,
     build_selected_llm_languages,
     calculate_llm_translation_progress,
-    parse_llm_upload_json,
+    parse_localization_upload_json,
 )
 from localizations import (
     LocalizationIssue,
@@ -24,13 +24,12 @@ from localizations import (
 )
 from language_labels import format_language_label
 from state.translation_state import merge_translation_draft
-from ui.badges import render_language_badges
 
 
 def apply_llm_upload(
     state: MutableMapping[str, Any],
     file_content: bytes,
-    expected_language_codes: Sequence[str],
+    supported_language_codes: Sequence[str],
 ) -> ParsedLocalizations:
     """Validate an uploaded UTF-8 batch and merge it into the translation draft."""
     try:
@@ -41,7 +40,7 @@ def apply_llm_upload(
             issues=(LocalizationIssue(None, "Upload must be valid UTF-8 JSON."),),
         )
 
-    parsed = parse_llm_upload_json(raw_json, expected_language_codes)
+    parsed = parse_localization_upload_json(raw_json, supported_language_codes)
     if not parsed.is_valid:
         return parsed
 
@@ -151,10 +150,9 @@ def _operation_spinner(st, message: str):
     return spinner(message) if spinner is not None else nullcontext()
 
 
-def _upload_context(video_resource, target_codes, file_content: bytes):
+def _upload_context(video_resource, file_content: bytes):
     return (
         video_resource["id"],
-        tuple(target_codes),
         hashlib.sha256(file_content).hexdigest(),
     )
 
@@ -342,30 +340,19 @@ def render_llm_translation_controls(
 
     st.markdown("**External LLM**")
     st.markdown(
-        "1. Prepare prompt\n"
+        "1. (Optional) Prepare prompt\n"
         "2. Generate JSON in an external LLM\n"
         "3. Upload JSON"
     )
 
-    prompt_video_id = prompt_state.get("prompt_video_id")
-    target_codes = prompt_state.get("prompt_target_codes", ())
-    prompt = prompt_state.get("prompt_text", "")
-    upload_ready = bool(
-        prompt_video_id == video_resource.get("id") and target_codes and prompt
-    )
+    upload_ready = bool(video_resource.get("id"))
 
     if not upload_ready:
         st.caption(
-            "Prepare a prompt first so the upload can be bound to this video "
-            "and target-language set."
+            "Select a video first so the upload can be applied to that video."
         )
 
     if upload_ready:
-        render_language_badges(
-            target_codes,
-            label="Selected languages",
-            catalog=catalog,
-        )
         st.code(
             '{\n  "de": {\n    "title": "Translated title",\n    "description": "Translated description"\n  }\n}',
             language="json",
@@ -377,22 +364,22 @@ def render_llm_translation_controls(
         key="llm-localizations-upload-{}".format(video_resource["id"]),
         disabled=not upload_ready,
         help=(
-            "Prepare a prompt first so the upload can be bound to this video "
-            "and target-language set."
+            "Select a video first so the uploaded localizations can be reviewed "
+            "for that video."
         ),
     )
     if not upload_ready or uploaded_file is None:
         return
 
     file_content = uploaded_file.getvalue()
-    upload_context = _upload_context(video_resource, target_codes, file_content)
+    upload_context = _upload_context(video_resource, file_content)
     if prompt_state.get("consumed_upload_context") == upload_context:
         return
     if prompt_state.get("upload_issue_context") == upload_context:
         _render_issues(prompt_state.get("upload_issues", ()))
         return
 
-    parsed = apply_llm_upload(state, file_content, target_codes)
+    parsed = apply_llm_upload(state, file_content, catalog.codes)
     if not parsed.is_valid:
         prompt_state["upload_issue_context"] = upload_context
         prompt_state["upload_issues"] = parsed.issues

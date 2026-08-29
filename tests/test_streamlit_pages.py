@@ -125,7 +125,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
             "responses" + ".create",
         )
         self.assertIn("st.file_uploader", source)
-        self.assertIn("parse_llm_upload_json", source)
+        self.assertIn("parse_localization_upload_json", source)
         self.assertIn("st.code", source)
         for symbol in removed_provider_symbols:
             self.assertNotIn(symbol, source)
@@ -136,8 +136,8 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertIn('id="translate-form"', source)
         self.assertIn("st.page_link", source)
         self.assertIn("st.file_uploader", source)
-        self.assertIn("parse_llm_upload_json", source)
-        self.assertIn("prompt_target_codes", source)
+        self.assertIn("parse_localization_upload_json", source)
+        self.assertNotIn("prompt_target_codes", source)
         self.assertNotIn("Generate prompt", source)
         self.assertNotIn("build_llm_translation_package", source)
         self.assertNotIn("build_llm_translation_prompt", source)
@@ -147,7 +147,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
         source = Path("ui/llm_package.py").read_text()
 
         self.assertIn("External LLM", source)
-        self.assertIn("1. Prepare prompt", source)
+        self.assertIn("1. (Optional) Prepare prompt", source)
         self.assertIn("2. Generate JSON in an external LLM", source)
         self.assertIn("3. Upload JSON", source)
         self.assertIn("disabled=not upload_ready", source)

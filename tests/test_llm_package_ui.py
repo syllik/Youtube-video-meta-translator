@@ -18,11 +18,21 @@ class _Column:
         return False
 
 
+class _UploadedFile:
+    def __init__(self, content):
+        self.content = content
+
+    def getvalue(self):
+        return self.content
+
+
 class _FakeStreamlit:
-    def __init__(self, clicked=False):
+    def __init__(self, clicked=False, uploaded_file=None):
         self.clicked = clicked
+        self.uploaded_file = uploaded_file
         self.buttons = []
         self.downloads = []
+        self.file_uploaders = []
         self.messages = []
         self.rerun_called = False
 
@@ -52,7 +62,8 @@ class _FakeStreamlit:
         return nullcontext()
 
     def file_uploader(self, *_args, **_kwargs):
-        return None
+        self.file_uploaders.append((_args, _kwargs))
+        return self.uploaded_file
 
     def code(self, *_args, **_kwargs):
         return None
@@ -226,6 +237,90 @@ class LlmPackageUiTests(unittest.TestCase):
         self.assertEqual(calls, [])
         self.assertTrue(fake.buttons[0][1]["disabled"])
         self.assertFalse(fake.downloads[0][1]["disabled"])
+
+    def test_direct_upload_is_enabled_for_selected_video_without_prompt(self):
+        state = init_translation_state({})
+        fake = _FakeStreamlit(
+            uploaded_file=_UploadedFile(
+                b'{"code-0":{"title":"Translated","description":"Text"}}'
+            )
+        )
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=(),
+            )
+
+        self.assertFalse(fake.file_uploaders[0][1]["disabled"])
+        self.assertEqual(
+            state["draft"],
+            {"code-0": {"title": "Translated", "description": "Text"}},
+        )
+        self.assertTrue(fake.rerun_called)
+
+    def test_direct_upload_rejects_the_whole_file_when_one_localization_is_invalid(self):
+        state = init_translation_state({})
+        state["draft"] = {
+            "code-0": {"title": "Existing", "description": "Keep"}
+        }
+        fake = _FakeStreamlit(
+            uploaded_file=_UploadedFile(
+                b'{"code-1":{"title":"Valid","description":"Text"},'
+                b'"unknown":{"title":"Invalid","description":"Text"}}'
+            )
+        )
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=(),
+            )
+
+        self.assertFalse(fake.file_uploaders[0][1]["disabled"])
+        self.assertEqual(
+            state["draft"],
+            {"code-0": {"title": "Existing", "description": "Keep"}},
+        )
+        self.assertFalse(fake.rerun_called)
+        self.assertTrue(any(name == "error" for name, _ in fake.messages))
+
+    def test_direct_upload_replaces_matching_entries_and_preserves_other_draft_entries(self):
+        state = init_translation_state({})
+        state["draft"] = {
+            "code-0": {"title": "Old", "description": "Old"},
+            "code-2": {"title": "Keep", "description": "Keep"},
+        }
+        fake = _FakeStreamlit(
+            uploaded_file=_UploadedFile(
+                b'{"code-0":{"title":"New","description":"Updated"},'
+                b'"code-1":{"title":"Added","description":"Text"}}'
+            )
+        )
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=(),
+            )
+
+        self.assertEqual(
+            state["draft"],
+            {
+                "code-0": {"title": "New", "description": "Updated"},
+                "code-1": {"title": "Added", "description": "Text"},
+                "code-2": {"title": "Keep", "description": "Keep"},
+            },
+        )
 
     def test_failed_batch_keeps_an_earlier_checkpoint_in_the_draft(self):
         state = init_translation_state({})

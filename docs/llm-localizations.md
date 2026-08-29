@@ -39,14 +39,15 @@ The public Data API documents no exhaustive
 
 On **Translate**, the complete external path is visible before preparation:
 
-1. **Prepare prompt** on the supporting **LLM Translation prompt** page.
-2. Generate JSON in an external LLM.
-3. **Upload JSON** on **Translate**.
+1. (Optional) **Prepare prompt** on the supporting **LLM Translation prompt** page.
+2. Generate or obtain a direct localization JSON file.
+3. **Upload JSON** on **Translate** after selecting the video.
 
-The upload control stays inactive until the prepared prompt matches the current
-video and exact target-language tuple. Its binding includes the video ID,
-target codes, and uploaded file SHA-256. A stale prompt or target set cannot
-unlock the uploader.
+The upload control is available as soon as a video is selected. The file may
+contain any non-empty set of supported language codes; it does not need to match
+a prepared prompt or target-language tuple. The application validates the whole
+file before merging it into the draft. If any entry is invalid, the complete file
+is rejected and the existing draft remains unchanged.
 
 On the prompt page, select a video and choose source languages on **Translate**
 or this page. Choose up to ten missing target languages; the first ten are

@@ -45,9 +45,10 @@ Choose one of these paths on **Translate**:
   internal translation draft before starting the next one. Each interaction
   runs one batch of up to ten targets so the page returns to the user between
   batches.
-- **Upload JSON from an external LLM** uses the prompt from **LLM Translation
-  prompt**. Upload one UTF-8 JSON file containing exactly the requested language
-  codes. The file is validated before it becomes the internal translation draft.
+- **Upload JSON from an external LLM or from an existing file** is available after
+  selecting a video; using the **LLM Translation prompt** page is optional. Upload
+  one UTF-8 JSON file containing any non-empty set of supported language codes.
+  The file is validated before it becomes the internal translation draft.
 
 The draft is read-only in the application. A valid generated or uploaded entry
 replaces the matching draft language; other draft entries remain available for

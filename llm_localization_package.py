@@ -335,6 +335,32 @@ def parse_llm_upload_json(
     raw_json: str, expected_language_codes: Sequence[str]
 ) -> ParsedLocalizations:
     """Parse one exact expected localization batch without mutating state."""
+    parsed = parse_localization_upload_json(raw_json, expected_language_codes)
+    expected_by_code = {
+        code.strip().casefold(): code.strip()
+        for code in expected_language_codes
+        if isinstance(code, str) and code.strip()
+    }
+    parsed_codes = {language_code.casefold() for language_code in parsed.entries}
+    missing_codes = sorted(set(expected_by_code) - parsed_codes)
+    if not missing_codes:
+        return parsed
+
+    missing_issues = tuple(
+        LocalizationIssue(
+            expected_by_code[code],
+            "Missing required language code: {}".format(expected_by_code[code]),
+            path=expected_by_code[code],
+        )
+        for code in missing_codes
+    )
+    return ParsedLocalizations(entries=parsed.entries, issues=parsed.issues + missing_issues)
+
+
+def parse_localization_upload_json(
+    raw_json: str, supported_language_codes: Sequence[str]
+) -> ParsedLocalizations:
+    """Parse any non-empty valid localization map without requiring a target set."""
     try:
         document = json.loads(raw_json, object_pairs_hook=_reject_duplicate_json_keys)
     except _DuplicateJsonKeyError as error:
@@ -361,23 +387,4 @@ def parse_llm_upload_json(
             entries={}, issues=(LocalizationIssue(None, message),)
         )
 
-    parsed = validate_localizations(document, expected_language_codes)
-    expected_by_code = {
-        code.strip().casefold(): code.strip()
-        for code in expected_language_codes
-        if isinstance(code, str) and code.strip()
-    }
-    parsed_codes = {language_code.casefold() for language_code in parsed.entries}
-    missing_codes = sorted(set(expected_by_code) - parsed_codes)
-    if not missing_codes:
-        return parsed
-
-    missing_issues = tuple(
-        LocalizationIssue(
-            expected_by_code[code],
-            "Missing required language code: {}".format(expected_by_code[code]),
-            path=expected_by_code[code],
-        )
-        for code in missing_codes
-    )
-    return ParsedLocalizations(entries=parsed.entries, issues=parsed.issues + missing_issues)
+    return validate_localizations(document, supported_language_codes)
