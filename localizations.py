@@ -156,21 +156,18 @@ class LocalizationPlan:
         return any(item.status in ("added", "changed") for item in self.diffs)
 
 
-def _normalize_language_code(language_code: str) -> str:
-    """Normalize casing while retaining regional parts such as ``pt-BR``."""
-    parts = language_code.strip().split("-")
-    if not parts or not parts[0]:
-        return ""
-    return "-".join([parts[0].lower()] + [part.upper() for part in parts[1:]])
+def _catalog_lookup_key(language_code: str) -> str:
+    """Build a case-insensitive lookup key for a catalog language code."""
+    return language_code.strip().casefold()
 
 
 def _supported_language_map(
     supported_language_codes: Collection[str],
 ) -> Dict[str, str]:
     return {
-        _normalize_language_code(code): _normalize_language_code(code)
+        _catalog_lookup_key(code): code.strip()
         for code in supported_language_codes
-        if isinstance(code, str) and _normalize_language_code(code)
+        if isinstance(code, str) and _catalog_lookup_key(code)
     }
 
 
@@ -229,8 +226,9 @@ def validate_localizations(
             )
             continue
 
-        language_code = _normalize_language_code(raw_language_code)
-        if language_code not in supported:
+        catalog_key = _catalog_lookup_key(raw_language_code)
+        language_code = supported.get(catalog_key)
+        if language_code is None:
             issues.append(
                 LocalizationIssue(
                     raw_language_code,

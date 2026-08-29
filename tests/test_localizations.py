@@ -16,7 +16,7 @@ from localizations import (
 )
 
 
-SUPPORTED = {"en", "es", "fr", "de", "pt-BR"}
+SUPPORTED = {"en", "es", "fr", "de", "pt-BR", "zh-Hans", "sr-Latn"}
 
 VIDEO_RESOURCE = {
     "id": "video-1",
@@ -137,6 +137,52 @@ class ParseLocalizationsTests(unittest.TestCase):
         self.assertTrue(result.is_valid)
         self.assertIn("pt-BR", result.entries)
         self.assertNotIn("pt", result.entries)
+
+    def test_casefolded_codes_use_exact_live_catalog_spelling(self):
+        raw = json.dumps(
+            {
+                "pt-br": {"title": "Título", "description": "Descrição"},
+                "zh-hans": {"title": "简体中文标题", "description": "简体中文说明"},
+                "sr-latn": {"title": "Naslov", "description": "Opis"},
+            }
+        )
+
+        result = parse_localizations_json(raw, SUPPORTED)
+
+        self.assertTrue(result.is_valid)
+        self.assertEqual(
+            tuple(result.entries),
+            ("pt-BR", "sr-Latn", "zh-Hans"),
+        )
+        self.assertNotIn("zh-HANS", result.entries)
+        self.assertNotIn("sr-LATN", result.entries)
+
+    def test_casefolded_existing_code_updates_one_catalog_spelled_payload_key(self):
+        video = {
+            **VIDEO_RESOURCE,
+            "localizations": {
+                "zh-Hans": {"title": "Old", "description": "Old"},
+            },
+        }
+        parsed = parse_localizations_json(
+            json.dumps(
+                {"zh-hans": {"title": "New", "description": "New"}}
+            ),
+            SUPPORTED,
+        )
+
+        plan = build_localization_plan(video, parsed)
+
+        self.assertTrue(plan.is_valid)
+        self.assertEqual(
+            [(item.language_code, item.status) for item in plan.diffs],
+            [("zh-Hans", "changed")],
+        )
+        self.assertEqual(
+            plan.payload["localizations"]["zh-Hans"],
+            {"title": "New", "description": "New"},
+        )
+        self.assertNotIn("zh-HANS", plan.payload["localizations"])
 
     def test_field_errors_include_language_and_field_path(self):
         raw = json.dumps({"es": {"title": "", "description": 4}})
