@@ -15,6 +15,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
     def test_page_titles_are_explicit(self):
         self.assertEqual(page_title("translate"), "Translate")
         self.assertEqual(page_title("prompt"), "LLM Translation prompt")
+        self.assertEqual(page_title("faq"), "FAQ")
 
     def test_unknown_mode_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -31,11 +32,26 @@ class StreamlitBootstrapTests(unittest.TestCase):
 
         self.assertIn('"translate"', root_source)
         self.assertIn('"prompt"', root_source)
+        self.assertIn('"faq"', root_source)
         self.assertFalse(Path("pages/1_Manual_translate.py").exists())
         self.assertFalse(Path("pages/2_LLM_translate.py").exists())
         self.assertFalse(Path("pages/3_LLM_prompt.py").exists())
         self.assertTrue(Path("pages/1_Translate.py").exists())
         self.assertTrue(Path("pages/2_LLM_prompt.py").exists())
+        self.assertTrue(Path("pages/3_FAQ.py").exists())
+
+    def test_translate_sections_are_rendered_in_the_required_order(self):
+        source = Path("pages/1_Translate.py").read_text()
+        section_calls = (
+            "    render_localization_json_example(",
+            "    render_manual_editor(",
+            "    source_codes = render_source_selection(",
+            "        render_llm_translation_controls(",
+            "    render_preview_publish(",
+        )
+        positions = [source.index(name) for name in section_calls]
+
+        self.assertEqual(positions, sorted(positions))
 
     def test_translate_page_uses_shared_bootstrap_and_universal_controls(self):
         source = Path("pages/1_Translate.py").read_text()
@@ -53,7 +69,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertIn("sync_llm_video", source)
         self.assertIn("sync_manual_video", source)
         self.assertIn("render_source_selection", source)
-        self.assertIn("fetch_localization_language_catalog", source)
+        self.assertIn("language_catalog", source)
         self.assertNotIn("render_video_list", source)
         self.assertNotIn("render_pagination", source)
 
@@ -109,6 +125,24 @@ class StreamlitBootstrapTests(unittest.TestCase):
 
         self.assertIn("selected existing localizations", guide)
         self.assertIn("reference", guide.lower())
+
+    def test_llm_prompt_page_contains_short_source_quality_guide(self):
+        source = Path("ui/llm_prompt.py").read_text()
+
+        self.assertIn("quality guide", source.lower())
+        self.assertIn("2–3", source)
+        self.assertIn("st.expander", source)
+
+    def test_faq_is_static_and_does_not_use_youtube_bootstrap(self):
+        page_source = Path("pages/3_FAQ.py").read_text()
+        ui_source = Path("ui/faq.py").read_text()
+
+        self.assertIn("render_faq_page", page_source)
+        self.assertNotIn("bootstrap_app_context", page_source)
+        self.assertNotIn("YoutubeService", page_source)
+        self.assertNotIn("fetch_", page_source)
+        self.assertNotIn("bootstrap_app_context", ui_source)
+        self.assertIn("st.expander", ui_source)
 
     def test_translate_page_copy_describes_unified_workflow(self):
         source = Path("streamlit_app.py").read_text()

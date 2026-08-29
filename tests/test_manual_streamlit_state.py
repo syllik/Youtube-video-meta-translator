@@ -18,7 +18,12 @@ from state.manual_state import (
     sync_manual_video,
 )
 from state.llm_state import init_llm_state
-from ui.manual_editor import render_manual_editor, select_manual_example_codes
+from ui.manual_editor import (
+    render_localization_json_example,
+    render_manual_editor,
+    render_preview_publish,
+    select_manual_example_codes,
+)
 from language_catalog import YouTubeLanguage, YouTubeLanguageCatalog
 
 
@@ -55,7 +60,7 @@ class _FakeStreamlit:
         pass
 
     def columns(self, _count):
-        return nullcontext(), nullcontext()
+        return nullcontext(), nullcontext(), nullcontext()
 
     def button(self, _label, **kwargs):
         return self.publish_clicked and kwargs["key"].endswith("publish-changes")
@@ -234,8 +239,7 @@ class ManualStateTests(unittest.TestCase):
         self.assertEqual(
             streamlit.expander_calls,
             [
-                ("Localization JSON", {"expanded": False}),
-                ("Preview & publish", {"expanded": False}),
+                ("Manual edit", {"expanded": False}),
             ],
         )
 
@@ -283,10 +287,7 @@ class ManualStateTests(unittest.TestCase):
         streamlit = _FakeStreamlit("", publish_clicked=False)
 
         with patch.dict(sys.modules, {"streamlit": streamlit}):
-            render_manual_editor(
-                {"raw_json": "", "preview_result": None},
-                None,
-                SimpleNamespace(),
+            render_localization_json_example(
                 supported_codes,
                 default_language_code="en",
             )
@@ -922,7 +923,7 @@ class ManualStateTests(unittest.TestCase):
         service = SimpleNamespace(publish=lambda _video_id, _raw_json: result)
 
         with patch.dict(sys.modules, {"streamlit": streamlit}):
-            render_manual_editor(
+            render_preview_publish(
                 state,
                 SimpleNamespace(id="video-1"),
                 service,
@@ -944,7 +945,7 @@ class ManualStateTests(unittest.TestCase):
         service = SimpleNamespace(publish=lambda _video_id, _raw_json: result)
 
         with patch.dict(sys.modules, {"streamlit": streamlit}):
-            render_manual_editor(
+            render_preview_publish(
                 state,
                 SimpleNamespace(id="video-1"),
                 service,

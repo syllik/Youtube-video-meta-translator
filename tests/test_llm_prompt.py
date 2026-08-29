@@ -20,6 +20,10 @@ class _FakeStreamlit:
     def caption(self, value, **_kwargs):
         self.messages.append(("caption", value))
 
+    def expander(self, label, **kwargs):
+        self.messages.append(("expander", label))
+        return nullcontext()
+
     def markdown(self, value, **_kwargs):
         self.messages.append(("markdown", value))
 

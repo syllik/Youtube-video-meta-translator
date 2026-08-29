@@ -6,7 +6,7 @@ from googleapiclient.errors import HttpError
 from state.llm_state import init_llm_state, sync_llm_video
 from state.manual_state import init_manual_state, sync_manual_video
 from streamlit_app import bootstrap_app_context, configure_page
-from ui.llm_prompt import render_llm_prompt_page
+from ui.llm_prompt import render_llm_prompt_page, render_source_quality_guide
 from ui.source_selection import render_source_selection
 
 
@@ -16,21 +16,19 @@ def render_llm_prompt_support_page() -> None:
     st.caption(
         "Prepare a prompt for an external LLM, then return to Translate to upload or edit its JSON result."
     )
-    st.markdown(
-        """
-**How this works**
+    with st.expander("How to use this page", expanded=False):
+        st.markdown(
+            """
+1. Select source and target languages and copy the prepared prompt.
+2. Paste it into a web LLM and download its UTF-8 `.json` result.
+3. Return to **Translate**, upload the file, and review it in **Manual edit**.
+4. Preview the changes, then publish them to YouTube.
 
-1. Select source and target languages below and copy the prepared prompt.
-2. Paste it into a web LLM, then download its result as a UTF-8 `.json` file.
-3. Return to **Translate**, upload the file, and fix anything reported by
-   local validation in the editable form.
-4. Click **Preview changes**, review the diff, then click **Publish changes**
-   to upload the translations to YouTube.
-
-The app only needs the Google YouTube OAuth setup. It does not send your video
-data to the linked LLM websites or require an LLM API key.
+The app needs only the Google YouTube OAuth setup. It does not send your video
+data to linked LLM websites or require an LLM API key.
 """
-    )
+        )
+    render_source_quality_guide()
 
     context = bootstrap_app_context()
     if context is None:
@@ -45,10 +43,11 @@ data to the linked LLM websites or require an LLM API key.
         return
 
     try:
-        video_resource = context.service.get_video_with_localizations(
-            context.selected_video_id
-        )
-        catalog = context.service.fetch_localization_language_catalog(hl="ru")
+        with st.spinner("Loading selected video and language catalog..."):
+            video_resource = context.service.get_video_with_localizations(
+                context.selected_video_id
+            )
+            catalog = context.language_catalog
     except HttpError:
         st.error("YouTube could not load the selected video or language catalog.")
         return

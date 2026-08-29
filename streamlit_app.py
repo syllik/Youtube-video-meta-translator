@@ -9,11 +9,13 @@ import streamlit as st
 PAGE_TITLES = {
     "translate": "Translate",
     "prompt": "LLM Translation prompt",
+    "faq": "FAQ",
 }
 
 PAGE_DESCRIPTIONS = {
     "translate": "Generate, edit, validate, preview, and publish YouTube localization JSON.",
     "prompt": "Prepare a source-aware prompt for an external LLM when local Codex is unavailable.",
+    "faq": "Answers to common questions about the YouTube localization workflow.",
 }
 
 
@@ -146,6 +148,7 @@ def render_app_intro() -> None:
     st.write("Use Translate for the complete localization workflow.")
     st.page_link("pages/1_Translate.py", label="Translate")
     st.page_link("pages/2_LLM_prompt.py", label="LLM Translation prompt")
+    st.page_link("pages/3_FAQ.py", label="FAQ")
 
 
 if __name__ == "__main__":

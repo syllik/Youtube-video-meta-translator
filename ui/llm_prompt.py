@@ -45,6 +45,20 @@ def _render_return_link() -> None:
     st.page_link("pages/1_Translate.py", label="Return to Translate")
 
 
+def render_source_quality_guide() -> None:
+    """Render the short, non-technical source-language quality guidance."""
+    import streamlit as st
+
+    with st.expander("Source-language quality guide", expanded=True):
+        st.markdown(
+            "Translation uses the default source as the authoritative meaning. "
+            "One source can miss nuance, so use at least 2 source languages when "
+            "possible. 2–3 strong translations are a good target; "
+            "around 2–5 translations from different language families can give "
+            "the LLM useful context without replacing the default source."
+        )
+
+
 def _default_target_codes(state: Mapping[str, Any], progress) -> Tuple[str, ...]:
     available = {language.code.casefold(): language.code for language in progress.missing}
     stored = tuple(state.get("selected_target_codes") or ())
@@ -84,22 +98,23 @@ def render_llm_prompt_page(
         _render_free_web_llms()
         return
 
-    labels_by_code = {
-        language.code: "{} ({})".format(language.name, language.code)
-        for language in progress.missing
-    }
-    options = tuple(labels_by_code)
-    default_codes = _default_target_codes(state, progress)
-    selected_codes = tuple(
-        st.multiselect(
-            "Target languages",
-            options,
-            default=default_codes,
-            max_selections=LLM_BATCH_SIZE,
-            format_func=lambda code: labels_by_code[code],
-            key="llm-prompt-targets-{}".format(video_id),
+    with st.expander("Target languages", expanded=True):
+        labels_by_code = {
+            language.code: "{} ({})".format(language.name, language.code)
+            for language in progress.missing
+        }
+        options = tuple(labels_by_code)
+        default_codes = _default_target_codes(state, progress)
+        selected_codes = tuple(
+            st.multiselect(
+                "Target languages",
+                options,
+                default=default_codes,
+                max_selections=LLM_BATCH_SIZE,
+                format_func=lambda code: labels_by_code[code],
+                key="llm-prompt-targets-{}".format(video_id),
+            )
         )
-    )
 
     try:
         selected_languages = build_selected_llm_languages(
@@ -128,7 +143,9 @@ def render_llm_prompt_page(
     prompt = build_llm_translation_prompt(package)
     set_llm_prompt(state, video_id, canonical_codes, prompt)
 
-    st.code(prompt, language="text")
+    with st.expander("Prepared prompt", expanded=True):
+        st.code(prompt, language="text")
 
-    _render_return_link()
-    _render_free_web_llms()
+    with st.expander("External LLM options", expanded=False):
+        _render_return_link()
+        _render_free_web_llms()

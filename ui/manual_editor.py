@@ -10,6 +10,7 @@ from localizations import parse_localizations_json
 from state.manual_state import (
     manual_can_publish,
     manual_preview_is_current,
+    request_manual_reload,
     set_manual_json,
     store_manual_preview,
 )
@@ -155,7 +156,25 @@ def _render_report(result: Any) -> None:
                     diff.submitted.description,
                 ),
                 language="text",
-            )
+                )
+
+
+def render_localization_json_example(
+    supported_language_codes,
+    default_language_code: Optional[str] = None,
+) -> None:
+    """Render a read-only example of the direct localization JSON shape."""
+    import streamlit as st
+
+    with st.expander("Localization JSON Example", expanded=False):
+        st.caption(
+            "Example only. Use a direct language-code map with title and description."
+        )
+        example_codes = select_manual_example_codes(
+            supported_language_codes,
+            default_language_code=default_language_code,
+        )
+        st.code(_example_json(example_codes), language="json")
 
 
 def render_manual_editor(
@@ -167,6 +186,7 @@ def render_manual_editor(
     on_published: Optional[Callable[[], None]] = None,
     default_language_code: Optional[str] = None,
 ) -> None:
+    """Render the editable Manual edit section for one video draft."""
     import streamlit as st
 
     render_markdown = getattr(st, "markdown", None)
@@ -199,15 +219,10 @@ def render_manual_editor(
         or state.get("preview_result") is not None
     )
 
-    with st.expander("Localization JSON", expanded=expanded):
+    with st.expander("Manual edit", expanded=expanded):
         st.caption(
             "Paste, edit, or upload direct localization JSON. Existing languages omitted from the JSON are preserved."
         )
-        example_codes = select_manual_example_codes(
-            supported_language_codes,
-            default_language_code=default_language_code,
-        )
-        st.code(_example_json(example_codes), language="json")
         raw_json = st.text_area(
             "Localizations JSON",
             height=300,
@@ -224,10 +239,30 @@ def render_manual_editor(
         else:
             st.info("Paste JSON to continue.")
 
+
+def render_preview_publish(
+    state: MutableMapping[str, Any],
+    video_id: Optional[str],
+    service: Any,
+    supported_language_codes,
+    widget_prefix: str = "manual",
+    on_published: Optional[Callable[[], None]] = None,
+) -> None:
+    """Render the shared Preview & Publish section after generation controls."""
+    import streamlit as st
+
+    if hasattr(video_id, "id"):
+        video_id = video_id.id
+    raw_json = state.get("raw_json", "")
+    parsed = state.get("local_validation")
+    if parsed is None:
+        parsed = parse_localizations_json(raw_json, supported_language_codes)
+        state["local_validation"] = parsed
+
     with st.expander(
-        "Preview & publish", expanded=state.get("preview_result") is not None
+        "Preview & Publish", expanded=state.get("preview_result") is not None
     ):
-        preview_col, publish_col = st.columns(2)
+        preview_col, spacer_col, publish_col = st.columns((1, 3, 1))
         with preview_col:
             preview_clicked = st.button(
                 "Preview changes",
@@ -267,6 +302,7 @@ def render_manual_editor(
                     if result.wrote:
                         state["published"] = True
                         st.success("Localization changes published successfully.")
+                        request_manual_reload(state)
                         if on_published is not None:
                             on_published()
                     else:
