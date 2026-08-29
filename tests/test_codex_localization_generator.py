@@ -160,6 +160,25 @@ class CodexLocalizationGeneratorTests(unittest.TestCase):
 
         self.assertEqual(attempts, 2)
 
+    def test_batch_failure_explains_scope_retry_and_no_partial_merge(self):
+        def run_batch(package, schema):
+            raise CodexLocalizationError("temporary Codex failure")
+
+        with self.assertRaises(generator_module.CodexGenerationError) as context:
+            generator_module.generate_missing_localizations(
+                self.video_resource,
+                self.catalog,
+                batch_size=2,
+                run_batch=run_batch,
+            )
+
+        message = str(context.exception)
+        self.assertIn("batch 1 / 2", message)
+        self.assertIn("fr, es", message)
+        self.assertIn("temporary Codex failure", message)
+        self.assertIn("retry", message.lower())
+        self.assertIn("No partial result", message)
+
     def test_invalid_batch_size_max_languages_and_retry_count_are_rejected(self):
         for batch_size in (0, 11):
             with self.subTest(batch_size=batch_size):

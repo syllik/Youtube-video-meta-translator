@@ -19,6 +19,14 @@ class CodexGenerationError(RuntimeError):
     """Raised when requested Codex localization generation cannot complete."""
 
 
+def _batch_failure_message(batch_index, total_batches, codes, reason):
+    return (
+        "Codex batch {} / {} failed for [{}]: {}. "
+        "No partial result from this failed generation was merged into the draft. "
+        "Check the local Codex CLI session and retry."
+    ).format(batch_index, total_batches, ", ".join(codes), reason)
+
+
 def _batches(items, size):
     for start in range(0, len(items), size):
         yield items[start:start + size]
@@ -82,8 +90,8 @@ def generate_missing_localizations(
 
         if result is None:
             raise CodexGenerationError(
-                "Codex batch {} failed for [{}]: {}".format(
-                    batch_index, ", ".join(codes), last_error
+                _batch_failure_message(
+                    batch_index, len(batches), codes, last_error
                 )
             ) from last_error
 
@@ -94,8 +102,11 @@ def generate_missing_localizations(
         if not parsed_batch.is_valid:
             issue = parsed_batch.issues[0]
             raise CodexGenerationError(
-                "Codex batch {} failed validation: {}".format(
-                    batch_index, issue.message
+                _batch_failure_message(
+                    batch_index,
+                    len(batches),
+                    codes,
+                    "validation failed: {}".format(issue.message),
                 )
             )
 

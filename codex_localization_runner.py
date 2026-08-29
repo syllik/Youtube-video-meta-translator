@@ -125,7 +125,9 @@ def check_codex_login(run=subprocess.run, environ=None) -> None:
     detail = _safe_cli_output(status_output)
     diagnostic = detail or "no diagnostic output"
     raise CodexLocalizationError(
-        "Codex login status failed with exit code {}: {}".format(
+        "Codex login status failed with exit code {}: {} "
+        "Run `codex --version` and `codex login status` in the same terminal. "
+        "If those commands work, restart Streamlit from that terminal.".format(
             completed.returncode, diagnostic
         )
     )
