@@ -68,10 +68,47 @@ class CodexLocalizationRunnerTests(unittest.TestCase):
 
     def test_check_login_rejects_logged_out_status(self):
         def fake_run(command, **kwargs):
-            return subprocess.CompletedProcess(command, 1, stdout="", stderr="")
+            return subprocess.CompletedProcess(
+                command, 1, stdout="", stderr="Not logged in"
+            )
 
         with self.assertRaises(runner_module.CodexLocalizationError):
             runner_module.check_codex_login(run=fake_run, environ={})
+
+    def test_check_login_reports_explicit_not_logged_in_status(self):
+        def fake_run(command, **kwargs):
+            return subprocess.CompletedProcess(
+                command, 1, stdout="", stderr="Not logged in"
+            )
+
+        with self.assertRaisesRegex(
+            runner_module.CodexLocalizationError,
+            "Codex CLI is not logged in",
+        ):
+            runner_module.check_codex_login(run=fake_run, environ={})
+
+    def test_check_login_does_not_misclassify_other_status_failure(self):
+        def fake_run(command, **kwargs):
+            return subprocess.CompletedProcess(
+                command,
+                17,
+                stdout="",
+                stderr=(
+                    "network unavailable; token=plain-token-value; "
+                    "access_token=oauth-secret-value; path=/Users/example/private"
+                ),
+            )
+
+        with self.assertRaises(runner_module.CodexLocalizationError) as context:
+            runner_module.check_codex_login(run=fake_run, environ={})
+
+        message = str(context.exception)
+        self.assertIn("network unavailable", message)
+        self.assertIn("17", message)
+        self.assertNotIn("not logged in", message.lower())
+        self.assertNotIn("plain-token-value", message)
+        self.assertNotIn("oauth-secret-value", message)
+        self.assertNotIn("/Users/example/private", message)
 
     def test_run_batch_uses_ephemeral_read_only_structured_output(self):
         calls = []

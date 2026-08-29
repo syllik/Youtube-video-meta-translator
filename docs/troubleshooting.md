@@ -52,6 +52,12 @@ codex login status
 This is separate from the YouTube OAuth file and `token.json`. No OpenAI API
 key is required for the local Codex workflow.
 
+The application reports the login guidance only when `codex login status`
+explicitly reports `Not logged in`. If it instead shows `Codex login status
+failed with exit code ...`, the failure is not necessarily an authentication
+failure; use the included safe CLI diagnostic to investigate executable
+availability, permissions, or the local runtime environment.
+
 ## 🔑 `FileNotFoundError` for the OAuth file
 
 Check that:

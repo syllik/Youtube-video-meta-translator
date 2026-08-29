@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -27,9 +28,29 @@ def _codex_environment(environ=None):
     return child_env
 
 
-def _safe_stderr(stderr):
-    text = (stderr or "").strip()
+def _safe_cli_output(output):
+    text = (output or "").strip()
+    text = re.sub(
+        r"(?i)(\b(?:authorization|bearer|access[_ -]?token|refresh[_ -]?token|token|api[_ -]?key|password|secret|credential)s?\b\s*[:=]\s*)(?:bearer\s+)?[^\s,;]+",
+        r"\1[redacted]",
+        text,
+    )
+    text = re.sub(r"(?i)\bbearer\s+[^\s,;]+", "Bearer [redacted]", text)
+    text = re.sub(r"(?<!\w)/(?:[^/\s]+/)+[^/\s]*", "[path]", text)
+    text = re.sub(r"(?i)(?<!\w)(?:[a-z]:\\|\\\\)[^\s]+", "[path]", text)
     return text[-1200:] if len(text) > 1200 else text
+
+
+def _safe_stderr(stderr):
+    return _safe_cli_output(stderr)
+
+
+def _status_output(completed):
+    return "\n".join(
+        output.strip()
+        for output in (completed.stdout, completed.stderr)
+        if output and output.strip()
+    )
 
 
 def check_codex_login(run=subprocess.run, environ=None) -> None:
@@ -46,10 +67,22 @@ def check_codex_login(run=subprocess.run, environ=None) -> None:
             "Codex CLI was not found. Install Codex and run `codex login`."
         ) from error
 
-    if completed.returncode != 0:
+    if completed.returncode == 0:
+        return
+
+    status_output = _status_output(completed)
+    if re.search(r"\bnot\s+logged\s+in\b", status_output, re.IGNORECASE):
         raise CodexLocalizationError(
             "Codex CLI is not logged in. Run `codex login` and choose ChatGPT sign-in."
         )
+
+    detail = _safe_cli_output(status_output)
+    diagnostic = detail or "no diagnostic output"
+    raise CodexLocalizationError(
+        "Codex login status failed with exit code {}: {}".format(
+            completed.returncode, diagnostic
+        )
+    )
 
 
 def run_codex_batch(package, schema, run=subprocess.run, environ=None):
