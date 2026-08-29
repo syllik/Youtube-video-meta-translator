@@ -94,6 +94,9 @@ code:
 Every value must contain exactly `title` and `description` string fields. A
 title cannot be empty and is limited to 100 characters; a description is
 limited to 5,000 characters. Invalid JSON or fields keep publishing disabled.
+Language keys are matched case-insensitively against the live YouTube catalog,
+then emitted using the catalog's exact spelling, including regional and script
+codes such as `pt-BR`, `zh-Hans`, and `sr-Latn`.
 
 Existing localizations omitted from submitted JSON are preserved. Removing a
 key from the draft therefore does not delete that YouTube localization during
