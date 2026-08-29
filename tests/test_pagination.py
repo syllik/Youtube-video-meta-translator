@@ -43,6 +43,16 @@ class PaginationTests(unittest.TestCase):
         self.assertIn("render_page_size_control", sidebar_source)
         self.assertIn("render_pagination", sidebar_source)
 
+    def test_pagination_uses_icon_only_previous_and_next_controls(self):
+        source = Path("ui/pagination.py").read_text()
+
+        self.assertIn('help="Previous page"', source)
+        self.assertIn('help="Next page"', source)
+        self.assertIn('"‹"', source)
+        self.assertIn('"›"', source)
+        self.assertNotIn('st.button("← Previous"', source)
+        self.assertNotIn('"Next →"', source)
+
 
 if __name__ == "__main__":
     unittest.main()

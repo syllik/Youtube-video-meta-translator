@@ -21,6 +21,7 @@ class _FakeStreamlit:
         self.session_state = {}
         self.button_calls = []
         self.columns_calls = []
+        self.markdown_calls = []
 
     def columns(self, spec):
         self.columns_calls.append(spec)
@@ -37,7 +38,7 @@ class _FakeStreamlit:
         pass
 
     def markdown(self, *_args, **_kwargs):
-        pass
+        self.markdown_calls.append((_args, _kwargs))
 
     def caption(self, *_args, **_kwargs):
         pass
@@ -63,10 +64,9 @@ class VideoListTests(unittest.TestCase):
         self.assertEqual(widget_key("video-42"), "common-video-video-42")
 
     def test_video_list_has_workflow_agnostic_contract(self):
-        self.assertEqual(
-            tuple(inspect.signature(render_video_list).parameters),
-            ("videos", "session_state"),
-        )
+        parameters = tuple(inspect.signature(render_video_list).parameters)
+        self.assertEqual(parameters[:2], ("videos", "session_state"))
+        self.assertIn("supported_language_codes", parameters)
 
     def test_selected_common_video_is_reported(self):
         state = {}
@@ -121,6 +121,35 @@ class VideoListTests(unittest.TestCase):
         self.assertEqual(streamlit.columns_calls, [])
         self.assertEqual(len(streamlit.button_calls), 1)
         self.assertTrue(streamlit.button_calls[0]["use_container_width"])
+
+    def test_video_cards_show_compact_live_catalog_metadata_and_reset(self):
+        state = {}
+        streamlit = _FakeStreamlit("not-clicked")
+        video = VideoSummary(
+            id="video-2",
+            title="Second video",
+            description="This description must not render",
+            thumbnail_url="",
+            current_language_codes=("en", "de"),
+            default_language_code="en",
+        )
+
+        with patch.dict("sys.modules", {"streamlit": streamlit}):
+            render_video_list(
+                (video,),
+                state,
+                supported_language_codes=("en", "de", "fr", "ja"),
+                query_params={"page": "1", "limit": "10"},
+            )
+
+        text = "\n".join(args[0] for args, _kwargs in streamlit.markdown_calls)
+        self.assertIn("Default language: en", text)
+        self.assertIn("Localizations: 1 / 2", text)
+        self.assertIn("Video ID: video-2", text)
+        self.assertIn("Reset languages", text)
+        self.assertNotIn("This description must not render", text)
+        self.assertNotIn("localization-badge", text)
+        self.assertIn("window.confirm", text)
 
 
 if __name__ == "__main__":

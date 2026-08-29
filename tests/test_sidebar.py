@@ -102,11 +102,13 @@ class SidebarTests(unittest.TestCase):
         self.assertIn("First video", text)
         self.assertIn("video-1", text)
         self.assertIn("Default language: en", text)
-        self.assertIn("localization-badge", text)
+        self.assertIn("Localizations: 2 / 0", text)
+        self.assertIn("Reset languages", text)
+        self.assertNotIn("First description", text)
         self.assertNotIn("Open " + "on YouTube", text)
         self.assertTrue(
             any(
-                call[0] == "button" and call[1] == "Refresh list"
+                call[0] == "button" and call[1] == "Refresh"
                 for call in fake.calls
             )
         )
@@ -141,8 +143,17 @@ class SidebarTests(unittest.TestCase):
     def test_video_list_has_workflow_agnostic_contract(self):
         parameters = inspect.signature(render_video_list).parameters
 
-        self.assertEqual(tuple(parameters), ("videos", "session_state"))
+        self.assertEqual(tuple(parameters)[:2], ("videos", "session_state"))
         self.assertEqual(widget_key("video-42"), "common-video-video-42")
+
+    def test_sidebar_contract_contains_load_more_after_video_cards(self):
+        from pathlib import Path
+
+        source = Path("ui/sidebar.py").read_text()
+
+        self.assertIn("Load more", source)
+        self.assertIn("load_more_video_page", source)
+        self.assertIn("window.confirm", Path("ui/video_list.py").read_text())
 
 
 if __name__ == "__main__":

@@ -4,10 +4,13 @@ import html
 from typing import Any, MutableMapping, Optional
 
 from state.common_state import (
+    can_load_more,
     get_selected_video_id,
     init_common_state,
+    load_more_video_page,
     reset_video_cache,
 )
+from services.manual_localization_service import ManualLocalizationService
 from ui.pagination import render_page_size_control, render_pagination
 from ui.video_list import render_video_list
 
@@ -53,9 +56,93 @@ def _refresh_sidebar(session_state: MutableMapping[str, Any]) -> None:
     import streamlit as st
 
     reset_video_cache(session_state)
+    session_state["common.manual_reload_video_id"] = get_selected_video_id(session_state)
     session_state["common.channel"] = None
     session_state["common.active_limit"] = None
     st.rerun()
+
+
+def _catalog_codes(context: Any):
+    catalog = getattr(context, "language_catalog", None)
+    return tuple(getattr(catalog, "codes", ()) or ())
+
+
+def _query_value(query_params, key: str):
+    value = query_params.get(key)
+    if isinstance(value, (list, tuple)):
+        return value[0] if value else None
+    return value
+
+
+def _render_pending_feedback(session_state) -> None:
+    import streamlit as st
+
+    feedback = session_state.pop("common.pending_sidebar_feedback", None)
+    if not feedback:
+        return
+    level, message = feedback
+    getattr(st, level)(message)
+
+
+def _consume_pending_reset(context, session_state, query_params) -> bool:
+    import streamlit as st
+
+    video_id = _query_value(query_params, "reset_video")
+    if not video_id:
+        return False
+    query_params.pop("reset_video", None)
+    visible_videos = {video.id: video for video in context.page.videos}
+    video = visible_videos.get(video_id)
+    if video is None:
+        st.error("The selected video is not available. Refresh the video list and try again.")
+        return True
+
+    if session_state.get("common.video_operation_status") == "resetting":
+        return True
+    session_state["common.video_operation_status"] = "resetting"
+    try:
+        catalog_codes = _catalog_codes(context)
+        reset_service = ManualLocalizationService(context.service, catalog_codes)
+        with st.spinner("Resetting YouTube localizations..."):
+            reset_service.reset(video_id)
+        reset_video_cache(session_state)
+        if get_selected_video_id(session_state) == video_id:
+            session_state["common.manual_reload_video_id"] = video_id
+        session_state["common.pending_sidebar_feedback"] = (
+            "success",
+            "All YouTube localizations were reset for '{}'.".format(
+                video.title or video.id
+            ),
+        )
+        session_state["common.video_operation_status"] = "idle"
+        st.rerun()
+    except Exception:
+        session_state["common.video_operation_status"] = "idle"
+        st.error("YouTube could not reset this video's localizations. Try again.")
+    return True
+
+
+def _render_load_more(context, session_state) -> None:
+    import streamlit as st
+
+    selection = context.selection
+    if not can_load_more(session_state, selection, context.channel.total_videos):
+        return
+    if st.button(
+        "Load more",
+        key="common-load-more",
+        use_container_width=True,
+        disabled=session_state.get("common.video_operation_status") != "idle",
+    ):
+        session_state["common.video_operation_status"] = "loading_more"
+        try:
+            with st.spinner("Loading more videos..."):
+                load_more_video_page(context.service, session_state, selection)
+            session_state["common.video_operation_status"] = "idle"
+            st.rerun()
+        except Exception:
+            session_state["common.video_operation_status"] = "idle"
+            st.error("YouTube could not load more videos. Try again.")
 
 
 def render_app_sidebar(
@@ -67,16 +154,25 @@ def render_app_sidebar(
     import streamlit as st
 
     init_common_state(session_state)
+    _render_pending_feedback(session_state)
+    if _consume_pending_reset(context, session_state, query_params):
+        return get_selected_video_id(session_state)
     with st.sidebar:
         with st.container(border=True):
             _render_channel_details(context.channel)
-            if st.button("Refresh list", key="common-refresh-list"):
+            if st.button("Refresh", key="common-refresh-list"):
                 _refresh_sidebar(session_state)
 
         render_page_size_control(context.selection, query_params)
         render_pagination(
             context.selection, context.channel.total_videos, query_params
         )
-        render_video_list(context.page.videos, session_state)
+        render_video_list(
+            context.page.videos,
+            session_state,
+            supported_language_codes=_catalog_codes(context),
+            query_params=query_params,
+        )
+        _render_load_more(context, session_state)
 
     return get_selected_video_id(session_state)

@@ -1,6 +1,8 @@
 """Workflow-agnostic video cards for the shared application sidebar."""
 
 import html
+import json
+from urllib.parse import urlencode
 from typing import Any, Iterable, MutableMapping, Sequence, Tuple
 
 from models import VideoSummary
@@ -9,7 +11,6 @@ from state.common_state import (
     init_common_state,
     set_selected_video_id,
 )
-from ui.badges import render_language_badges
 
 
 def widget_key(video_id: str) -> str:
@@ -40,11 +41,6 @@ def video_localization_counts(
     return len(existing), len(live_codes - existing)
 
 
-def _description(text: str, max_length: int = 220) -> str:
-    compact = text or ""
-    return compact if len(compact) <= max_length else compact[:max_length].rstrip() + "…"
-
-
 def _render_thumbnail(video: VideoSummary) -> None:
     import streamlit as st
 
@@ -66,7 +62,38 @@ def _render_thumbnail(video: VideoSummary) -> None:
     )
 
 
-def _render_video_details(video: VideoSummary) -> None:
+def _reset_href(video_id: str, query_params) -> str:
+    params = {}
+    if query_params is not None:
+        for key in ("page", "limit"):
+            value = query_params.get(key)
+            if value is not None:
+                params[key] = value[0] if isinstance(value, (list, tuple)) else value
+    params["reset_video"] = video_id
+    return "?{}".format(urlencode(params))
+
+
+def _render_reset_control(video: VideoSummary, query_params) -> None:
+    import streamlit as st
+
+    warning = (
+        "Reset all YouTube localizations for {title} ({video_id})? "
+        "All translations will be deleted. Only the default title, description, "
+        "and language will remain. Save any translations you need before resetting."
+    ).format(title=video.title or "this video", video_id=video.id)
+    st.markdown(
+        '<a class="video-reset-link" href="{href}" role="button" '
+        'onclick="return window.confirm({warning})">Reset languages</a>'.format(
+            href=html.escape(_reset_href(video.id, query_params), quote=True),
+            warning=html.escape(json.dumps(warning), quote=True),
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def _render_video_details(
+    video: VideoSummary, supported_language_codes: Iterable[str]
+) -> None:
     import streamlit as st
 
     _render_thumbnail(video)
@@ -75,29 +102,28 @@ def _render_video_details(video: VideoSummary) -> None:
         unsafe_allow_html=True,
     )
     st.markdown(
-        '<div class="video-description">{}</div>'.format(
-            html.escape(_description(video.description))
-        ),
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        '<div class="video-id">ID: {}</div>'.format(html.escape(video.id)),
-        unsafe_allow_html=True,
-    )
-    st.markdown(
         '<div class="video-default-language">Default language: {}</div>'.format(
             html.escape(video.default_language_code or "Not set")
         ),
         unsafe_allow_html=True,
     )
-    if video.current_language_codes:
-        render_language_badges(video.current_language_codes, label="Localizations")
-    else:
-        st.caption("No localizations")
+    st.markdown(
+        '<div class="video-localizations">Localizations: {} / {}</div>'.format(
+            *video_localization_counts(video, supported_language_codes)
+        ),
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="video-id">Video ID: {}</div>'.format(html.escape(video.id)),
+        unsafe_allow_html=True,
+    )
 
 
 def render_video_list(
-    videos: Sequence[VideoSummary], session_state: MutableMapping[str, Any]
+    videos: Sequence[VideoSummary],
+    session_state: MutableMapping[str, Any],
+    supported_language_codes: Iterable[str] = (),
+    query_params=None,
 ):
     """Render cards that read and write only the common video selection."""
     import streamlit as st
@@ -105,9 +131,9 @@ def render_video_list(
     init_common_state(session_state)
     selected_id = get_selected_video_id(session_state)
     for video in videos:
-        with st.container(border=True):
-            _render_video_details(video)
-            is_selected = selected_id == video.id
+        is_selected = selected_id == video.id
+        with st.container(border=is_selected):
+            _render_video_details(video, supported_language_codes)
             if st.button(
                 "Selected" if is_selected else "Select",
                 type="primary" if is_selected else "secondary",
@@ -117,4 +143,5 @@ def render_video_list(
             ):
                 set_selected_video_id(session_state, video.id)
                 st.rerun()
+            _render_reset_control(video, query_params)
     return get_selected_video_id(session_state)

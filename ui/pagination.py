@@ -127,7 +127,12 @@ def render_pagination(
     )
     previous_col, page_col, next_col = st.columns((1, 2, 1))
     with previous_col:
-        if st.button("← Previous", disabled=current.page <= 1, key="common-pagination-previous"):
+        if st.button(
+            "‹",
+            help="Previous page",
+            disabled=current.page <= 1,
+            key="common-pagination-previous",
+        ):
             query_params.update(canonical_pagination_query(
                 PaginationSelection(current.page - 1, current.limit)
             ))
@@ -147,7 +152,8 @@ def render_pagination(
             st.rerun()
     with next_col:
         if st.button(
-            "Next →",
+            "›",
+            help="Next page",
             disabled=current.page >= total_pages(current.limit, total_videos),
             key="common-pagination-next",
         ):
