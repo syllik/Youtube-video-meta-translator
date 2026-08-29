@@ -18,9 +18,8 @@ from localizations import (
     ParsedLocalizations,
     merge_localization_documents,
 )
-from state.manual_state import set_manual_json
+from state.manual_state import request_manual_editor_update
 from ui.badges import render_language_badges
-from ui.manual_editor import localization_editor_key
 
 
 def apply_llm_upload(
@@ -48,7 +47,7 @@ def apply_llm_upload(
     canonical_json = merge_localization_documents(
         state.get("raw_json", ""), incoming_document
     )
-    set_manual_json(state, canonical_json)
+    request_manual_editor_update(state, canonical_json)
     return parsed
 
 
@@ -59,7 +58,7 @@ def apply_generated_localizations(
     canonical_json = merge_localization_documents(
         state.get("raw_json", ""), document
     )
-    set_manual_json(state, canonical_json)
+    request_manual_editor_update(state, canonical_json)
     return canonical_json
 
 
@@ -163,9 +162,7 @@ def render_llm_translation_controls(
             st.success("All supported YouTube localizations are complete.")
             return
 
-        canonical_json = apply_generated_localizations(state, generated_document)
-        editor_key = localization_editor_key(widget_prefix, video_resource["id"])
-        st.session_state[editor_key] = canonical_json
+        apply_generated_localizations(state, generated_document)
         st.rerun()
         return
 
@@ -207,6 +204,4 @@ def render_llm_translation_controls(
     prompt_state["consumed_upload_context"] = upload_context
     prompt_state["upload_issue_context"] = None
     prompt_state["upload_issues"] = ()
-    editor_key = localization_editor_key(widget_prefix, video_resource["id"])
-    st.session_state[editor_key] = state["raw_json"]
     st.rerun()

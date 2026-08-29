@@ -12,6 +12,7 @@ MANUAL_DEFAULTS = {
     "reload_requested": False,
     "scroll_to_form": False,
     "raw_json": "",
+    "pending_editor_json": None,
     "local_validation": None,
     "preview_result": None,
     "preview_fingerprint": None,
@@ -45,6 +46,7 @@ def _clear_preview(state: MutableMapping[str, Any]) -> None:
 
 def _clear_translation_form(state: MutableMapping[str, Any]) -> None:
     state["raw_json"] = ""
+    state["pending_editor_json"] = None
     state["local_validation"] = None
     state["operation_status"] = "idle"
     _clear_preview(state)
@@ -95,6 +97,14 @@ def set_manual_json(state: MutableMapping[str, Any], raw_json: str) -> None:
     if state.get("raw_json") != raw_json:
         state["raw_json"] = raw_json
         _clear_preview(state)
+
+
+def request_manual_editor_update(
+    state: MutableMapping[str, Any], raw_json: str
+) -> None:
+    """Queue a widget update for the next render before the editor is created."""
+    set_manual_json(state, raw_json)
+    state["pending_editor_json"] = raw_json
 
 
 def store_manual_preview(state: MutableMapping[str, Any], result: Any) -> None:

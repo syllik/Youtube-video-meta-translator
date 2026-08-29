@@ -19,6 +19,7 @@ from state.manual_state import (
 )
 from state.llm_state import init_llm_state
 from ui.manual_editor import (
+    localization_editor_key,
     render_localization_json_example,
     render_manual_editor,
     render_preview_publish,
@@ -89,9 +90,32 @@ class _FakeProgressPlaceholder:
         self.calls.append(("progress", args, kwargs))
 
 
-def _fake_llm_streamlit(uploaded_file, generate_clicked=False):
+class _WidgetAwareSessionState(dict):
+    def __init__(self):
+        super().__init__()
+        self.instantiated_widget_keys = set()
+
+    def mark_widget_instantiated(self, key):
+        self.instantiated_widget_keys.add(key)
+
+    def reset_widget_instances(self):
+        self.instantiated_widget_keys.clear()
+
+    def __setitem__(self, key, value):
+        if key in self.instantiated_widget_keys:
+            raise AssertionError(
+                "widget state cannot be changed after widget instantiation"
+            )
+        super().__setitem__(key, value)
+
+
+def _fake_llm_streamlit(
+    uploaded_file, generate_clicked=False, session_state=None
+):
     streamlit = ModuleType("streamlit")
-    streamlit.session_state = {}
+    streamlit.session_state = (
+        session_state if session_state is not None else {}
+    )
     streamlit.calls = []
     streamlit.rerun_calls = 0
     streamlit.markdown = lambda *args, **kwargs: streamlit.calls.append(
@@ -104,6 +128,16 @@ def _fake_llm_streamlit(uploaded_file, generate_clicked=False):
         ("success", args, kwargs)
     )
     streamlit.code = lambda *_args, **_kwargs: None
+    streamlit.expander = lambda *_args, **_kwargs: nullcontext()
+    def text_area(_label, **kwargs):
+        mark_widget_instantiated = getattr(
+            streamlit.session_state, "mark_widget_instantiated", None
+        )
+        if mark_widget_instantiated is not None:
+            mark_widget_instantiated(kwargs["key"])
+        return streamlit.session_state[kwargs["key"]]
+
+    streamlit.text_area = text_area
     streamlit.error = lambda *args, **kwargs: streamlit.calls.append(
         ("error", args, kwargs)
     )
@@ -542,7 +576,7 @@ class ManualStateTests(unittest.TestCase):
                 )
 
         self.assertEqual(streamlit.rerun_calls, 1)
-        self.assertEqual(state["raw_json"], streamlit.session_state[editor_key])
+        self.assertEqual(state["pending_editor_json"], state["raw_json"])
         self.assertEqual(
             state["raw_json"],
             '{\n'
@@ -556,6 +590,103 @@ class ManualStateTests(unittest.TestCase):
             '  }\n'
             '}',
         )
+
+    def test_generated_result_updates_editor_after_editor_widget_was_rendered(self):
+        video_resource, catalog = _llm_generation_inputs()
+        state = {"raw_json": "old editor value"}
+        generated = {
+            "de": {"title": "Wasserfall", "description": "Wind"},
+        }
+        session_state = _WidgetAwareSessionState()
+        editor_key = localization_editor_key("llm", video_resource["id"])
+        session_state[editor_key] = "old widget value"
+        streamlit, components, components_v1 = _fake_llm_streamlit(
+            None, generate_clicked=True, session_state=session_state
+        )
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        with patch.dict(sys.modules, modules):
+            render_manual_editor(
+                state,
+                video_resource["id"],
+                SimpleNamespace(),
+                catalog.codes,
+                widget_prefix="llm",
+            )
+            with self.assertRaises(_RerunRequested):
+                llm_package.render_llm_translation_controls(
+                    state,
+                    video_resource,
+                    catalog,
+                    login_checker=lambda: None,
+                    generate_localizations=lambda *_args, **_kwargs: generated,
+                    widget_prefix="llm",
+                )
+
+            session_state.reset_widget_instances()
+            render_manual_editor(
+                state,
+                video_resource["id"],
+                SimpleNamespace(),
+                catalog.codes,
+                widget_prefix="llm",
+            )
+
+        self.assertEqual(session_state[editor_key], state["raw_json"])
+
+    def test_uploaded_result_updates_editor_after_editor_widget_was_rendered(self):
+        video_resource, catalog = _llm_generation_inputs()
+        state = {
+            "raw_json": "old editor value",
+            "prompt_video_id": video_resource["id"],
+            "prompt_target_codes": ("de",),
+            "prompt_text": "translate this",
+        }
+        session_state = _WidgetAwareSessionState()
+        editor_key = localization_editor_key("llm", video_resource["id"])
+        session_state[editor_key] = "old widget value"
+        streamlit, components, components_v1 = _fake_llm_streamlit(
+            _FakeUploadedFile(
+                b'{"de":{"title":"Wasserfall","description":"Wind"}}'
+            ),
+            session_state=session_state,
+        )
+        modules = {
+            "streamlit": streamlit,
+            "streamlit.components": components,
+            "streamlit.components.v1": components_v1,
+        }
+
+        with patch.dict(sys.modules, modules):
+            render_manual_editor(
+                state,
+                video_resource["id"],
+                SimpleNamespace(),
+                catalog.codes,
+                widget_prefix="llm",
+            )
+            with self.assertRaises(_RerunRequested):
+                llm_package.render_llm_translation_controls(
+                    state,
+                    video_resource,
+                    catalog,
+                    widget_prefix="llm",
+                )
+
+            session_state.reset_widget_instances()
+            render_manual_editor(
+                state,
+                video_resource["id"],
+                SimpleNamespace(),
+                catalog.codes,
+                widget_prefix="llm",
+            )
+
+        self.assertEqual(session_state[editor_key], state["raw_json"])
 
     def test_login_error_is_shown_without_starting_generation(self):
         video_resource, catalog = _llm_generation_inputs()

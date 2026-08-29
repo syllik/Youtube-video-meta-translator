@@ -209,6 +209,10 @@ def render_manual_editor(
         state["scroll_to_form"] = False
 
     editor_key = localization_editor_key(widget_prefix, video_id)
+    pending_editor_json = state.get("pending_editor_json")
+    if pending_editor_json is not None:
+        st.session_state[editor_key] = pending_editor_json
+        state["pending_editor_json"] = None
     if editor_key not in st.session_state:
         st.session_state[editor_key] = state.get("raw_json", "")
     raw_json_for_expander = st.session_state.get(
