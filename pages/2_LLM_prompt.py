@@ -1,10 +1,10 @@
 """Supporting page for preparing a source-aware external-LLM prompt."""
 
 import streamlit as st
-from googleapiclient.errors import HttpError
 
 from state.llm_state import init_llm_state, sync_llm_video
 from streamlit_app import bootstrap_app_context, configure_page
+from ui.feedback import render_service_error
 from ui.llm_prompt import render_llm_prompt_page, render_source_quality_guide
 from ui.source_selection import render_source_selection
 
@@ -45,11 +45,8 @@ data to linked LLM websites or require an LLM API key.
                 context.selected_video_id
             )
             catalog = context.metadata_language_catalog
-    except HttpError:
-        st.error("YouTube could not load the selected video or metadata language catalog.")
-        return
-    except Exception:
-        st.error("YouTube could not load the selected video or metadata language catalog.")
+    except Exception as error:
+        render_service_error(error)
         return
 
     source_codes = render_source_selection(st.session_state, video_resource, catalog)

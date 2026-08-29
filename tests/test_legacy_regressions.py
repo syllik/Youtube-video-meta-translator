@@ -5,11 +5,53 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, call, mock_open, patch
 
-from youtube_account import YoutubeApi
+from youtube_account import YoutubeApi, YoutubeSetupError
 import youtube_account
 
 
 class YoutubeAccountSecurityTests(unittest.TestCase):
+    def test_missing_oauth_client_file_is_classified_without_raw_details(self):
+        account = object.__new__(YoutubeApi)
+        account.credentials = None
+
+        with patch("youtube_account.os.path.exists", return_value=False), patch(
+            "youtube_account.InstalledAppFlow.from_client_secrets_file",
+            side_effect=FileNotFoundError("/private/secret/client.json"),
+        ):
+            with self.assertRaises(YoutubeSetupError) as error:
+                account.check_credentials()
+
+        self.assertEqual(error.exception.kind, "oauth_client_missing")
+        self.assertNotIn("/private/secret/client.json", str(error.exception))
+
+    def test_malformed_oauth_client_file_is_classified(self):
+        account = object.__new__(YoutubeApi)
+        account.credentials = None
+
+        with patch("youtube_account.os.path.exists", return_value=False), patch(
+            "youtube_account.InstalledAppFlow.from_client_secrets_file",
+            side_effect=ValueError("client_secret=private"),
+        ):
+            with self.assertRaises(YoutubeSetupError) as error:
+                account.check_credentials()
+
+        self.assertEqual(error.exception.kind, "oauth_client_invalid")
+
+    def test_oauth_callback_port_failure_is_classified(self):
+        account = object.__new__(YoutubeApi)
+        account.credentials = None
+        flow = Mock()
+        flow.run_local_server.side_effect = OSError("port 8080 is busy")
+
+        with patch("youtube_account.os.path.exists", return_value=False), patch(
+            "youtube_account.InstalledAppFlow.from_client_secrets_file",
+            return_value=flow,
+        ):
+            with self.assertRaises(YoutubeSetupError) as error:
+                account.check_credentials()
+
+        self.assertEqual(error.exception.kind, "oauth_callback")
+
     def test_token_cache_permissions_are_restricted_when_loaded(self):
         account = object.__new__(YoutubeApi)
         account.credentials = None

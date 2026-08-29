@@ -62,8 +62,6 @@ def get_youtube_service(session_state: MutableMapping[str, Any]):
 
 def bootstrap_app_context() -> Optional[AppContext]:
     """Load shared YouTube data, render the sidebar, and return app context."""
-    from googleapiclient.errors import HttpError
-
     from models import YouTubePage
     from state.common_state import (
         clamp_selection,
@@ -72,7 +70,7 @@ def bootstrap_app_context() -> Optional[AppContext]:
         load_video_page,
         reset_video_cache,
     )
-    from ui.feedback import render_feedback
+    from ui.feedback import render_service_error
     from ui.pagination import (
         canonical_pagination_query,
         parse_pagination_query,
@@ -110,18 +108,8 @@ def bootstrap_app_context() -> Optional[AppContext]:
                 if channel.total_videos <= 0
                 else load_video_page(service, st.session_state, normalized)
             )
-    except HttpError as error:
-        reason = ""
-        details = getattr(error, "error_details", None) or []
-        if details and isinstance(details[0], dict):
-            reason = details[0].get("reason", "")
-        if reason == "quotaExceeded":
-            render_feedback("", "quota_exceeded")
-        else:
-            render_feedback("", "youtube_api")
-        return None
-    except Exception:
-        render_feedback("", "youtube_api")
+    except Exception as error:
+        render_service_error(error)
         return None
 
     context = AppContext(

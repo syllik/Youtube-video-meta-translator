@@ -15,10 +15,19 @@ api_service_name = "youtube"
 api_version = "v3"
 TOKEN_FILE = "token.json"
 LEGACY_TOKEN_FILE = "token.pickle"
+OAUTH_CLIENT_FILE = "config/account_client_secrets_main.json"
 
 
 class YoutubeVideoNotFoundError(ValueError):
     """Raised when a requested video id has no unique YouTube resource."""
+
+
+class YoutubeSetupError(RuntimeError):
+    """Raised when local YouTube authorization setup cannot start safely."""
+
+    def __init__(self, kind):
+        self.kind = kind
+        super().__init__(kind)
 
 
 class _RestrictedCredentialUnpickler(pickle.Unpickler):
@@ -126,12 +135,28 @@ class YoutubeApi:
                     self.credentials = None
             if not self.credentials:
                 # Get credentials and create an API client
-                flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-                    client_secrets_file="config/account_client_secrets_main.json", scopes=scopes)
+                try:
+                    flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
+                        client_secrets_file=OAUTH_CLIENT_FILE, scopes=scopes
+                    )
+                except FileNotFoundError as error:
+                    raise YoutubeSetupError("oauth_client_missing") from error
+                except (
+                    google.auth.exceptions.DefaultCredentialsError,
+                    TypeError,
+                    ValueError,
+                ) as error:
+                    raise YoutubeSetupError("oauth_client_invalid") from error
                 previous_transport_setting = os.environ.get("OAUTHLIB_INSECURE_TRANSPORT")
                 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
                 try:
-                    flow.run_local_server(port=8080, prompt='consent', authorization_prompt_message='')
+                    flow.run_local_server(
+                        port=8080,
+                        prompt="consent",
+                        authorization_prompt_message="",
+                    )
+                except OSError as error:
+                    raise YoutubeSetupError("oauth_callback") from error
                 finally:
                     if previous_transport_setting is None:
                         os.environ.pop("OAUTHLIB_INSECURE_TRANSPORT", None)

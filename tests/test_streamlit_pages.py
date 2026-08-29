@@ -68,6 +68,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertIn("fetch_metadata_language_catalog", root_source)
         self.assertNotIn("fetch_application_language_catalog", root_source)
         self.assertIn("reset_video_cache", source)
+        self.assertIn("render_service_error", source)
 
     def test_prompt_page_uses_shared_bootstrap_and_source_selection(self):
         source = Path("pages/2_LLM_prompt.py").read_text()
