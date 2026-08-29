@@ -4,6 +4,7 @@ import streamlit as st
 from googleapiclient.errors import HttpError
 
 from services.localization_service import LocalizationService
+from state.common_state import reset_video_cache
 from state.llm_state import clear_llm_prompt, init_llm_state, sync_llm_video
 from state.translation_state import init_translation_state, sync_translation_video
 from streamlit_app import bootstrap_app_context, configure_page
@@ -66,6 +67,7 @@ def render_translate_page() -> None:
         )
 
     def refresh_after_publish() -> None:
+        reset_video_cache(st.session_state)
         clear_llm_prompt(prompt_state)
         st.rerun()
 

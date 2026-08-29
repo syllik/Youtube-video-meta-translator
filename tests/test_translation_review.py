@@ -56,6 +56,20 @@ class _FakeStreamlit:
 
 
 class TranslationReviewTests(unittest.TestCase):
+    @staticmethod
+    def _result(*, wrote, is_valid=True, has_changes=True, issues=()):
+        return SimpleNamespace(
+            video={"id": "video-1", "snippet": {}, "localizations": {}},
+            plan=SimpleNamespace(
+                is_valid=is_valid,
+                has_changes=has_changes,
+                diffs=(),
+                issues=issues,
+                preserved_language_codes=(),
+            ),
+            wrote=wrote,
+        )
+
     def test_publish_forwards_the_preview_resource_to_stale_write_guard(self):
         streamlit = _FakeStreamlit()
         state = {
@@ -90,6 +104,102 @@ class TranslationReviewTests(unittest.TestCase):
             "video-1",
             state["draft"],
             expected_video=preview.video,
+        )
+
+    def test_successful_publish_is_the_only_success_outcome(self):
+        streamlit = _FakeStreamlit()
+        state = {
+            "bound_video_id": "video-1",
+            "draft": {"de": {"title": "New", "description": "New"}},
+            "operation_status": "idle",
+        }
+        preview = self._result(wrote=False)
+        store_translation_preview(state, preview)
+        service = Mock()
+        service.publish.return_value = self._result(wrote=True)
+        on_published = Mock()
+
+        with patch.dict(sys.modules, {"streamlit": streamlit}):
+            render_preview_publish(
+                state, "video-1", service, ("de",), on_published=on_published
+            )
+
+        self.assertTrue(any(call[0] == "success" for call in streamlit.calls))
+        self.assertFalse(
+            any(
+                call[0] == "info" and "No localization changes" in call[1]
+                for call in streamlit.calls
+            )
+        )
+        self.assertFalse(any(call[0] == "error" for call in streamlit.calls))
+        on_published.assert_called_once_with()
+
+    def test_unchanged_publish_shows_only_the_no_change_outcome(self):
+        streamlit = _FakeStreamlit()
+        state = {
+            "bound_video_id": "video-1",
+            "draft": {"de": {"title": "New", "description": "New"}},
+            "operation_status": "idle",
+        }
+        preview = self._result(wrote=False)
+        store_translation_preview(state, preview)
+        service = Mock()
+        service.publish.return_value = self._result(
+            wrote=False, has_changes=False
+        )
+
+        with patch.dict(sys.modules, {"streamlit": streamlit}):
+            render_preview_publish(state, "video-1", service, ("de",))
+
+        messages = [call[1] for call in streamlit.calls if call[0] in {"info", "error"}]
+        self.assertEqual(messages, ["No localization changes were found."])
+
+    def test_publish_conflict_shows_issues_without_no_change_outcome(self):
+        streamlit = _FakeStreamlit()
+        state = {
+            "bound_video_id": "video-1",
+            "draft": {"de": {"title": "New", "description": "New"}},
+            "operation_status": "idle",
+        }
+        store_translation_preview(state, self._result(wrote=False))
+        conflict = self._result(
+            wrote=False,
+            is_valid=False,
+            issues=(SimpleNamespace(path="document", message="Video changed"),),
+        )
+        service = Mock()
+        service.publish.return_value = conflict
+
+        with patch.dict(sys.modules, {"streamlit": streamlit}):
+            render_preview_publish(state, "video-1", service, ("de",))
+
+        self.assertTrue(any(call[0] == "error" for call in streamlit.calls))
+        self.assertFalse(
+            any(
+                call[0] == "info" and "No localization changes" in call[1]
+                for call in streamlit.calls
+            )
+        )
+
+    def test_publish_exception_shows_only_the_service_error(self):
+        streamlit = _FakeStreamlit()
+        state = {
+            "bound_video_id": "video-1",
+            "draft": {"de": {"title": "New", "description": "New"}},
+            "operation_status": "idle",
+        }
+        store_translation_preview(state, self._result(wrote=False))
+        service = Mock()
+        service.publish.side_effect = RuntimeError("failure")
+
+        with patch.dict(sys.modules, {"streamlit": streamlit}):
+            render_preview_publish(state, "video-1", service, ("de",))
+
+        self.assertFalse(
+            any(call[0] == "info" for call in streamlit.calls)
+        )
+        self.assertEqual(
+            [call[0] for call in streamlit.calls if call[0] == "error"], ["error"]
         )
 
 

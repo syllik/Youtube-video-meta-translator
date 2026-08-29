@@ -130,6 +130,9 @@ def render_preview_publish(
                 key="{}-publish-changes".format(widget_prefix),
             )
 
+        service_error_rendered = False
+        no_changes_rendered = False
+
         if preview_clicked:
             state["operation_status"] = "previewing"
             try:
@@ -141,6 +144,7 @@ def render_preview_publish(
                 state["operation_status"] = "idle"
                 state["operation_error"] = "youtube_api"
                 _render_service_error(error)
+                service_error_rendered = True
 
         if publish_clicked:
             if not translation_preview_is_current(state):
@@ -162,15 +166,21 @@ def render_preview_publish(
                     else:
                         store_translation_preview(state, result)
                         state["operation_status"] = "idle"
-                        st.info("No localization changes were found.")
+                        if result.plan.is_valid and not result.plan.has_changes:
+                            st.info("No localization changes were found.")
+                            no_changes_rendered = True
                 except Exception as error:
                     state["operation_status"] = "idle"
                     state["operation_error"] = "youtube_api"
                     _render_service_error(error)
+                    service_error_rendered = True
 
         result = state.get("preview_result")
-        if result is not None:
+        if result is not None and not service_error_rendered:
             if result.plan.issues:
                 _render_errors(result.plan.issues)
+            elif not result.plan.has_changes:
+                if not no_changes_rendered:
+                    st.info("No localization changes were found.")
             else:
                 _render_report(result)
