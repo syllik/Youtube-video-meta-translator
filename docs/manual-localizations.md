@@ -1,47 +1,75 @@
-# 🧩 Manual localizations
+# ▶️ Translate workflow
 
-Use this workflow when translations are already prepared and you want to
-review them before publishing to YouTube.
+Use **Translate** for the complete YouTube localization workflow: choose
+sources, generate or provide JSON, edit it, validate it, preview the diff, and
+publish one selected video's changes safely.
 
-⬅️ [Back to documentation](README.md) · ➡️ [Troubleshooting](troubleshooting.md)
+⬅️ [Back to documentation](README.md) · ➡️ [LLM Translation prompt](llm-localizations.md)
 
 ## 🎯 Workflow
 
 ```text
-Click Select on one video card
+Select video
       ↓
-Paste localization JSON
+Choose default primary source and optional existing references
       ↓
-Automatic validation on every change
+Generate with Codex, upload external JSON, or edit JSON directly
       ↓
-Review added / changed / unchanged entries
-      ↓
-Publish changes
+Validate → Preview changes → Publish changes
 ```
 
-The manual editor handles exactly one uploaded video per operation. It does not
-generate translations, process subtitles, or publish audio localization.
+## 1️⃣ Select a video
 
-## 1️⃣ Select a video in the sidebar
+The persistent sidebar is available on both **Translate** and **LLM Translation
+prompt**. Click **Select** below a video card; the selected card changes to
+**Selected**. The app uses the YouTube video ID, not the title, as the API
+identifier.
 
-The left sidebar is available on every workflow page. Click **Select** on one
-video card; the selected card changes to **Selected** so the active video is
-clear. The app uses the YouTube video ID, not the title, as the API identifier.
+Changing the selected video clears source selection, prompt and target state,
+uploaded-file context, editor JSON, validation, preview, and publish status.
+Source selection is not saved permanently.
 
-The selection stays active while you move through pagination and while you move
-between Manual translate, LLM translate, and LLM Translation prompt. The
-thumbnail opens the video on YouTube; the card also shows its ID, default
-language, localization badges, and selection control.
+## 2️⃣ Choose source languages
 
-## 2️⃣ Paste JSON
+The video's `snippet.defaultLanguage` is always the primary source and uses the
+real `snippet.title` and `snippet.description`. If the video has existing
+localizations, **Source languages** shows a native multiselect containing the
+default plus every existing localization. The default is required and is
+restored if removed.
 
-Open **Manual localizations** to edit the direct JSON object. The expander is
-collapsed while idle and opens automatically when JSON, validation feedback, or
-a preview result is present. Its example contains ten codes selected from the
-current live YouTube language catalog, excluding the default language when it
-is available.
+When only the default source exists, the app selects it automatically and does
+not show a one-option multiselect. Selected existing localizations provide
+their real title and description as optional verified reference translations.
+They help preserve intent, tone, and nuance, but the default source remains
+authoritative when references conflict with it.
 
-Use a non-empty JSON object keyed by YouTube language code:
+The same source selection is used on **Translate** and **LLM Translation
+prompt** while the same video remains selected. Source language codes are
+canonicalized using YouTube's live `i18nLanguages.list` catalog.
+
+## 3️⃣ Generate or provide localization JSON
+
+In **Generate translations**, choose one of these paths:
+
+- **Generate missing translations** runs the locally authenticated Codex CLI
+  in sequential batches of at most ten. Every batch receives the same primary
+  and selected reference sources.
+- Open **LLM Translation prompt** to prepare the same source-aware prompt for
+  ChatGPT, Gemini, Claude, or another external LLM. Return to **Translate** and
+  upload its direct UTF-8 JSON file.
+- Paste or edit JSON directly in the **Localization JSON** editor.
+
+All three paths populate the same editor. No generation or upload publishes
+automatically.
+
+The target list contains only currently missing languages from the live
+YouTube catalog. The default and every selected source language are excluded
+from targets.
+
+## 4️⃣ Edit and validate locally
+
+The editor accepts a non-empty direct JSON object keyed by YouTube language
+code:
 
 ```json
 {
@@ -56,66 +84,37 @@ Use a non-empty JSON object keyed by YouTube language code:
 }
 ```
 
-Regional codes such as `pt-BR` and `zh-CN` remain regional codes. Do not put
-`video_id`, channel data, or unrelated metadata inside this JSON.
+Every value must contain exactly `title` and `description` string fields. A
+title cannot be empty and is limited to 100 characters; a description is
+limited to 5,000 characters. Invalid JSON or fields keep publishing disabled.
 
-## 3️⃣ Edit and validate locally
+Existing localizations omitted from submitted JSON are preserved. Do not put
+video, channel, prompt, or wrapper metadata inside the localization object.
 
-After every JSON change, the form validates the current text locally. Click
-**Preview changes** to compare the valid document with the selected video's
-current YouTube state. The report shows:
+## 5️⃣ Preview and publish safely
 
-- `added` — the language does not exist yet;
-- `changed` — title or description differs;
-- `unchanged` — both fields are identical;
-- invalid entries — the language or field needs correction.
+Click **Preview changes** to compare valid JSON with the current YouTube state.
+Preview never writes to YouTube. The report shows added, changed, unchanged,
+and preserved languages.
 
-Invalid JSON or an invalid entry keeps **Publish changes** disabled. The
-validation request performs no `videos.update` request.
-
-## 4️⃣ Publish changes
-
-Click **Publish changes** only after checking the report and seeing the valid
-status. The button is bound to the selected single video. Clicking **Select**
-on another video automatically invalidates the previous result and revalidates
-the same JSON for the new video. The publish request validates the JSON again
-and fetches the latest YouTube video state before building one merged update.
-
-Existing localizations omitted from the submitted JSON are preserved:
-
-```text
-current:   de, fr, ja, ru
-submitted: de, es
-result:    de updated, es added, fr/ja/ru preserved
-```
+Click **Publish changes** only after reviewing a valid current preview. If JSON
+changes after Preview, publishing is blocked until Preview runs again. Publish
+revalidates, fetches the latest YouTube state, merges submitted entries into
+existing localizations, preserves omitted entries, and performs at most one
+update for the selected video.
 
 An unchanged submission does not create an unnecessary YouTube write.
 
-## ✅ Input rules
-
-- The root must be a non-empty JSON object.
-- Every language key must be supported by the app.
-- Every value must contain exactly `title` and `description` string fields.
-- A title cannot be empty after trimming whitespace.
-- A title may contain at most 100 characters.
-- A description may contain at most 5,000 characters.
-- Content is not silently truncated.
-
-The editor reports the language and field path, for example `ja.title`.
-
-## 🚫 Not supported in this workflow
+## 🚫 Not supported
 
 - subtitles or SRT files;
 - audio localization or dubbing;
-- bulk manual editing of multiple videos;
-- automatic AI, DeepL, or Google translation generation.
-
-For externally prepared AI translations, use the
-[LLM prompt workflow](llm-localizations.md), which keeps the provider outside
-the application and validates the downloaded JSON locally.
+- bulk editing of multiple videos;
+- automatic publishing after generation or upload;
+- provider API-key integration.
 
 ## ➡️ Next step
 
-- [Use the LLM prompt workflow](llm-localizations.md)
+- [Prepare an external-LLM prompt or configure local Codex](llm-localizations.md)
 - [Handle errors](troubleshooting.md)
-- [Read the complete product context](manual-localization-editor-context.md)
+- [Read historical product context](manual-localization-editor-context.md)

@@ -1,4 +1,4 @@
-"""Manual-only JSON editor, preview report, and publish action."""
+"""Universal localization JSON editor, preview report, and publish action."""
 
 import json
 from typing import Any, Callable, Iterable, MutableMapping, Optional, Tuple
@@ -112,6 +112,13 @@ def _render_service_error(error: Exception) -> None:
     st.error("YouTube could not complete this localization request. Check the connection and try again.")
 
 
+def localization_editor_key(widget_prefix: str, video_id: Optional[str]) -> str:
+    """Keep Streamlit's editor widget isolated from drafts for other videos."""
+    if not video_id:
+        return "{}-localizations-json".format(widget_prefix)
+    return "{}-localizations-json-{}".format(widget_prefix, video_id)
+
+
 def _render_report(result: Any) -> None:
     import streamlit as st
 
@@ -165,7 +172,7 @@ def render_manual_editor(
     render_markdown = getattr(st, "markdown", None)
     if render_markdown is not None:
         render_markdown(
-            '<div id="manual-translation-form"></div>', unsafe_allow_html=True
+            '<div id="localization-form"></div>', unsafe_allow_html=True
         )
     if state.get("scroll_to_form"):
         try:
@@ -175,30 +182,26 @@ def render_manual_editor(
         if components is not None:
             components.html(
                 '<script>window.parent.document.getElementById('
-                '"manual-translation-form").scrollIntoView({behavior: "smooth"});'
+                '"localization-form").scrollIntoView({behavior: "smooth"});'
                 "</script>",
                 height=0,
             )
         state["scroll_to_form"] = False
 
-    editor_key = "{}-localizations-json".format(widget_prefix)
+    editor_key = localization_editor_key(widget_prefix, video_id)
     if editor_key not in st.session_state:
         st.session_state[editor_key] = state.get("raw_json", "")
     raw_json_for_expander = st.session_state.get(
         editor_key, state.get("raw_json", "")
     )
-    parsed_for_expander = parse_localizations_json(
-        raw_json_for_expander, supported_language_codes
-    )
     expanded = bool(
         raw_json_for_expander.strip()
-        or (raw_json_for_expander.strip() and parsed_for_expander.issues)
         or state.get("preview_result") is not None
     )
 
-    with st.expander("Manual localizations", expanded=expanded):
+    with st.expander("Localization JSON", expanded=expanded):
         st.caption(
-            "Paste prepared JSON. Existing languages omitted from the JSON are preserved."
+            "Paste, edit, or upload direct localization JSON. Existing languages omitted from the JSON are preserved."
         )
         example_codes = select_manual_example_codes(
             supported_language_codes,
@@ -221,6 +224,9 @@ def render_manual_editor(
         else:
             st.info("Paste JSON to continue.")
 
+    with st.expander(
+        "Preview & publish", expanded=state.get("preview_result") is not None
+    ):
         preview_col, publish_col = st.columns(2)
         with preview_col:
             preview_clicked = st.button(

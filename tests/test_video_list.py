@@ -19,14 +19,18 @@ class _FakeStreamlit:
     def __init__(self, clicked_key):
         self.clicked_key = clicked_key
         self.session_state = {}
+        self.button_calls = []
+        self.columns_calls = []
 
     def columns(self, spec):
+        self.columns_calls.append(spec)
         return tuple(_Column() for _ in spec)
 
     def container(self, **_kwargs):
         return _Column()
 
     def button(self, _label, **kwargs):
+        self.button_calls.append(kwargs)
         return kwargs["key"] == self.clicked_key
 
     def rerun(self):
@@ -84,6 +88,24 @@ class VideoListTests(unittest.TestCase):
         self.assertEqual(state["common.selected_video_id"], "video-2")
         self.assertNotIn("manual", state)
         self.assertNotIn("llm", state)
+
+    def test_select_button_is_below_details_and_full_width(self):
+        state = {}
+        streamlit = _FakeStreamlit("not-clicked")
+        video = VideoSummary(
+            id="video-2",
+            title="Second video",
+            description="",
+            thumbnail_url="",
+            current_language_codes=(),
+        )
+
+        with patch.dict("sys.modules", {"streamlit": streamlit}):
+            render_video_list((video,), state)
+
+        self.assertEqual(streamlit.columns_calls, [])
+        self.assertEqual(len(streamlit.button_calls), 1)
+        self.assertTrue(streamlit.button_calls[0]["use_container_width"])
 
 
 if __name__ == "__main__":

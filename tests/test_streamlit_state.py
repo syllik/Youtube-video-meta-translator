@@ -31,7 +31,6 @@ class StreamlitStateTests(unittest.TestCase):
 
     def test_switching_llm_video_clears_prompt_and_uploaded_json(self):
         state = init_llm_state({})
-        preview = object()
         state.update(
             {
                 "bound_video_id": "video-1",
@@ -39,31 +38,38 @@ class StreamlitStateTests(unittest.TestCase):
                 "prompt_target_codes": ("de",),
                 "selected_target_codes": ("de",),
                 "prompt_text": "old prompt",
+            }
+        )
+        manual = init_manual_state({})
+        manual.update(
+            {
+                "bound_video_id": "video-1",
                 "raw_json": '{"de": {}}',
                 "local_validation": object(),
-                "preview_result": preview,
+                "preview_result": object(),
                 "preview_fingerprint": ("video-1", "fingerprint"),
                 "published": True,
-                "operation_status": "idle",
+                "operation_status": "publishing",
                 "operation_error": "youtube_api",
             }
         )
 
         sync_llm_video(state, "video-2")
+        sync_manual_video(manual, "video-2")
 
         self.assertEqual(state["bound_video_id"], "video-2")
         self.assertIsNone(state["prompt_video_id"])
         self.assertEqual(state["prompt_target_codes"], ())
         self.assertEqual(state["prompt_text"], "")
-        self.assertEqual(state["raw_json"], "")
-        self.assertIsNone(state["local_validation"])
-        self.assertIsNone(state["preview_result"])
-        self.assertIsNone(state["preview_fingerprint"])
-        self.assertFalse(state["published"])
-        self.assertEqual(state["operation_status"], "idle")
-        self.assertIsNone(state["operation_error"])
         self.assertEqual(state["selected_target_codes"], ())
         self.assertTrue(state["scroll_to_form"])
+        self.assertEqual(manual["raw_json"], "")
+        self.assertIsNone(manual["local_validation"])
+        self.assertIsNone(manual["preview_result"])
+        self.assertIsNone(manual["preview_fingerprint"])
+        self.assertFalse(manual["published"])
+        self.assertEqual(manual["operation_status"], "idle")
+        self.assertIsNone(manual["operation_error"])
 
     def test_selecting_same_llm_video_keeps_current_prompt_and_form(self):
         state = init_llm_state({})
@@ -74,17 +80,24 @@ class StreamlitStateTests(unittest.TestCase):
                 "prompt_target_codes": ("de",),
                 "selected_target_codes": ("de",),
                 "prompt_text": "current prompt",
-                "raw_json": '{"de": {}}',
                 "scroll_to_form": False,
+            }
+        )
+        manual = init_manual_state({})
+        manual.update(
+            {
+                "bound_video_id": "video-1",
+                "raw_json": '{"de": {}}',
             }
         )
 
         sync_llm_video(state, "video-1")
+        sync_manual_video(manual, "video-1")
 
         self.assertEqual(state["prompt_video_id"], "video-1")
         self.assertEqual(state["prompt_target_codes"], ("de",))
         self.assertEqual(state["prompt_text"], "current prompt")
-        self.assertEqual(state["raw_json"], '{"de": {}}')
+        self.assertEqual(manual["raw_json"], '{"de": {}}')
         self.assertEqual(state["selected_target_codes"], ("de",))
         self.assertFalse(state["scroll_to_form"])
 

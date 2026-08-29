@@ -33,6 +33,7 @@ def generate_missing_localizations(
     retry_count=1,
     run_batch=run_codex_batch,
     on_batch=None,
+    selected_source_codes=(),
 ):
     if batch_size < 1 or batch_size > LLM_BATCH_SIZE:
         raise ValueError(
@@ -43,7 +44,11 @@ def generate_missing_localizations(
     if retry_count < 0:
         raise ValueError("retry_count must not be negative")
 
-    progress = calculate_llm_translation_progress(video_resource, catalog)
+    progress = calculate_llm_translation_progress(
+        video_resource,
+        catalog,
+        excluded_source_codes=selected_source_codes,
+    )
     targets = progress.missing
     if max_languages is not None:
         targets = targets[:max_languages]
@@ -54,11 +59,16 @@ def generate_missing_localizations(
     merged = {}
 
     for batch_index, languages in enumerate(batches, start=1):
-        codes = tuple(language.code for language in languages)
+        package = build_llm_translation_package(
+            video_resource,
+            languages,
+            selected_source_codes=selected_source_codes,
+            catalog=catalog,
+        )
+        codes = tuple(package["expectedLanguageCodes"])
         if on_batch is not None:
             on_batch(batch_index, len(batches), codes)
 
-        package = build_llm_translation_package(video_resource, languages)
         schema = build_llm_localization_schema(codes)
 
         result = None

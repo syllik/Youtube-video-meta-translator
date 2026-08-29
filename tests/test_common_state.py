@@ -5,7 +5,9 @@ from state.common_state import (
     get_selected_video_id,
     init_common_state,
     load_video_page,
+    sync_source_selection,
     reset_video_cache,
+    set_source_selection,
     set_selected_video_id,
 )
 from ui.pagination import PaginationSelection
@@ -64,3 +66,38 @@ def test_common_video_selection_survives_video_cache_reset():
     reset_video_cache(state)
 
     assert state["common.selected_video_id"] == "video-1"
+
+
+def test_source_selection_defaults_to_primary_and_resets_for_new_video():
+    state = {}
+
+    assert sync_source_selection(state, "video-a", "en", ("en", "ru")) == ("en",)
+    state["common.selected_source_codes"] = ("en", "ru")
+
+    assert sync_source_selection(state, "video-a", "en", ("en", "ru")) == (
+        "en",
+        "ru",
+    )
+    assert sync_source_selection(state, "video-b", "de", ("de", "fr")) == ("de",)
+    assert state["common.source_video_id"] == "video-b"
+
+
+def test_source_selection_cannot_remove_required_primary_source():
+    state = {}
+
+    selected = set_source_selection(
+        state, "video-a", ("ru",), "en", ("en", "ru")
+    )
+
+    assert selected == ("en", "ru")
+    assert state["common.selected_source_codes"] == ("en", "ru")
+
+
+def test_empty_source_multiselect_clears_old_references_but_keeps_primary():
+    state = {"common.source_video_id": "video-a", "common.selected_source_codes": ("en", "ru")}
+
+    selected = set_source_selection(
+        state, "video-a", (), "en", ("en", "ru")
+    )
+
+    assert selected == ("en",)

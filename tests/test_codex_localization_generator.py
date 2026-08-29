@@ -82,6 +82,31 @@ class CodexLocalizationGeneratorTests(unittest.TestCase):
 
         self.assertEqual(calls, [["fr", "es"], ["ja"]])
 
+    def test_every_batch_receives_the_same_selected_source_context(self):
+        packages = []
+
+        def run_batch(package, schema):
+            packages.append(package)
+            return self._success_batch(package, schema)
+
+        generator_module.generate_missing_localizations(
+            self.video_resource,
+            self.catalog,
+            batch_size=2,
+            selected_source_codes=("en", "de"),
+            run_batch=run_batch,
+        )
+
+        self.assertEqual(len(packages), 2)
+        self.assertEqual(
+            [package["source"] for package in packages],
+            [packages[0]["source"], packages[0]["source"]],
+        )
+        self.assertEqual(
+            packages[0]["source"]["references"],
+            [{"languageCode": "de", "title": "Wasserfall", "description": "Wind"}],
+        )
+
     def test_max_languages_limits_targets_before_batching(self):
         calls = []
 

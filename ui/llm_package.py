@@ -1,4 +1,4 @@
-"""Streamlit controls for the prompt-only localization workflow."""
+"""Streamlit controls for Codex generation and external-LLM JSON handoff."""
 
 import hashlib
 import json
@@ -16,6 +16,7 @@ from llm_localization_package import (
 from localizations import LocalizationIssue, ParsedLocalizations
 from state.manual_state import set_manual_json
 from ui.badges import render_language_badges
+from ui.manual_editor import localization_editor_key
 
 
 def apply_llm_upload(
@@ -80,27 +81,33 @@ def render_llm_translation_controls(
     *,
     login_checker=check_codex_login,
     generate_localizations=generate_missing_localizations,
+    prompt_state: MutableMapping[str, Any] = None,
+    source_codes: Sequence[str] = (),
 ) -> None:
-    """Show automatic generation, prompt-page handoff, and local JSON upload."""
+    """Show generation, prompt handoff, and upload controls for one editor state."""
     import streamlit as st
     import streamlit.components.v1 as components
 
-    st.markdown('<div id="llm-translation-form"></div>', unsafe_allow_html=True)
+    prompt_state = prompt_state if prompt_state is not None else state
+
+    st.markdown('<div id="translate-form"></div>', unsafe_allow_html=True)
     if state.get("scroll_to_form"):
         components.html(
             '<script>window.parent.document.getElementById('
-            '"llm-translation-form").scrollIntoView({behavior: "smooth"});'
+            '"translate-form").scrollIntoView({behavior: "smooth"});'
             "</script>",
             height=0,
         )
         state["scroll_to_form"] = False
 
-    progress = calculate_llm_translation_progress(video_resource, catalog)
+    progress = calculate_llm_translation_progress(
+        video_resource, catalog, excluded_source_codes=source_codes
+    )
     st.caption(
         "YouTube translations: {} / {}".format(progress.current, progress.total)
     )
     st.page_link(
-        "pages/3_LLM_prompt.py",
+        "pages/2_LLM_prompt.py",
         label="LLM Translation prompt",
     )
     if not progress.missing:
@@ -123,10 +130,11 @@ def render_llm_translation_controls(
                     )
                 )
 
+            generation_kwargs = {"on_batch": on_batch}
+            if source_codes:
+                generation_kwargs["selected_source_codes"] = source_codes
             generated_document = generate_localizations(
-                video_resource,
-                catalog,
-                on_batch=on_batch,
+                video_resource, catalog, **generation_kwargs
             )
         except (CodexLocalizationError, CodexGenerationError) as error:
             st.error(str(error))
@@ -140,14 +148,14 @@ def render_llm_translation_controls(
             return
 
         canonical_json = apply_generated_localizations(state, generated_document)
-        editor_key = "{}-localizations-json".format(widget_prefix)
+        editor_key = localization_editor_key(widget_prefix, video_resource["id"])
         st.session_state[editor_key] = canonical_json
         st.rerun()
         return
 
-    prompt_video_id = state.get("prompt_video_id")
-    target_codes = state.get("prompt_target_codes", ())
-    prompt = state.get("prompt_text", "")
+    prompt_video_id = prompt_state.get("prompt_video_id")
+    target_codes = prompt_state.get("prompt_target_codes", ())
+    prompt = prompt_state.get("prompt_text", "")
     if prompt_video_id != video_resource.get("id") or not target_codes or not prompt:
         return
 
@@ -167,22 +175,22 @@ def render_llm_translation_controls(
 
     file_content = uploaded_file.getvalue()
     upload_context = _upload_context(video_resource, target_codes, file_content)
-    if state.get("consumed_upload_context") == upload_context:
+    if prompt_state.get("consumed_upload_context") == upload_context:
         return
-    if state.get("upload_issue_context") == upload_context:
-        _render_issues(state.get("upload_issues", ()))
+    if prompt_state.get("upload_issue_context") == upload_context:
+        _render_issues(prompt_state.get("upload_issues", ()))
         return
 
     parsed = apply_llm_upload(state, file_content, target_codes)
     if not parsed.is_valid:
-        state["upload_issue_context"] = upload_context
-        state["upload_issues"] = parsed.issues
+        prompt_state["upload_issue_context"] = upload_context
+        prompt_state["upload_issues"] = parsed.issues
         _render_issues(parsed.issues)
         return
 
-    state["consumed_upload_context"] = upload_context
-    state["upload_issue_context"] = None
-    state["upload_issues"] = ()
-    editor_key = "{}-localizations-json".format(widget_prefix)
+    prompt_state["consumed_upload_context"] = upload_context
+    prompt_state["upload_issue_context"] = None
+    prompt_state["upload_issues"] = ()
+    editor_key = localization_editor_key(widget_prefix, video_resource["id"])
     st.session_state[editor_key] = state["raw_json"]
     st.rerun()

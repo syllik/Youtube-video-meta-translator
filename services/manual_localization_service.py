@@ -1,4 +1,4 @@
-"""Manual localization workflow boundary used by the Streamlit page."""
+"""Localization preview and publish boundary used by the Translate page."""
 
 from typing import Any, Collection, Optional
 

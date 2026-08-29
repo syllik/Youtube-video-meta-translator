@@ -1,4 +1,4 @@
-"""Supporting page for selecting LLM targets and copying a prompt."""
+"""Supporting page for selecting LLM targets and copying a source-aware prompt."""
 
 import html
 from typing import Any, Mapping, MutableMapping, Tuple
@@ -39,6 +39,12 @@ def _render_free_web_llms() -> None:
     )
 
 
+def _render_return_link() -> None:
+    import streamlit as st
+
+    st.page_link("pages/1_Translate.py", label="Return to Translate")
+
+
 def _default_target_codes(state: Mapping[str, Any], progress) -> Tuple[str, ...]:
     available = {language.code.casefold(): language.code for language in progress.missing}
     stored = tuple(state.get("selected_target_codes") or ())
@@ -55,25 +61,26 @@ def render_llm_prompt_page(
     state: MutableMapping[str, Any],
     video_resource: Mapping[str, Any],
     catalog,
+    source_codes=(),
 ) -> None:
     """Render missing-language selection, prompt copy, and web-LLM links."""
     import streamlit as st
 
     video_id = state.get("bound_video_id") or video_resource.get("id")
     if not video_id:
-        st.page_link(
-            "pages/2_LLM_translate.py",
-            label="Select a video on LLM translate",
-        )
+        _render_return_link()
         _render_free_web_llms()
         return
 
-    progress = calculate_llm_translation_progress(video_resource, catalog)
+    progress = calculate_llm_translation_progress(
+        video_resource, catalog, excluded_source_codes=source_codes
+    )
     st.caption(
         "YouTube translations: {} / {}".format(progress.current, progress.total)
     )
     if not progress.missing:
         st.success("All supported YouTube localizations are complete.")
+        _render_return_link()
         _render_free_web_llms()
         return
 
@@ -108,13 +115,20 @@ def render_llm_prompt_page(
     if not selected_languages:
         set_llm_prompt(state, video_id, (), "")
         st.info("Select at least one target language to build a prompt.")
+        _render_return_link()
         _render_free_web_llms()
         return
 
-    package = build_llm_translation_package(video_resource, selected_languages)
+    package = build_llm_translation_package(
+        video_resource,
+        selected_languages,
+        selected_source_codes=source_codes,
+        catalog=catalog,
+    )
     prompt = build_llm_translation_prompt(package)
     set_llm_prompt(state, video_id, canonical_codes, prompt)
 
     st.code(prompt, language="text")
 
+    _render_return_link()
     _render_free_web_llms()

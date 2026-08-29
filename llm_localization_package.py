@@ -1,4 +1,4 @@
-"""Pure helpers for the prompt-only LLM localization workflow."""
+"""Pure helpers for source-aware translation packages and localization JSON."""
 
 import json
 from dataclasses import dataclass
@@ -38,9 +38,11 @@ class LlmTranslationProgress:
 
 
 def calculate_llm_translation_progress(
-    video_resource: Mapping[str, Any], catalog: YouTubeLanguageCatalog
+    video_resource: Mapping[str, Any],
+    catalog: YouTubeLanguageCatalog,
+    excluded_source_codes: Sequence[str] = (),
 ) -> LlmTranslationProgress:
-    """Calculate supported missing localization languages from a live catalog."""
+    """Calculate supported missing targets from a live catalog."""
     snippet = video_resource.get("snippet")
     default_language = (
         snippet.get("defaultLanguage") if isinstance(snippet, Mapping) else None
@@ -48,6 +50,11 @@ def calculate_llm_translation_progress(
     default_code = (
         default_language.casefold() if isinstance(default_language, str) else None
     )
+    excluded_codes = {
+        code.strip().casefold()
+        for code in excluded_source_codes
+        if isinstance(code, str) and code.strip()
+    }
 
     supported_languages = tuple(
         language
@@ -68,6 +75,7 @@ def calculate_llm_translation_progress(
         language
         for language in supported_languages
         if language.code.casefold() not in existing_codes
+        and language.code.casefold() not in excluded_codes
     )
     return LlmTranslationProgress(
         current=len(supported_languages) - len(missing),
@@ -124,29 +132,127 @@ def build_selected_llm_languages(
     )
 
 
-def _video_source(video_resource: Mapping[str, Any]) -> Dict[str, Any]:
-    """Extract only the default video's source metadata for translation."""
-    snippet = video_resource.get("snippet")
-    if not isinstance(snippet, Mapping):
-        snippet = {}
+def _catalog_code_map(catalog: YouTubeLanguageCatalog):
+    if catalog is None:
+        return {}
     return {
-        "defaultLanguage": snippet.get("defaultLanguage"),
-        "title": snippet.get("title"),
-        "description": snippet.get("description"),
+        language.code.casefold(): language.code for language in catalog.languages
     }
 
 
+def _canonical_source_code(raw_code: Any, catalog: YouTubeLanguageCatalog) -> str:
+    if not isinstance(raw_code, str) or not raw_code.strip():
+        return ""
+    stripped = raw_code.strip()
+    return _catalog_code_map(catalog).get(stripped.casefold(), stripped)
+
+
+def build_translation_source_candidates(
+    video_resource: Mapping[str, Any], catalog: YouTubeLanguageCatalog = None
+) -> Tuple[Dict[str, Any], ...]:
+    """Extract the default source and real existing localization references."""
+    snippet = video_resource.get("snippet")
+    if not isinstance(snippet, Mapping):
+        return ()
+
+    default_code = _canonical_source_code(snippet.get("defaultLanguage"), catalog)
+    if not default_code:
+        return ()
+
+    sources = [{
+        "languageCode": default_code,
+        "title": snippet.get("title", ""),
+        "description": snippet.get("description", ""),
+    }]
+    localizations = video_resource.get("localizations") or {}
+    if not isinstance(localizations, Mapping):
+        return tuple(sources)
+
+    for raw_code, value in localizations.items():
+        code = _canonical_source_code(raw_code, catalog)
+        if not code or code.casefold() == default_code.casefold():
+            continue
+        if not isinstance(value, Mapping):
+            continue
+        title = value.get("title")
+        description = value.get("description")
+        if not isinstance(title, str) or not isinstance(description, str):
+            continue
+        sources.append({
+            "languageCode": code,
+            "title": title,
+            "description": description,
+        })
+    return tuple(sources)
+
+
+def normalize_translation_source_codes(
+    video_resource: Mapping[str, Any],
+    selected_source_codes: Sequence[str],
+    catalog: YouTubeLanguageCatalog = None,
+) -> Tuple[str, ...]:
+    """Return canonical selected source codes with the default source first."""
+    candidates = build_translation_source_candidates(video_resource, catalog)
+    if not candidates:
+        raise ValueError("Video resource is missing defaultLanguage source metadata")
+
+    by_code = {
+        source["languageCode"].casefold(): source["languageCode"]
+        for source in candidates
+    }
+    default_code = candidates[0]["languageCode"]
+    requested = selected_source_codes or (default_code,)
+    selected = []
+    seen = set()
+    for raw_code in requested:
+        canonical = _canonical_source_code(raw_code, catalog)
+        if not canonical or canonical.casefold() not in by_code:
+            raise ValueError("language is not an available source: {}".format(raw_code))
+        canonical = by_code[canonical.casefold()]
+        if canonical.casefold() not in seen:
+            selected.append(canonical)
+            seen.add(canonical.casefold())
+
+    if default_code.casefold() not in seen:
+        selected.insert(0, default_code)
+    else:
+        selected = [
+            default_code,
+            *[code for code in selected if code.casefold() != default_code.casefold()],
+        ]
+    return tuple(selected)
+
+
 def build_llm_translation_package(
-    video_resource: Mapping[str, Any], languages: Sequence[YouTubeLanguage]
+    video_resource: Mapping[str, Any],
+    languages: Sequence[YouTubeLanguage],
+    selected_source_codes: Sequence[str] = (),
+    catalog: YouTubeLanguageCatalog = None,
 ) -> Dict[str, Any]:
-    """Build the default-source-only package for an external LLM."""
+    """Build a package with one authoritative source and optional references."""
+    candidates = build_translation_source_candidates(video_resource, catalog)
+    selected_codes = normalize_translation_source_codes(
+        video_resource, selected_source_codes, catalog
+    )
+    selected_by_code = {code.casefold() for code in selected_codes}
+    primary = candidates[0]
+    references = [
+        source
+        for source in candidates[1:]
+        if source["languageCode"].casefold() in selected_by_code
+    ]
+    targets = [
+        language
+        for language in languages
+        if language.code.casefold() not in selected_by_code
+    ]
     return {
-        "source": _video_source(video_resource),
+        "source": {"primary": primary, "references": references},
         "targetLanguages": [
-            {"code": language.code, "name": language.name} for language in languages
+            {"code": language.code, "name": language.name} for language in targets
         ],
-        "expectedLanguageCodes": [language.code for language in languages],
-        "expectedCount": len(languages),
+        "expectedLanguageCodes": [language.code for language in targets],
+        "expectedCount": len(targets),
     }
 
 
@@ -200,7 +306,12 @@ def build_llm_localization_schema(
 def build_llm_translation_prompt(package: Mapping[str, Any]) -> str:
     """Build strict instructions for one downloadable localization JSON file."""
     package_json = json.dumps(package, ensure_ascii=False, indent=2)
-    return """Translate the default source metadata in this package into every exact target code.
+    return """Translate the primary source metadata in this package into every exact target code.
+
+The primary source is authoritative and determines the intended meaning. Any
+reference sources are verified existing translations: use them only to clarify
+intent, tone, and semantic nuance. If a reference conflicts with the primary
+source, follow the primary source. Do not treat references as competing originals.
 
 Return one attached, downloadable UTF-8 `.json` file. The file must contain a
 direct JSON object whose keys are the exact language codes in

@@ -12,7 +12,8 @@ Google authorization.
 - A browser on the same computer.
 - A YouTube OAuth client JSON file; see [Configuration](configuration.md).
 - Node.js and npm if you want automatic Codex CLI generation.
-- No OpenAI or other LLM API key is required for **LLM translate**.
+- No OpenAI or other LLM API key is required for **Translate** or the
+  supporting **LLM Translation prompt** page.
 
 The application changes YouTube metadata on your behalf. Start with one video
 and check the result in YouTube Studio before larger work.
@@ -72,10 +73,14 @@ Follow [Configuration](configuration.md) and place the OAuth file at:
 config/account_client_secrets_main.json
 ```
 
-Both Streamlit workflows use the same YouTube OAuth session. The external-LLM
-path creates a copyable prompt and validates the downloaded JSON file when you
-upload it; the automatic Codex path additionally uses the local Codex login.
-Neither path requires a provider API key.
+The **Translate** workflow and supporting prompt page use the same YouTube
+OAuth session and current selected video. Their source selection is shared:
+the default language is the primary source and selected existing localizations
+are optional verified references. Changing video resets that selection and any
+draft workflow state. The external-LLM path creates a source-aware prompt and
+validates the downloaded JSON file when you upload it; the automatic Codex
+path additionally uses the local Codex login. Neither path requires a provider
+API key.
 
 ## 4️⃣ Check the environment
 
@@ -125,6 +130,6 @@ and migrated to the safer JSON format.
 
 ## ➡️ Next step
 
-- [Use Manual translate](manual-localizations.md)
-- [Use LLM translate](llm-localizations.md)
+- [Use Translate](manual-localizations.md)
+- [Use LLM Translation prompt](llm-localizations.md)
 - [Troubleshoot setup](troubleshooting.md)

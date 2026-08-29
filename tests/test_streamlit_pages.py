@@ -13,8 +13,8 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertTrue(callable(bootstrap_app_context))
 
     def test_page_titles_are_explicit(self):
-        self.assertEqual(page_title("manual"), "Manual translate")
-        self.assertEqual(page_title("llm"), "LLM translate")
+        self.assertEqual(page_title("translate"), "Translate")
+        self.assertEqual(page_title("prompt"), "LLM Translation prompt")
 
     def test_unknown_mode_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -26,45 +26,39 @@ class StreamlitBootstrapTests(unittest.TestCase):
             importlib.import_module("streamlit_app")
             constructor.assert_not_called()
 
-    def test_only_manual_and_llm_workflow_pages_are_exposed(self):
+    def test_only_translate_and_prompt_workflow_pages_are_exposed(self):
         root_source = Path("streamlit_app.py").read_text()
-        removed_mode = "ma" + "chine"
 
-        self.assertIn('"manual"', root_source)
-        self.assertIn('"llm"', root_source)
-        self.assertNotIn('"{}"'.format(removed_mode), root_source)
-        self.assertFalse(Path("pages/1_" + "Machine_translate.py").exists())
-        self.assertTrue(Path("pages/1_Manual_translate.py").exists())
-        self.assertTrue(Path("pages/2_LLM_translate.py").exists())
+        self.assertIn('"translate"', root_source)
+        self.assertIn('"prompt"', root_source)
+        self.assertFalse(Path("pages/1_Manual_translate.py").exists())
+        self.assertFalse(Path("pages/2_LLM_translate.py").exists())
+        self.assertFalse(Path("pages/3_LLM_prompt.py").exists())
+        self.assertTrue(Path("pages/1_Translate.py").exists())
+        self.assertTrue(Path("pages/2_LLM_prompt.py").exists())
 
-    def test_manual_page_uses_shared_bootstrap_and_not_page_owned_navigation(self):
-        source = Path("pages/1_Manual_translate.py").read_text()
+    def test_translate_page_uses_shared_bootstrap_and_universal_controls(self):
+        source = Path("pages/1_Translate.py").read_text()
         self.assertIn("bootstrap_app_context", source)
         self.assertIn("sync_manual_video", source)
         self.assertIn("render_manual_editor", source)
-        self.assertNotIn("render_video_list", source)
-        self.assertNotIn("render_pagination", source)
-        self.assertNotIn("render_llm_translation_controls", source)
-
-    def test_llm_page_uses_shared_bootstrap_and_not_page_owned_navigation(self):
-        source = Path("pages/2_LLM_translate.py").read_text()
-        self.assertIn("bootstrap_app_context", source)
-        self.assertIn("sync_llm_video", source)
-        self.assertIn("fetch_localization_language_catalog", source)
         self.assertIn("render_llm_translation_controls", source)
-        self.assertIn("render_manual_editor", source)
-        self.assertIn("catalog.codes", source)
+        self.assertIn("render_source_selection", source)
         self.assertNotIn("render_video_list", source)
         self.assertNotIn("render_pagination", source)
 
-    def test_prompt_page_uses_shared_bootstrap(self):
-        source = Path("pages/3_LLM_prompt.py").read_text()
+    def test_prompt_page_uses_shared_bootstrap_and_source_selection(self):
+        source = Path("pages/2_LLM_prompt.py").read_text()
         self.assertIn("bootstrap_app_context", source)
         self.assertIn("sync_llm_video", source)
-        self.assertNotIn("Select a video on LLM translate", source)
+        self.assertIn("sync_manual_video", source)
+        self.assertIn("render_source_selection", source)
+        self.assertIn("fetch_localization_language_catalog", source)
+        self.assertNotIn("render_video_list", source)
+        self.assertNotIn("render_pagination", source)
 
     def test_supporting_llm_prompt_page_has_selection_and_external_links_only(self):
-        prompt_source = Path("pages/3_LLM_prompt.py").read_text()
+        prompt_source = Path("pages/2_LLM_prompt.py").read_text()
         ui_source = Path("ui/llm_prompt.py").read_text()
 
         self.assertIn("render_llm_prompt_page", prompt_source)
@@ -100,7 +94,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
     def test_llm_translation_controls_are_upload_only(self):
         source = Path("ui/llm_package.py").read_text()
 
-        self.assertIn('id="llm-translation-form"', source)
+        self.assertIn('id="translate-form"', source)
         self.assertIn("st.page_link", source)
         self.assertIn("st.file_uploader", source)
         self.assertIn("parse_llm_upload_json", source)
@@ -110,20 +104,17 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertNotIn("build_llm_translation_prompt", source)
         self.assertNotIn("select_next_llm_languages", source)
 
-    def test_llm_guide_keeps_existing_localizations_out_of_external_context(self):
+    def test_llm_guide_describes_selected_references_in_external_context(self):
         guide = Path("docs/llm-localizations.md").read_text()
 
-        self.assertIn(
-            "Existing localizations are used only for progress and missing-target calculation.",
-            guide,
-        )
-        self.assertNotIn("- existing `localizations`", guide)
-        self.assertNotIn("supporting context", guide)
+        self.assertIn("selected existing localizations", guide)
+        self.assertIn("reference", guide.lower())
 
-    def test_llm_page_copy_describes_external_prompt_workflow(self):
+    def test_translate_page_copy_describes_unified_workflow(self):
         source = Path("streamlit_app.py").read_text()
 
-        self.assertIn("Copy a prompt for an external LLM", source)
+        self.assertIn("Translate", source)
+        self.assertIn("LLM Translation prompt", source)
         self.assertNotIn("Open" + "AI", source)
 
     def test_requirements_do_not_declare_openai(self):
@@ -137,8 +128,8 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertNotIn("st.radio", source)
         self.assertIn('"Selected" if is_selected else "Select"', source)
 
-    def test_manual_page_does_not_require_visible_page_membership(self):
-        source = Path("pages/1_Manual_translate.py").read_text()
+    def test_translate_page_does_not_require_visible_page_membership(self):
+        source = Path("pages/1_Translate.py").read_text()
         self.assertNotIn("selected video is on another page", source.lower())
 
     def test_sidebar_keeps_channel_logo_and_shared_bootstrap_renders_it(self):

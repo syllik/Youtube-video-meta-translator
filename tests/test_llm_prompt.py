@@ -1,5 +1,6 @@
 import sys
 import unittest
+from contextlib import nullcontext
 from types import ModuleType
 from unittest.mock import patch
 
@@ -44,6 +45,14 @@ class _FakeStreamlit:
 
     def error(self, value, **_kwargs):
         self.messages.append(("error", value))
+
+
+class _SourceSelectionStreamlit(_FakeStreamlit):
+    def expander(self, *_args, **_kwargs):
+        return nullcontext()
+
+    def info(self, value, **_kwargs):
+        self.messages.append(("info", value))
 
 
 class LlmPromptPageTests(unittest.TestCase):
@@ -168,6 +177,58 @@ class LlmPromptPageTests(unittest.TestCase):
         self.assertEqual(len(fake.code_calls), 1)
         self.assertEqual(fake.code_calls[0][1], {"language": "text"})
         self.assertEqual(fake.code_calls[0][0], state["prompt_text"])
+
+    def test_prompt_uses_the_shared_primary_and_selected_reference_sources(self):
+        from ui.llm_prompt import render_llm_prompt_page
+
+        fake = _FakeStreamlit(selected_codes=("code-2",))
+        state = {"bound_video_id": "video-1", "selected_target_codes": ()}
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_prompt_page(
+                state,
+                self.video_resource,
+                self.catalog,
+                source_codes=("en", "de"),
+            )
+
+        self.assertIn("primary", state["prompt_text"])
+        self.assertIn("Wasserfall", state["prompt_text"])
+        self.assertIn("references", state["prompt_text"])
+
+    def test_prompt_page_links_back_to_translate(self):
+        from ui.llm_prompt import render_llm_prompt_page
+
+        fake = _FakeStreamlit(selected_codes=("code-2",))
+        state = {"bound_video_id": "video-1", "selected_target_codes": ()}
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_prompt_page(state, self.video_resource, self.catalog)
+
+        self.assertTrue(
+            any(
+                call[0] == "page_link"
+                and call[1][0] == "pages/1_Translate.py"
+                and call[2]["label"] == "Return to Translate"
+                for call in fake.messages
+            )
+        )
+
+    def test_shared_source_selector_restores_default_when_removed(self):
+        from ui.source_selection import render_source_selection
+
+        fake = _SourceSelectionStreamlit(selected_codes=("de",))
+        session_state = {}
+
+        with patch.dict(sys.modules, {"streamlit": fake}):
+            selected = render_source_selection(
+                session_state, self.video_resource, self.catalog
+            )
+
+        self.assertEqual(selected, ("en", "de"))
+        self.assertEqual(
+            session_state["common.selected_source_codes"], ("en", "de")
+        )
 
 
 if __name__ == "__main__":

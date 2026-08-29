@@ -11,6 +11,10 @@ from llm_localization_package import parse_llm_upload_json
 
 
 CODEX_TRANSLATION_INSTRUCTION = """Translate the supplied YouTube metadata package into every exact target language.
+The source.primary metadata is authoritative and determines the intended meaning.
+source.references are verified existing translations used only to clarify intent,
+tone, and semantic nuance; if they conflict with primary, follow primary. Do not
+treat references as competing originals.
 Use only the stdin package as translation context.
 Preserve meaning, tone, names, URLs, hashtags, technical tokens, and meaningful line breaks.
 Return only the direct localization JSON required by the supplied output schema.

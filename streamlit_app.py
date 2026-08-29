@@ -7,13 +7,13 @@ import streamlit as st
 
 
 PAGE_TITLES = {
-    "manual": "Manual translate",
-    "llm": "LLM translate",
+    "translate": "Translate",
+    "prompt": "LLM Translation prompt",
 }
 
 PAGE_DESCRIPTIONS = {
-    "manual": "Review prepared localization JSON for one video before publishing it.",
-    "llm": "Copy a prompt for an external LLM, upload its JSON result, and publish it safely.",
+    "translate": "Generate, edit, validate, preview, and publish YouTube localization JSON.",
+    "prompt": "Prepare a source-aware prompt for an external LLM when local Codex is unavailable.",
 }
 
 
@@ -139,9 +139,9 @@ def render_app_intro() -> None:
     """Render the small root page; workflow controls live on the two pages."""
     configure_page()
     st.title("YouTube Metadata Translator")
-    st.write("Choose a workflow from the navigation panel.")
-    st.page_link("pages/1_Manual_translate.py", label="Manual translate")
-    st.page_link("pages/2_LLM_translate.py", label="LLM translate")
+    st.write("Use Translate for the complete localization workflow.")
+    st.page_link("pages/1_Translate.py", label="Translate")
+    st.page_link("pages/2_LLM_prompt.py", label="LLM Translation prompt")
 
 
 if __name__ == "__main__":

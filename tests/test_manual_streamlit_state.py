@@ -15,6 +15,7 @@ from state.manual_state import (
     set_manual_json,
     sync_manual_video,
 )
+from state.llm_state import init_llm_state
 from ui.manual_editor import render_manual_editor, select_manual_example_codes
 from language_catalog import YouTubeLanguage, YouTubeLanguageCatalog
 
@@ -190,7 +191,10 @@ class ManualStateTests(unittest.TestCase):
 
         self.assertEqual(
             streamlit.expander_calls,
-            [("Manual localizations", {"expanded": False})],
+            [
+                ("Localization JSON", {"expanded": False}),
+                ("Preview & publish", {"expanded": False}),
+            ],
         )
 
     def test_manual_expander_opens_for_json_validation_issue_or_preview(self):
@@ -422,7 +426,7 @@ class ManualStateTests(unittest.TestCase):
         streamlit, components, components_v1 = _fake_llm_streamlit(
             None, generate_clicked=True
         )
-        editor_key = "llm-localizations-json"
+        editor_key = "llm-localizations-json-video-1"
         streamlit.session_state[editor_key] = "old widget value"
         modules = {
             "streamlit": streamlit,
@@ -498,7 +502,7 @@ class ManualStateTests(unittest.TestCase):
         streamlit, components, components_v1 = _fake_llm_streamlit(
             None, generate_clicked=True
         )
-        editor_key = "llm-localizations-json"
+        editor_key = "llm-localizations-json-video-1"
         streamlit.session_state[editor_key] = "existing widget value"
         modules = {
             "streamlit": streamlit,
@@ -864,9 +868,19 @@ class ManualStateTests(unittest.TestCase):
 
         sync_manual_video(state, "video-2")
 
+        self.assertEqual(state["raw_json"], "")
         self.assertIsNone(state["preview_result"])
         self.assertFalse(manual_preview_is_current(state))
         self.assertFalse(manual_can_publish(state))
+
+    def test_llm_state_does_not_duplicate_universal_editor_state(self):
+        state = {}
+
+        init_llm_state(state)
+
+        self.assertNotIn("raw_json", state["llm"])
+        self.assertNotIn("preview_result", state["llm"])
+        self.assertIn("prompt_text", state["llm"])
 
     def test_json_change_invalidates_preview_even_for_same_video(self):
         state = {

@@ -1,4 +1,4 @@
-"""Manual-page session state and stale-preview rules."""
+"""Universal Translate editor state and stale-preview rules."""
 
 import hashlib
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
@@ -39,11 +39,18 @@ def _clear_preview(state: MutableMapping[str, Any]) -> None:
     state["operation_error"] = None
 
 
+def _clear_translation_form(state: MutableMapping[str, Any]) -> None:
+    state["raw_json"] = ""
+    state["local_validation"] = None
+    state["operation_status"] = "idle"
+    _clear_preview(state)
+
+
 def sync_manual_video(state: MutableMapping[str, Any], video_id: Optional[str]) -> None:
     """Bind Manual form state to the current shared video selection."""
     if state.get("bound_video_id") != video_id:
         state["bound_video_id"] = video_id
-        _clear_preview(state)
+        _clear_translation_form(state)
         state["scroll_to_form"] = bool(video_id)
 
 

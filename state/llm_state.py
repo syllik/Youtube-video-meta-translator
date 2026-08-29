@@ -1,4 +1,4 @@
-"""LLM-page session state kept separate from the Manual page."""
+"""Prompt and upload session state shared by the Translate pages."""
 
 from typing import Any, MutableMapping, Optional, Sequence
 
@@ -14,13 +14,6 @@ LLM_DEFAULTS = {
     "upload_issue_context": None,
     "upload_issues": (),
     "scroll_to_form": False,
-    "raw_json": "",
-    "local_validation": None,
-    "preview_result": None,
-    "preview_fingerprint": None,
-    "published": False,
-    "operation_status": "idle",
-    "operation_error": None,
 }
 
 
@@ -50,22 +43,11 @@ def _clear_llm_upload_state(state: MutableMapping[str, Any]) -> None:
     state["upload_issues"] = ()
 
 
-def _clear_llm_form(state: MutableMapping[str, Any]) -> None:
-    state["raw_json"] = ""
-    state["local_validation"] = None
-    state["preview_result"] = None
-    state["preview_fingerprint"] = None
-    state["published"] = False
-    state["operation_status"] = "idle"
-    state["operation_error"] = None
-
-
 def sync_llm_video(state: MutableMapping[str, Any], video_id: Optional[str]) -> None:
-    """Bind LLM form state to the current shared video selection."""
+    """Bind prompt/upload state to the current shared video selection."""
     if state.get("bound_video_id") != video_id:
         state["bound_video_id"] = video_id
         clear_llm_prompt(state)
-        _clear_llm_form(state)
         state["scroll_to_form"] = bool(video_id)
 
 

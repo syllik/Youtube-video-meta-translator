@@ -82,17 +82,15 @@ def render_video_list(
     selected_id = get_selected_video_id(session_state)
     for video in videos:
         with st.container(border=True):
-            details_col, action_col = st.columns((5, 1))
-            with details_col:
-                _render_video_details(video)
-            with action_col:
-                is_selected = selected_id == video.id
-                if st.button(
-                    "Selected" if is_selected else "Select",
-                    type="primary" if is_selected else "secondary",
-                    disabled=is_selected,
-                    key=widget_key(video.id),
-                ):
-                    set_selected_video_id(session_state, video.id)
-                    st.rerun()
+            _render_video_details(video)
+            is_selected = selected_id == video.id
+            if st.button(
+                "Selected" if is_selected else "Select",
+                type="primary" if is_selected else "secondary",
+                disabled=is_selected,
+                use_container_width=True,
+                key=widget_key(video.id),
+            ):
+                set_selected_video_id(session_state, video.id)
+                st.rerun()
     return get_selected_video_id(session_state)

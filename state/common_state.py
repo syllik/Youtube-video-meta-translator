@@ -14,7 +14,107 @@ def init_common_state(state: MutableMapping[str, Any]) -> MutableMapping[str, An
     state.setdefault("common.active_limit", None)
     state.setdefault("common.load_error", None)
     state.setdefault("common.selected_video_id", None)
+    state.setdefault("common.source_video_id", None)
+    state.setdefault("common.selected_source_codes", ())
     return state
+
+
+def sync_source_selection(
+    state: MutableMapping[str, Any],
+    video_id: Optional[str],
+    default_source_code: Optional[str],
+    available_source_codes,
+):
+    """Keep required primary source selection scoped to one selected video."""
+    init_common_state(state)
+    available = tuple(
+        code.strip()
+        for code in available_source_codes
+        if isinstance(code, str) and code.strip()
+    )
+    available_by_folded = {code.casefold(): code for code in available}
+    default_code = (
+        default_source_code.strip()
+        if isinstance(default_source_code, str) and default_source_code.strip()
+        else None
+    )
+    if default_code is not None:
+        default_code = available_by_folded.get(default_code.casefold(), default_code)
+
+    if state.get("common.source_video_id") != video_id:
+        state["common.source_video_id"] = video_id
+        state["common.selected_source_codes"] = (
+            (default_code,) if default_code is not None else ()
+        )
+    else:
+        selected = state.get("common.selected_source_codes") or ()
+        normalized = []
+        seen = set()
+        for code in selected:
+            if not isinstance(code, str):
+                continue
+            canonical = available_by_folded.get(code.strip().casefold())
+            if canonical is not None and canonical.casefold() not in seen:
+                normalized.append(canonical)
+                seen.add(canonical.casefold())
+        if default_code is not None and default_code.casefold() not in seen:
+            normalized.insert(0, default_code)
+        elif default_code is not None:
+            normalized = [
+                default_code,
+                *[code for code in normalized if code.casefold() != default_code.casefold()],
+            ]
+        state["common.selected_source_codes"] = tuple(normalized)
+
+    return tuple(state["common.selected_source_codes"])
+
+
+def set_source_selection(
+    state: MutableMapping[str, Any],
+    video_id: Optional[str],
+    selected_source_codes,
+    default_source_code: Optional[str],
+    available_source_codes,
+):
+    """Store a normalized source selection while always retaining the primary."""
+    current = sync_source_selection(
+        state, video_id, default_source_code, available_source_codes
+    )
+    available = tuple(
+        code.strip()
+        for code in available_source_codes
+        if isinstance(code, str) and code.strip()
+    )
+    available_by_folded = {code.casefold(): code for code in available}
+    default_code = (
+        next(
+            (
+                code
+                for code in available
+                if isinstance(default_source_code, str)
+                and code.casefold() == default_source_code.strip().casefold()
+            ),
+            default_source_code.strip()
+            if isinstance(default_source_code, str) and default_source_code.strip()
+            else None,
+        )
+    )
+    selected = []
+    seen = set()
+    for code in current if selected_source_codes is None else selected_source_codes:
+        if not isinstance(code, str):
+            continue
+        canonical = available_by_folded.get(code.strip().casefold())
+        if canonical is not None and canonical.casefold() not in seen:
+            selected.append(canonical)
+            seen.add(canonical.casefold())
+    if default_code is not None:
+        selected = [
+            default_code,
+            *[code for code in selected if code.casefold() != default_code.casefold()],
+        ]
+    state["common.selected_source_codes"] = tuple(selected)
+    return tuple(selected)
 
 
 def get_selected_video_id(state: MutableMapping[str, Any]) -> Optional[str]:

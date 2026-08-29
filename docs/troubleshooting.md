@@ -19,11 +19,12 @@ dependencies. A `pkg_resources is deprecated` warning is not fatal.
 
 ## 🧰 `Codex CLI was not found`
 
-Automatic Codex generation requires the local Codex CLI. Install it with npm
-and verify that the command is available:
+Automatic Codex generation requires the local Codex CLI. Install or update it
+and verify that the command is available. Follow the
+[official Codex CLI installation instructions](https://developers.openai.com/codex/cli/)
+for the current installation method:
 
 ```bash
-npm install -g @openai/codex
 codex --version
 ```
 
@@ -40,6 +41,80 @@ which codex
 The npm global binary directory may not be present in `PATH`. Do not assume a
 single macOS global npm path; installation methods can use different locations.
 
+## 🧰 `Codex login status failed with exit code 1`
+
+This message does not automatically mean that Codex is not logged in. It means
+that the status command failed. Check the CLI and the environment before
+authenticating again.
+
+### 1. Check Codex in the current terminal
+
+On macOS or Linux, run:
+
+```bash
+which -a codex
+codex --version
+node --version
+uname -m
+node -p "process.platform + ' ' + process.arch"
+codex login status
+```
+
+`codex --version` must complete successfully. Compare the Node.js architecture
+with the architecture you expect to use on the machine. Run `codex login
+status` as a separate CLI check, not only through Streamlit.
+
+### 2. Check the same Codex through the app's Python environment
+
+Activate the app's `.venv`, then run:
+
+```bash
+python - <<'PY'
+import shutil
+import subprocess
+
+print("Codex path:", shutil.which("codex"))
+
+result = subprocess.run(
+    ["codex", "--version"],
+    text=True,
+    capture_output=True,
+)
+
+print("Exit:", result.returncode)
+print("STDOUT:", result.stdout)
+print("STDERR:", result.stderr)
+PY
+```
+
+If both the terminal and the Python `.venv` find and run the same Codex, but
+the UI still shows an older Node.js/Codex error, Streamlit is probably using a
+stale inherited environment.
+
+### 3. Fully restart Streamlit
+
+Stop the running app and start it from the same terminal session where the
+Codex checks succeed:
+
+```bash
+Ctrl+C
+source .venv/bin/activate
+python -m streamlit run streamlit_app.py
+```
+
+Child processes inherit the environment of the Streamlit process. Updating
+Node.js or Codex in another terminal does not change the `PATH` or runtime
+environment of an already-running Streamlit process.
+
+### 4. Reinstall only if `codex --version` itself fails
+
+If `codex --version` reports `Missing optional dependency
+@openai/codex-...`, or another launcher/runtime error, the Codex CLI
+installation is broken. Reinstall or update it using the
+[current official Codex CLI installation instructions](https://developers.openai.com/codex/cli/),
+then repeat Step 1. Do not treat a launcher/runtime error as an authentication
+problem.
+
 ## 🔐 `Codex CLI is not logged in`
 
 Authenticate the local Codex CLI with ChatGPT sign-in, then verify it:
@@ -53,10 +128,14 @@ This is separate from the YouTube OAuth file and `token.json`. No OpenAI API
 key is required for the local Codex workflow.
 
 The application reports the login guidance only when `codex login status`
-explicitly reports `Not logged in`. If it instead shows `Codex login status
-failed with exit code ...`, the failure is not necessarily an authentication
-failure; use the included safe CLI diagnostic to investigate executable
-availability, permissions, or the local runtime environment.
+explicitly reports `Not logged in`. Interpret the other outcomes as follows:
+
+- `Not logged in` → run `codex login` and then `codex login status` again.
+- `Missing optional dependency`, a Node.js stack trace, or another
+  launcher/runtime error → this is an installation or environment problem,
+  not an authentication problem; follow the diagnostic section above.
+- If the CLI works in the terminal but fails only in the UI → restart
+  Streamlit from that same working terminal environment.
 
 ## 🔑 `FileNotFoundError` for the OAuth file
 

@@ -62,9 +62,10 @@ find config -maxdepth 1 -type f -print
 
 No OpenAI or other LLM API key, `.env` file, or provider configuration is
 required. The supporting **LLM Translation prompt** page creates a copyable
-prompt from the selected video's default metadata and live YouTube language
-catalog. Paste it into an external LLM, download its JSON file, and upload the
-file to **LLM translate** for local validation, Preview, and Publish.
+prompt from the selected video's primary default metadata, selected existing
+localization references, and live YouTube language catalog. Paste it into an
+external LLM, download its JSON file, and upload the file to **Translate** for
+local validation, Preview, and Publish.
 
 Automatic generation is a separate local option. It uses the installed Codex
 CLI and its local authentication session; follow [Automatic local Codex CLI generation](llm-localizations.md#automatic-local-codex-cli-generation)
@@ -104,6 +105,6 @@ project or opening an issue.
 ## ➡️ Next step
 
 - [Start the app](getting-started.md)
-- [Use the Manual workflow](manual-localizations.md)
-- [Use the LLM workflow](llm-localizations.md)
+- [Use Translate](manual-localizations.md)
+- [Use LLM Translation prompt](llm-localizations.md)
 - [Troubleshoot OAuth and JSON uploads](troubleshooting.md)

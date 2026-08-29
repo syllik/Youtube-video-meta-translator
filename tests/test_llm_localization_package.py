@@ -10,9 +10,11 @@ from language_catalog import (
 from llm_localization_package import (
     LlmTranslationProgress,
     build_selected_llm_languages,
+    build_translation_source_candidates,
     build_llm_translation_package,
     build_llm_translation_prompt,
     calculate_llm_translation_progress,
+    normalize_translation_source_codes,
     parse_llm_upload_json,
     select_next_llm_languages,
 )
@@ -122,7 +124,7 @@ class LlmLocalizationPackageTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     build_selected_llm_languages(progress, codes, max_count=max_count)
 
-    def test_package_contains_only_default_source_and_targets(self):
+    def test_package_contains_primary_source_and_targets(self):
         languages = (
             YouTubeLanguage("code-0", "code-0", "Zulu"),
             YouTubeLanguage("code-1", "code-1", "English"),
@@ -131,11 +133,88 @@ class LlmLocalizationPackageTests(unittest.TestCase):
             self.video_resource, languages
         )
 
-        self.assertEqual(package["source"]["title"], "Waterfall")
-        self.assertEqual(package["source"]["description"], "Wind above the falls.")
+        self.assertEqual(package["source"]["primary"]["title"], "Waterfall")
+        self.assertEqual(
+            package["source"]["primary"]["description"], "Wind above the falls."
+        )
+        self.assertEqual(package["source"]["references"], [])
         self.assertNotIn("existingLocalizations", package)
         self.assertEqual(package["expectedLanguageCodes"], ["code-0", "code-1"])
         self.assertEqual(package["expectedCount"], 2)
+
+    def test_source_candidates_include_default_and_existing_localizations(self):
+        sources = build_translation_source_candidates(
+            self.video_resource, self.catalog
+        )
+
+        self.assertEqual(
+            [source["languageCode"] for source in sources], ["en", "de", "pt-BR"]
+        )
+        self.assertEqual(sources[0]["title"], "Waterfall")
+        self.assertEqual(sources[1]["title"], "Wasserfall")
+        self.assertEqual(sources[2]["description"], "Vento")
+
+    def test_single_default_source_is_selected_automatically(self):
+        video = dict(self.video_resource)
+        video["localizations"] = {}
+
+        selected = normalize_translation_source_codes(video, (), self.catalog)
+        package = build_llm_translation_package(
+            video,
+            (YouTubeLanguage("es", "es", "Spanish"),),
+            selected_source_codes=selected,
+            catalog=self.catalog,
+        )
+
+        self.assertEqual(selected, ("en",))
+        self.assertEqual(package["source"]["primary"]["languageCode"], "en")
+        self.assertEqual(package["source"]["references"], [])
+
+    def test_selected_existing_localization_is_reference_not_competing_primary(self):
+        package = build_llm_translation_package(
+            self.video_resource,
+            (YouTubeLanguage("es", "es", "Spanish"),),
+            selected_source_codes=("en", "de"),
+            catalog=self.catalog,
+        )
+
+        self.assertEqual(package["source"]["primary"], {
+            "languageCode": "en",
+            "title": "Waterfall",
+            "description": "Wind above the falls.",
+        })
+        self.assertEqual(package["source"]["references"], [{
+            "languageCode": "de",
+            "title": "Wasserfall",
+            "description": "Wind",
+        }])
+
+    def test_source_package_requires_default_language_metadata(self):
+        video = {
+            "id": "video-1",
+            "snippet": {"title": "Waterfall", "description": "Wind"},
+            "localizations": {},
+        }
+
+        with self.assertRaises(ValueError):
+            build_llm_translation_package(
+                video,
+                (YouTubeLanguage("es", "es", "Spanish"),),
+                selected_source_codes=("es",),
+                catalog=self.catalog,
+            )
+
+    def test_source_language_codes_are_excluded_from_targets(self):
+        progress = calculate_llm_translation_progress(
+            self.video_resource,
+            self.catalog,
+            excluded_source_codes=("en", "es"),
+        )
+
+        self.assertNotIn("en", [language.code for language in progress.missing])
+        self.assertNotIn("es", [language.code for language in progress.missing])
+        self.assertEqual(progress.current, 3)
+        self.assertEqual(progress.total, 4)
 
     def test_prompt_requires_downloadable_direct_json(self):
         languages = (
@@ -154,7 +233,11 @@ class LlmLocalizationPackageTests(unittest.TestCase):
 
     def test_prompt_serializes_unicode_without_ascii_escaping(self):
         video_resource = {
-            "snippet": {"title": "Водопад", "description": "Ветер над водопадом."}
+            "snippet": {
+                "defaultLanguage": "ru",
+                "title": "Водопад",
+                "description": "Ветер над водопадом.",
+            }
         }
         package = build_llm_translation_package(
             video_resource, (YouTubeLanguage("uk", "uk", "Ukrainian"),)
