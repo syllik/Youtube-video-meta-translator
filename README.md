@@ -81,13 +81,13 @@ streamlit run streamlit_app.py
 6. Confirm the result in YouTube Studio.
 
 The prompt page uses the same source selection as Translate. It offers only
-currently missing languages from YouTube's live `i18nLanguages.list` catalog,
-allows at most ten targets, and never includes selected source languages as
-targets.
+currently missing languages from the checked-in
+`data/youtube-metadata-languages.json` metadata catalog, allows at most ten
+targets, and never includes selected source languages as targets.
 
 The persistent sidebar shows compact channel details, YouTube/RSS links,
 refresh, page-size controls, pagination, and compact video cards. Cards show
-live-catalog localization counts as `done / undone`,
+metadata-catalog localization counts as `done / undone`,
 full-width Select/Selected, and Reset languages. Use **Load more** to append the
 next cursor-backed batch; changing the page starts a new visible batch. Click a
 thumbnail to open the video on YouTube.
@@ -99,8 +99,11 @@ before confirming. The control calls the server-side reset operation without
 navigating away or changing URL parameters. The FAQ page is static and opens
 even when YouTube OAuth or the API is unavailable.
 
-The language catalog is never hardcoded. No OpenAI or other LLM API key is
-required; YouTube uses the existing OAuth session.
+The metadata language catalog is a checked-in snapshot with explicit scope,
+provenance, review date, count, and canonical BCP-47 entries. The application
+does not call `i18nLanguages.list` to discover video metadata languages. No
+OpenAI or other LLM API key is required; YouTube uses the existing OAuth
+session for video data and publishing.
 
 ## 📚 Project documentation
 

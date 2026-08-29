@@ -33,7 +33,7 @@ class EndToEndFakeYoutubeService:
             for index in range(11)
         )
         self.catalog = YouTubeLanguageCatalog(
-            source="YouTube Data API v3 i18nLanguages.list",
+            source="YouTube Studio metadata language picker",
             fetched_at="2026-08-28T00:00:00.000Z",
             hl="ru",
             languages=tuple(languages),
@@ -43,8 +43,8 @@ class EndToEndFakeYoutubeService:
         self.video_ids.append(video_id)
         return self.video_resource
 
-    def fetch_localization_language_catalog(self, hl="ru", refresh=False):
-        self.catalog_requests.append((hl, refresh))
+    def fetch_metadata_language_catalog(self, refresh=False):
+        self.catalog_requests.append(refresh)
         return self.catalog
 
     def update_video_localizations(self, payload, if_match=None):
@@ -96,7 +96,7 @@ class CodexLocalizationEndToEndTests(unittest.TestCase):
 
         self.assertEqual(login_calls, [True])
         self.assertEqual(service.video_ids, ["video-e2e"])
-        self.assertEqual(service.catalog_requests, [("ru", True)])
+        self.assertEqual(service.catalog_requests, [True])
         self.assertEqual(
             [len(package["expectedLanguageCodes"]) for package, _ in codex_calls],
             [10, 1],

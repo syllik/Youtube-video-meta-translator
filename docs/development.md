@@ -20,7 +20,9 @@ Youtube-video-meta-translator/
 │   ├── faq.py                       # Static FAQ content with no API bootstrap
 │   └── badges.py                    # Shared localization badge renderer
 ├── models.py                        # Shared immutable data models
-├── language_catalog.py              # Validated live YouTube language catalog
+├── data/                             # Checked-in video metadata catalog snapshot
+│   └── youtube-metadata-languages.json
+├── language_catalog.py              # Validated application and metadata catalogs
 ├── llm_localization_package.py      # Source context, prompt, schema, validation
 ├── codex_localization_runner.py      # Isolated non-interactive Codex batch call
 ├── codex_localization_generator.py   # Missing-target batching/retry/merge
@@ -36,12 +38,16 @@ Youtube-video-meta-translator/
 ```
 
 The Translate page and supporting prompt page share the YouTube boundary,
-selected video, source selection, and live catalog stored in session state.
+selected video, source selection, and checked-in metadata catalog stored in
+session state.
+The public Data API has no exhaustive metadata-language listing endpoint, so
+the repository snapshot is deliberately reviewable and versioned; it is not
+derived from captions, audio, ISO lists, or private Studio endpoints.
 Translate owns one internal translation draft and Preview/Publish state. The
 prompt page owns only target and prompt/upload state. The default source is
 authoritative; selected existing localizations are optional verified references
 with real title/description metadata. Source selection resets when the selected
-video changes. The persistent sidebar renders compact cards, live-catalog
+video changes. The persistent sidebar renders compact cards, metadata-catalog
 counts, cursor-backed Load more, and destructive Reset languages on both pages.
 FAQ is static and intentionally bypasses YouTube bootstrap and OAuth.
 
@@ -89,11 +95,11 @@ success result is `No broken requirements found.`
   event calls the API without navigating or changing URL parameters.
 - Numeric Load more appends cached cursor pages; changing URL page resets the
   accumulated visible list. It is hidden for `all`.
-- Translate and the supporting prompt use the same fresh `i18nLanguages.list`
-  catalog and source selection for the Streamlit session.
+- Translate and the supporting prompt use the same checked-in metadata catalog
+  and source selection for the Streamlit session.
 - Progress excludes the default language and all selected source languages;
-  prompt targets are a live-catalog subset of missing languages, with the first
-  ten selected by default and a hard limit of ten.
+  prompt targets are a metadata-catalog subset of missing languages, with the
+  first ten selected by default and a hard limit of ten.
 - Codex and external prompts receive the same primary/reference source model.
   An uploaded file must be an exact direct language-keyed YouTube map; wrapper
   metadata is never accepted.

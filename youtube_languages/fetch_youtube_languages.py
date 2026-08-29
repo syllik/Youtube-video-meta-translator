@@ -51,7 +51,7 @@ class LanguagesDocument(TypedDict):
 
 
 class YouTubeLanguagesError(RuntimeError):
-    """Raised when the YouTube language catalog cannot be fetched."""
+    """Raised when the YouTube application/UI catalog cannot be fetched."""
 
 
 HttpGet = Callable[..., Any]
@@ -196,7 +196,7 @@ def fetch_and_save(
     output_path: Path = OUTPUT_PATH,
     http_get: HttpGet = requests.get,
 ) -> LanguagesDocument:
-    """Fetch, validate, transform, and save the current language catalog."""
+    """Fetch, validate, transform, and save the application/UI catalog."""
     response = fetch_languages(api_key, http_get=http_get)
     document = build_output(response, _utc_timestamp())
     save_output(document, output_path=output_path)

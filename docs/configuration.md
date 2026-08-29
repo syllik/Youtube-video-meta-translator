@@ -12,9 +12,10 @@ This guide explains the YouTube OAuth setup used by both workflows.
 3. Enable [YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com).
 
 The app uses one authenticated YouTube OAuth session for listing videos,
-fetching the live `i18nLanguages.list` catalog, reading localizations, and
-publishing updates. It does not need a separate YouTube API key for the
-integrated app flow.
+reading localizations, and publishing updates. Video metadata language codes
+come from the checked-in `data/youtube-metadata-languages.json` snapshot, so
+the integrated app does not need a language-discovery API request or a
+separate YouTube API key.
 
 ## 2️⃣ Configure the OAuth consent screen
 
@@ -38,8 +39,8 @@ application is normal for a private local tool.
 5. Download the JSON file.
 
 Do not choose **Web application** and do not create a plain API key for this
-step. The app uses Google's installed-application OAuth flow for video access,
-the live catalog, and publishing. See Google's
+step. The app uses Google's installed-application OAuth flow for video access
+and publishing. See Google's
 [installed-app OAuth guide](https://developers.google.com/youtube/v3/guides/auth/installed-apps).
 
 ## 4️⃣ Place the OAuth file
@@ -63,7 +64,7 @@ find config -maxdepth 1 -type f -print
 No OpenAI or other LLM API key, `.env` file, or provider configuration is
 required. The supporting **LLM Translation prompt** page creates a copyable
 prompt from the selected video's primary default metadata, selected existing
-localization references, and live YouTube language catalog. Paste it into an
+localization references, and checked-in metadata language catalog. Paste it into an
 external LLM, download its JSON file, and upload the file to **Translate** for
 local validation, Preview, and Publish.
 
@@ -91,9 +92,12 @@ authenticate YouTube. Do not expose or commit either credential or token.
 | `token.pickle` | Legacy only | Accepted once and migrated to `token.json`. |
 | `.venv/` | Created automatically | Project-specific Python environment. |
 
-The language catalog is fetched at runtime from YouTube Data API v3
-`i18nLanguages.list`. There is no checked-in language list and no
-`YOUTUBE_API_KEY` setting in this application flow.
+The video metadata language catalog is checked in at
+`data/youtube-metadata-languages.json`; it records its scope, provenance,
+review date, count, and canonical BCP-47 entries. The separate
+`youtube_languages/` helper can fetch the application/UI catalog from
+`i18nLanguages.list`, but the Streamlit metadata workflow does not use it and
+there is no `YOUTUBE_API_KEY` setting in that application flow.
 
 The optional `youtube_languages/` export utility is separate from the
 Streamlit app and is not needed for translation or publishing.

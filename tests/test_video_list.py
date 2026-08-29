@@ -62,6 +62,21 @@ class VideoListTests(unittest.TestCase):
             (1, 2),
         )
 
+    def test_localization_counts_do_not_count_out_of_catalog_existing_codes(self):
+        video = VideoSummary(
+            id="video-1",
+            title="Video",
+            description="",
+            thumbnail_url="",
+            current_language_codes=("en", "de", "xx"),
+            default_language_code="en",
+        )
+
+        self.assertEqual(
+            video_localization_counts(video, ("en", "de", "fr")),
+            (1, 1),
+        )
+
     def test_widget_keys_are_stable_by_video_id(self):
         self.assertEqual(widget_key("video-42"), "common-video-video-42")
 

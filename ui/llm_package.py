@@ -125,7 +125,7 @@ def render_llm_translation_controls(
         label="LLM Translation prompt",
     )
     if not progress.missing:
-        st.success("All supported YouTube localizations are complete.")
+        st.success("All metadata localizations are complete.")
         return
 
     if st.button(
@@ -164,7 +164,7 @@ def render_llm_translation_controls(
         state["operation_status"] = "idle"
 
         if not generated_document:
-            st.success("All supported YouTube localizations are complete.")
+            st.success("All metadata localizations are complete.")
             return
 
         parsed_generation = apply_generated_localizations(

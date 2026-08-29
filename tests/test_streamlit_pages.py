@@ -10,6 +10,7 @@ from streamlit_app import AppContext, bootstrap_app_context, page_title
 class StreamlitBootstrapTests(unittest.TestCase):
     def test_app_context_exposes_shared_selection(self):
         self.assertIn("selected_video_id", AppContext.__annotations__)
+        self.assertIn("metadata_language_catalog", AppContext.__annotations__)
         self.assertTrue(callable(bootstrap_app_context))
 
     def test_page_titles_are_explicit(self):
@@ -52,6 +53,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
 
     def test_translate_page_uses_shared_bootstrap_and_translation_controls(self):
+        root_source = Path("streamlit_app.py").read_text()
         source = Path("pages/1_Translate.py").read_text()
         self.assertIn("bootstrap_app_context", source)
         self.assertIn("sync_translation_video", source)
@@ -63,6 +65,8 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertNotIn("localization_editor_key", source)
         self.assertNotIn("render_video_list", source)
         self.assertNotIn("render_pagination", source)
+        self.assertIn("fetch_metadata_language_catalog", root_source)
+        self.assertNotIn("fetch_application_language_catalog", root_source)
 
     def test_prompt_page_uses_shared_bootstrap_and_source_selection(self):
         source = Path("pages/2_LLM_prompt.py").read_text()
@@ -70,7 +74,7 @@ class StreamlitBootstrapTests(unittest.TestCase):
         self.assertIn("sync_llm_video", source)
         self.assertNotIn("sync_manual_video", source)
         self.assertIn("render_source_selection", source)
-        self.assertIn("language_catalog", source)
+        self.assertIn("metadata_language_catalog", source)
         self.assertNotIn("render_video_list", source)
         self.assertNotIn("render_pagination", source)
 

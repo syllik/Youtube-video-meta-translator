@@ -2,6 +2,7 @@
 
 import copy
 import json
+import re
 from dataclasses import dataclass
 from typing import Any, Collection, Dict, Mapping, Optional, Tuple
 
@@ -17,6 +18,7 @@ WRITABLE_SNIPPET_FIELDS = (
     "defaultLanguage",
     "defaultAudioLanguage",
 )
+_BCP47_CODE_RE = re.compile(r"^(?:[A-Za-z]{2,8}|x)(?:-[A-Za-z0-9]{1,8})*$")
 
 
 def build_video_reset_update_payload(
@@ -174,13 +176,26 @@ def validate_localizations(
             )
             continue
 
+        normalized_input = raw_language_code.strip()
+        if not _BCP47_CODE_RE.fullmatch(normalized_input):
+            issues.append(
+                LocalizationIssue(
+                    raw_language_code,
+                    "Invalid BCP-47 language code: {}".format(raw_language_code),
+                    path=raw_language_code,
+                )
+            )
+            continue
+
         catalog_key = _catalog_lookup_key(raw_language_code)
         language_code = supported.get(catalog_key)
         if language_code is None:
             issues.append(
                 LocalizationIssue(
                     raw_language_code,
-                    "Unsupported language code: {}".format(raw_language_code),
+                    "Unknown metadata localization language: {}".format(
+                        raw_language_code
+                    ),
                     path=raw_language_code,
                 )
             )

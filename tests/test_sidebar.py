@@ -85,6 +85,9 @@ class SidebarTests(unittest.TestCase):
                 next_page_token=None,
             ),
             selection=PaginationSelection(page=1, limit=10),
+            metadata_language_catalog=SimpleNamespace(
+                codes=("en", "de", "fr"),
+            ),
         )
 
     def test_sidebar_renders_channel_controls_links_and_video_card(self):
@@ -177,7 +180,7 @@ class SidebarTests(unittest.TestCase):
                 reset_video_localizations=reset,
                 supported_language_codes=lambda: (),
             ),
-            language_catalog=SimpleNamespace(codes=("en", "de")),
+            metadata_language_catalog=SimpleNamespace(codes=("en", "de")),
             page=self.context.page,
         )
         state = {

@@ -19,9 +19,13 @@
   Translation prompt page. Do not reintroduce separate legacy translate
   workflows, a Machine translate page, provider, state namespace, control,
   dependency, or documentation flow.
-- The live YouTube Data API v3 `i18nLanguages.list` OAuth response is the only
-  source of valid localization language codes. Never restore a hardcoded
-  language map or infer a code from a translated language name.
+- The checked-in `data/youtube-metadata-languages.json` snapshot is the only
+  source of valid video metadata localization language codes. The YouTube Data
+  API v3 `i18nLanguages.list` response is an application/UI catalog only. Never
+  restore live metadata discovery, infer a code from a translated language
+  name, substitute captions/audio/ISO lists, or replace the snapshot with a
+  fallback. Do not add a runtime dependency on undocumented YouTube Studio
+  internals.
 - The supporting LLM Translation prompt page has no provider integration, API
   key, environment setting, or dependency. It copies a prompt for an external
   LLM; the user downloads that LLM's JSON result and uploads it back to
@@ -31,10 +35,11 @@
   invoke an installed Codex CLI using saved local authentication, but it must
   never require provider API-key environment variables or publish to YouTube.
   Its generated direct localization JSON becomes the internal Translate draft.
-- Progress is `current / total` from live YouTube state, excluding the selected
-  video's default language. The supporting LLM Translation prompt page offers
-  only currently missing live-catalog languages, selects the first ten by
-  default, and rejects more than ten targets.
+- Progress is `current / total` from live YouTube state and the checked-in
+  metadata catalog, excluding the selected video's default language. The
+  supporting LLM Translation prompt page offers only currently missing
+  metadata-catalog languages, selects the first ten by default, and rejects
+  more than ten targets.
 - Translation source context always treats the selected video's default
   language and `snippet.title`/`snippet.description` as the authoritative
   primary source. Selected existing localizations contribute their real title
@@ -59,5 +64,8 @@
   YouTube API workaround, verifies the fresh post-write resource, invalidates
   related state without changing URL parameters, and never uses normal Publish
   merge semantics.
-- Sidebar video cards are compact and use live catalog counts: `done` is existing non-default localizations and `undone` is missing non-default codes from the current catalog. Numeric Load more appends cursor-backed batches; URL page changes reset only the accumulated visible list.
+- Sidebar video cards are compact and use metadata-catalog counts: `done` is
+  existing known non-default localizations and `undone` is missing non-default
+  codes from the checked-in catalog. Numeric Load more appends cursor-backed
+  batches; URL page changes reset only the accumulated visible list.
 - `FAQ` is a static navigation page. It must not construct a YouTube service, start OAuth, fetch API data, or render the persistent video sidebar, so it remains available when YouTube access fails.

@@ -1,1 +1,1 @@
-"""Standalone tooling for refreshing the YouTube language catalog."""
+"""Standalone tooling for refreshing YouTube's application/UI language catalog."""

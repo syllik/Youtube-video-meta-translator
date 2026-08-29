@@ -13,7 +13,7 @@ from youtube_languages.fetch_youtube_languages import (
 
 
 class YouTubeLanguagesTests(unittest.TestCase):
-    def test_build_output_maps_api_items_to_localization_language_entries(self):
+    def test_build_output_maps_api_items_to_application_language_entries(self):
         response = {
             "items": [
                 {

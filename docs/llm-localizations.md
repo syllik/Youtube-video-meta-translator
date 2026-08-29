@@ -16,16 +16,19 @@ For the selected video:
   as optional verified **reference sources**;
 - references clarify intent, tone, and nuance but never compete with the
   primary source;
-- target languages are currently missing live-catalog languages, excluding the
-  default and every selected source language.
+- target languages are currently missing metadata-catalog languages, excluding
+  the default and every selected source language.
 
 Source selection is shared between **Translate** and this supporting page while
 the same video is selected. It resets when the video changes and is not stored
 permanently. A video with only its default source uses that source automatically
 without a meaningless one-option multiselect.
 
-The language catalog comes from YouTube Data API v3 `i18nLanguages.list`; codes
-retain the catalog's canonical casing.
+The video metadata catalog comes from the checked-in
+`data/youtube-metadata-languages.json` snapshot; codes retain its canonical
+casing. The separate `i18nLanguages.list` helper is not used for metadata
+localization validation. The public Data API documents no exhaustive
+`metadataLanguages.list` endpoint, so this reviewable snapshot is intentional.
 
 ## Use an external LLM
 

@@ -2,6 +2,8 @@ config/
 token.pickle
 .env
 *.json
+!data/
+!data/youtube-metadata-languages.json
 *.key
 
 # Byte-compiled / optimized / DLL files

@@ -42,7 +42,7 @@ def calculate_llm_translation_progress(
     catalog: YouTubeLanguageCatalog,
     excluded_source_codes: Sequence[str] = (),
 ) -> LlmTranslationProgress:
-    """Calculate supported missing targets from a live catalog."""
+    """Calculate missing targets from the metadata language catalog."""
     snippet = video_resource.get("snippet")
     default_language = (
         snippet.get("defaultLanguage") if isinstance(snippet, Mapping) else None

@@ -32,8 +32,8 @@ def render_translate_page() -> None:
         return
 
     try:
-        with st.spinner("Loading selected video and language catalog..."):
-            catalog = context.language_catalog
+        with st.spinner("Loading selected video and metadata language catalog..."):
+            catalog = context.metadata_language_catalog
             video_resource = context.service.get_video_with_localizations(
                 context.selected_video_id
             )

@@ -45,8 +45,8 @@ class FakeYoutubeService:
         self.video_ids.append(video_id)
         return self.video_resource
 
-    def fetch_localization_language_catalog(self, hl="ru", refresh=False):
-        self.catalog_requests.append((hl, refresh))
+    def fetch_metadata_language_catalog(self, refresh=False):
+        self.catalog_requests.append(refresh)
         return self.catalog
 
     def update_video_localizations(self, payload, if_match=None):
@@ -65,7 +65,7 @@ class GenerateCodexLocalizationsTests(unittest.TestCase):
             for code in package["expectedLanguageCodes"]
         }
 
-    def test_main_fetches_requested_video_and_fresh_russian_catalog(self):
+    def test_main_fetches_requested_video_and_static_metadata_catalog(self):
         service = FakeYoutubeService()
         login_calls = []
 
@@ -86,7 +86,7 @@ class GenerateCodexLocalizationsTests(unittest.TestCase):
 
         self.assertEqual(login_calls, [True])
         self.assertEqual(service.video_ids, ["video-123"])
-        self.assertEqual(service.catalog_requests, [("ru", True)])
+        self.assertEqual(service.catalog_requests, [True])
         self.assertEqual(tuple(document), ("fr", "es"))
         self.assertNotIn("en", document)
         self.assertNotIn("de", document)

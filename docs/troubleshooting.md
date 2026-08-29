@@ -212,12 +212,15 @@ Each value must contain only a string `title` and `description`; wrapper keys,
 Markdown fences, prose, duplicate keys, extra codes, and missing codes are
 rejected. Correct the file in the external LLM and upload it again.
 
-## 🧾 An upload reports unsupported language codes
+## 🧾 An upload reports an unknown or malformed language code
 
 Only the exact direct YouTube localization map belongs in an upload. Remove
 wrapper keys such as `catalog`, `languages`, `outputContract`, `schemaVersion`,
-or `source`. The valid code list comes from the fresh `i18nLanguages.list`
-response shown by the selected workflow.
+or `source`. The valid code list comes from the checked-in
+`data/youtube-metadata-languages.json` metadata snapshot. A message about an
+invalid BCP-47 code means the key has malformed syntax such as `en_US` or
+`en--GB`; an unknown metadata localization language is syntactically plausible
+but absent from the snapshot.
 
 ## 📊 YouTube quota errors
 

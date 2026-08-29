@@ -316,7 +316,7 @@ class YoutubeApi:
             self.errorStr = e.error_details[0]['reason']
 
     def list_i18n_languages(self, hl="ru"):
-        """Return YouTube's live language catalog response."""
+        """Return YouTube's application/UI language catalog response."""
         return self.youtube.i18nLanguages().list(
             part="snippet", hl=hl
         ).execute()

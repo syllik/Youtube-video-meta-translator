@@ -6,6 +6,7 @@ from language_catalog import (
     YouTubeLanguage,
     YouTubeLanguageCatalog,
     build_language_catalog,
+    load_metadata_language_catalog,
 )
 from llm_localization_package import (
     LlmTranslationProgress,
@@ -35,7 +36,7 @@ class LlmLocalizationPackageTests(unittest.TestCase):
             },
         }
         self.catalog = YouTubeLanguageCatalog(
-            source="YouTube Data API v3 i18nLanguages.list",
+            source="YouTube Studio metadata language picker",
             fetched_at="2026-08-27T16:30:00.000Z",
             hl="ru",
             languages=(
@@ -71,6 +72,31 @@ class LlmLocalizationPackageTests(unittest.TestCase):
         self.assertEqual(progress.total, 4)
         self.assertEqual(
             [language.code for language in progress.missing], ["es", "fr"]
+        )
+
+    def test_metadata_only_snapshot_language_is_a_missing_target(self):
+        catalog = load_metadata_language_catalog()
+        video = {
+            "snippet": {"defaultLanguage": "en"},
+            "localizations": {},
+        }
+
+        progress = calculate_llm_translation_progress(video, catalog)
+
+        self.assertIn("be", [language.code for language in progress.missing])
+
+    def test_existing_source_outside_catalog_remains_available_as_reference(self):
+        video = {
+            **self.video_resource,
+            "localizations": {
+                "xx-YY": {"title": "Reference", "description": "Reference"},
+            },
+        }
+
+        sources = build_translation_source_candidates(video, self.catalog)
+
+        self.assertEqual(
+            [source["languageCode"] for source in sources], ["en", "xx-YY"]
         )
 
     def test_next_selection_is_limited_to_ten(self):

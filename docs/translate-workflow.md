@@ -21,8 +21,10 @@ Select one video in the sidebar. Keep the video's default language selected as
 the authoritative source. Existing YouTube localizations may be selected as
 optional verified references. Source selection is scoped to the selected video.
 
-The target list and sidebar counts use the live YouTube Data API v3
-`i18nLanguages.list` catalog. The default language is not a target localization.
+The target list and sidebar counts use the checked-in
+`data/youtube-metadata-languages.json` metadata catalog. The default language is
+not a target localization. Its snapshot records the scope, provenance, review
+date, count, and canonical BCP-47 codes used by the app.
 
 ## 2. Generate or upload a translation draft
 

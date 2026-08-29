@@ -93,7 +93,7 @@ def render_llm_prompt_page(
         "YouTube translations: {} / {}".format(progress.current, progress.total)
     )
     if not progress.missing:
-        st.success("All supported YouTube localizations are complete.")
+        st.success("All metadata localizations are complete.")
         _render_return_link()
         _render_free_web_llms()
         return

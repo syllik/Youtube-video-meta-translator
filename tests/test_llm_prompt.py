@@ -73,7 +73,7 @@ class LlmPromptPageTests(unittest.TestCase):
             },
         }
         self.catalog = YouTubeLanguageCatalog(
-            source="YouTube Data API v3 i18nLanguages.list",
+            source="YouTube Studio metadata language picker",
             fetched_at="2026-08-28T00:00:00.000Z",
             hl="ru",
             languages=(

@@ -48,6 +48,18 @@ class TranslationServiceTests(unittest.TestCase):
         self.assertEqual(youtube.events, [("get", "video-1")])
         self.assertEqual(youtube.update_calls, [])
 
+    def test_preview_accepts_a_metadata_catalog_only_language(self):
+        youtube = FakeYoutubeApi()
+        service = LocalizationService(youtube, ("be",))
+
+        result = service.preview(
+            "video-1",
+            {"be": {"title": "Belarusian", "description": "Text"}},
+        )
+
+        self.assertTrue(result.plan.is_valid)
+        self.assertFalse(result.wrote)
+
     def test_publish_merges_draft_with_omitted_existing_localizations(self):
         youtube = FakeYoutubeApi()
         service = LocalizationService(youtube, ("de", "es", "fr"))

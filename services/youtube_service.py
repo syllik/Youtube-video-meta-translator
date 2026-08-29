@@ -2,7 +2,11 @@
 
 from typing import Any, Dict, Mapping, Optional
 
-from language_catalog import YouTubeLanguageCatalog, build_language_catalog
+from language_catalog import (
+    YouTubeLanguageCatalog,
+    build_language_catalog,
+    load_metadata_language_catalog,
+)
 from localizations import WRITABLE_SNIPPET_FIELDS, build_video_reset_update_payload
 from models import ChannelInfo, PageLimit, VideoSummary, YouTubePage
 from youtube_account import YoutubeApi
@@ -17,21 +21,30 @@ class YoutubeService:
 
     def __init__(self, account: Optional[YoutubeApi] = None):
         self.account = account or YoutubeApi()
-        self._language_catalog_cache: Dict[str, YouTubeLanguageCatalog] = {}
+        self._application_language_catalog_cache: Dict[str, YouTubeLanguageCatalog] = {}
+        self._metadata_language_catalog_cache: Optional[YouTubeLanguageCatalog] = None
 
-    def fetch_localization_language_catalog(
+    def fetch_application_language_catalog(
         self, hl: str = "ru", refresh: bool = False
     ) -> YouTubeLanguageCatalog:
-        """Fetch and validate YouTube's current localization language catalog."""
-        if not refresh and hl in self._language_catalog_cache:
-            return self._language_catalog_cache[hl]
+        """Fetch and validate YouTube's application/UI language catalog."""
+        if not refresh and hl in self._application_language_catalog_cache:
+            return self._application_language_catalog_cache[hl]
         catalog = build_language_catalog(self.account.list_i18n_languages(hl), hl=hl)
-        self._language_catalog_cache[hl] = catalog
+        self._application_language_catalog_cache[hl] = catalog
         return catalog
 
+    def fetch_metadata_language_catalog(
+        self, refresh: bool = False
+    ) -> YouTubeLanguageCatalog:
+        """Load the checked-in video metadata language catalog."""
+        if self._metadata_language_catalog_cache is None or refresh:
+            self._metadata_language_catalog_cache = load_metadata_language_catalog()
+        return self._metadata_language_catalog_cache
+
     def supported_language_codes(self):
-        """Return codes from the current YouTube catalog for compatibility."""
-        return set(self.fetch_localization_language_catalog().codes)
+        """Return application/UI language codes for compatibility."""
+        return set(self.fetch_application_language_catalog().codes)
 
     def fetch_channel(self) -> ChannelInfo:
         return ChannelInfo(

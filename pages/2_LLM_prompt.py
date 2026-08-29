@@ -40,16 +40,16 @@ data to linked LLM websites or require an LLM API key.
         return
 
     try:
-        with st.spinner("Loading selected video and language catalog..."):
+        with st.spinner("Loading selected video and metadata language catalog..."):
             video_resource = context.service.get_video_with_localizations(
                 context.selected_video_id
             )
-            catalog = context.language_catalog
+            catalog = context.metadata_language_catalog
     except HttpError:
-        st.error("YouTube could not load the selected video or language catalog.")
+        st.error("YouTube could not load the selected video or metadata language catalog.")
         return
     except Exception:
-        st.error("YouTube could not load the selected video or language catalog.")
+        st.error("YouTube could not load the selected video or metadata language catalog.")
         return
 
     source_codes = render_source_selection(st.session_state, video_resource, catalog)

@@ -28,7 +28,7 @@ class AppContext:
     page: Any
     selection: Any
     selected_video_id: Optional[str]
-    language_catalog: Any
+    metadata_language_catalog: Any
 
 
 def page_title(mode: str) -> str:
@@ -85,7 +85,9 @@ def bootstrap_app_context() -> Optional[AppContext]:
     query = parse_pagination_query(st.query_params)
     service = None
     try:
-        with st.spinner("Loading YouTube channel, videos, and language catalog..."):
+        with st.spinner(
+            "Loading YouTube channel, videos, and metadata language catalog..."
+        ):
             service = get_youtube_service(st.session_state)
             channel = st.session_state.get("common.channel")
             if channel is None:
@@ -102,7 +104,7 @@ def bootstrap_app_context() -> Optional[AppContext]:
             }:
                 st.query_params.update(canonical_pagination_query(normalized))
                 st.rerun()
-            catalog = service.fetch_localization_language_catalog()
+            catalog = service.fetch_metadata_language_catalog()
             page = (
                 YouTubePage(videos=(), next_page_token=None)
                 if channel.total_videos <= 0
@@ -128,7 +130,7 @@ def bootstrap_app_context() -> Optional[AppContext]:
         page=page,
         selection=normalized,
         selected_video_id=get_selected_video_id(st.session_state),
-        language_catalog=catalog,
+        metadata_language_catalog=catalog,
     )
     render_app_sidebar(context, st.session_state, st.query_params)
     return AppContext(
@@ -137,7 +139,7 @@ def bootstrap_app_context() -> Optional[AppContext]:
         page=page,
         selection=normalized,
         selected_video_id=get_selected_video_id(st.session_state),
-        language_catalog=catalog,
+        metadata_language_catalog=catalog,
     )
 
 

@@ -1,6 +1,7 @@
 import json
 import unittest
 
+from language_catalog import load_metadata_language_catalog
 from localizations import (
     LocalizationIssue,
     LocalizationValue,
@@ -154,6 +155,54 @@ class ParseLocalizationsTests(unittest.TestCase):
         )
         self.assertNotIn("zh-HANS", result.entries)
         self.assertNotIn("sr-LATN", result.entries)
+
+    def test_malformed_and_unknown_metadata_codes_have_distinct_errors(self):
+        raw = json.dumps(
+            {
+                " ": {"title": "Bad", "description": "Bad"},
+                "en_US": {"title": "Bad", "description": "Bad"},
+                "en--GB": {"title": "Bad", "description": "Bad"},
+                "xx-YY": {"title": "Unknown", "description": "Unknown"},
+            }
+        )
+
+        result = parse_localizations_json(raw, ("en", "be"))
+
+        self.assertFalse(result.is_valid)
+        messages = {issue.language_code: issue.message for issue in result.invalid_entries}
+        self.assertIn("Invalid BCP-47 language code", messages["en_US"])
+        self.assertIn("Invalid BCP-47 language code", messages[" "])
+        self.assertIn("Invalid BCP-47 language code", messages["en--GB"])
+        self.assertIn("Unknown metadata localization language", messages["xx-YY"])
+
+    def test_metadata_only_snapshot_code_is_accepted_and_canonicalized(self):
+        catalog = load_metadata_language_catalog()
+
+        result = parse_localizations_json(
+            json.dumps({"BE": {"title": "Беларуская", "description": "Тэкст"}}),
+            catalog.codes,
+        )
+
+        self.assertTrue(result.is_valid)
+        self.assertEqual(tuple(result.entries), ("be",))
+
+    def test_snapshot_variants_keep_their_canonical_casing(self):
+        catalog = load_metadata_language_catalog()
+        raw = json.dumps(
+            {
+                "en-gb": {"title": "UK", "description": "UK"},
+                "es-419": {"title": "LatAm", "description": "LatAm"},
+                "zh-hans": {"title": "简体", "description": "简体"},
+                "zh-hant": {"title": "繁體", "description": "繁體"},
+            }
+        )
+
+        result = parse_localizations_json(raw, catalog.codes)
+
+        self.assertTrue(result.is_valid)
+        self.assertEqual(
+            tuple(result.entries), ("en-GB", "es-419", "zh-Hans", "zh-Hant")
+        )
 
     def test_casefolded_existing_code_updates_one_catalog_spelled_payload_key(self):
         video = {

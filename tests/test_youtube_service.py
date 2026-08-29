@@ -210,8 +210,8 @@ class YoutubeServiceTests(unittest.TestCase):
         }
         service = YoutubeService(account)
 
-        first = service.fetch_localization_language_catalog()
-        second = service.fetch_localization_language_catalog()
+        first = service.fetch_application_language_catalog()
+        second = service.fetch_application_language_catalog()
 
         self.assertIsInstance(first, YouTubeLanguageCatalog)
         self.assertIs(first, second)
@@ -226,11 +226,22 @@ class YoutubeServiceTests(unittest.TestCase):
         ]
         service = YoutubeService(account)
 
-        service.fetch_localization_language_catalog()
-        refreshed = service.fetch_localization_language_catalog(refresh=True)
+        service.fetch_application_language_catalog()
+        refreshed = service.fetch_application_language_catalog(refresh=True)
 
         self.assertEqual(refreshed.codes, ("fr",))
         self.assertEqual(account.list_i18n_languages.call_count, 2)
+
+    def test_metadata_language_catalog_is_static_and_cached(self):
+        account = Mock()
+        service = YoutubeService(account)
+
+        first = service.fetch_metadata_language_catalog()
+        second = service.fetch_metadata_language_catalog()
+
+        self.assertIs(first, second)
+        self.assertIn("be", first.codes)
+        account.list_i18n_languages.assert_not_called()
 
 
 if __name__ == "__main__":

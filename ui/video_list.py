@@ -18,7 +18,7 @@ def widget_key(video_id: str) -> str:
 def video_localization_counts(
     video: VideoSummary, supported_language_codes: Iterable[str]
 ) -> Tuple[int, int]:
-    """Count existing and missing non-default live-catalog localizations."""
+    """Count known existing and missing non-default metadata localizations."""
     default_code = (
         video.default_language_code.casefold()
         if isinstance(video.default_language_code, str)
@@ -36,7 +36,7 @@ def video_localization_counts(
     }
     if default_code is not None:
         live_codes.discard(default_code)
-    return len(existing), len(live_codes - existing)
+    return len(existing & live_codes), len(live_codes - existing)
 
 
 def _render_thumbnail(video: VideoSummary) -> None:

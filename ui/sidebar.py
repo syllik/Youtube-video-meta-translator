@@ -58,7 +58,7 @@ def _refresh_sidebar(session_state: MutableMapping[str, Any]) -> None:
 
 
 def _catalog_codes(context: Any):
-    catalog = getattr(context, "language_catalog", None)
+    catalog = getattr(context, "metadata_language_catalog", None)
     return tuple(getattr(catalog, "codes", ()) or ())
 
 

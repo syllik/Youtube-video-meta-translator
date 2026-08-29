@@ -47,9 +47,7 @@ def main(
         login_checker()
         service = service_factory()
         video_resource = service.get_video_with_localizations(args.video_id)
-        catalog = service.fetch_localization_language_catalog(
-            hl="ru", refresh=True
-        )
+        catalog = service.fetch_metadata_language_catalog(refresh=True)
 
         def report_batch(index, total, codes):
             print(
@@ -68,7 +66,7 @@ def main(
         )
 
         if not result:
-            print("No missing supported YouTube localizations.")
+            print("No missing metadata localizations.")
             return 0
 
         write_localizations_atomic(result, args.output)
