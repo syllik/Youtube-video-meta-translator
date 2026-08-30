@@ -105,8 +105,10 @@ class YoutubeService:
                     "Refresh the list and confirm Reset again."
                 ) from error
             raise
-        verified = self.get_video_with_localizations(video_id)
-        self._verify_reset(video, verified)
+        # videos.update returns the accepted post-write resource. An immediate
+        # videos.list can briefly expose stale localizations while YouTube
+        # propagates the write.
+        self._verify_reset(video, result)
         return result
 
     @staticmethod

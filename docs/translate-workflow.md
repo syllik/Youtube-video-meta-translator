@@ -132,8 +132,8 @@ browser confirmation, the app:
 3. preserves the canonical `snippet.defaultLanguage`, current default title,
    description, and writable snippet metadata;
 4. sends the default language entry as the YouTube API reset workaround;
-5. fetches the video again and verifies that every non-default localization is
-   gone and the default metadata is unchanged.
+5. verifies the post-write video resource returned by YouTube and confirms that
+   every non-default localization is gone and the default metadata is unchanged.
 
 Reset never falls back to an unconditional destructive update. A changed
 selection or HTTP 412 is a no-write conflict with no automatic retry and
