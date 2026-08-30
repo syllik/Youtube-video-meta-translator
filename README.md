@@ -87,10 +87,11 @@ Select video
    primary Translate selector is not limited to ten languages.
 4. In **Generate translations**, choose **Codex** or the visible **External
    LLM** three-step path: **Prepare prompt**, generate JSON externally, then
-   upload the downloaded UTF-8 JSON file. Codex generates one batch of up to
-   ten targets per interaction, checkpoints each successful batch into the
-   internal draft, and offers **Download JSON** after the first checkpoint.
-   Click **Generate missing translations** again to continue remaining work.
+   upload the downloaded UTF-8 JSON file. Codex processes the complete
+   remaining selection in sequential batches of up to ten targets from one
+   **Generate missing translations** click. Each successful batch is checkpointed
+   into the internal draft; if a later batch fails, retry continues with only
+   the remaining targets. **Download JSON** always contains the current draft.
 5. Click **Preview changes**. Preview never writes to YouTube.
 6. Click **Publish changes** only after reviewing a valid current preview.
    Publish refetches the current video, preserves omitted existing
@@ -105,6 +106,11 @@ by default, allows at most ten targets, and never includes selected source
 languages as targets. **Download JSON** always contains the current internal
 draft as a direct localization map; a later failed Codex batch does not remove
 earlier checkpoints.
+
+After the selected video resource is initially loaded, source and target widget
+reruns use its video-scoped session cache and do not issue another selected-video
+YouTube read. Use **Refresh video list**, **Preview changes**, **Publish changes**,
+or **Reset languages** when a fresh YouTube state is required.
 
 The persistent sidebar shows compact channel details, YouTube/RSS links,
 refresh, page-size controls, pagination, and compact video cards. Cards show

@@ -53,10 +53,13 @@ its ten-target selection and prompt/upload state. The default source is
 authoritative and read-only; selected existing localizations are optional
 verified references with real title/description metadata. Source and target
 selection reset or normalize when the selected video or sources change.
-Translate runs one Codex batch per interaction, merges validated checkpoints
-into the draft, and downloads that direct map between batches. The persistent
-sidebar renders compact cards, metadata-catalog counts, cursor-backed Load
-more, and destructive Reset languages only in the selected-video Danger zone.
+Translate passes its complete remaining queue to the sequential Codex generator,
+merges each validated checkpoint into the draft, and downloads that direct map
+after each rerender. Source and target widget reruns reuse the selected video's
+session resource cache; Preview, Publish, Refresh, and Reset retain explicit
+fresh-state boundaries. The persistent sidebar renders compact cards,
+metadata-catalog counts, cursor-backed Load more, and destructive Reset
+languages only in the selected-video Danger zone.
 Reset uses fresh ETag conditional writes and post-write verification.
 Successful Publish invalidates video-page cache before rerun. FAQ is static
 and intentionally bypasses YouTube bootstrap and OAuth.
@@ -114,9 +117,9 @@ success result is `No broken requirements found.`
   first ten by default and have a hard limit of ten.
 - Codex generation accepts explicit catalog-ordered target codes, batches them
   by `LLM_BATCH_SIZE`, and emits a completion callback only after exact JSON
-  validation and merge. Translate runs one bounded batch per interaction,
-  merges it into the current draft, skips valid draft entries on retry, and
-  exposes the direct current draft through **Download JSON**.
+  validation and merge. One Translate interaction processes the full remaining
+  queue sequentially, skips valid draft entries on retry, and exposes the direct
+  current draft through **Download JSON** even after a later batch failure.
 - Codex and external prompts receive the same primary/reference source model.
   An uploaded file must be an exact direct language-keyed YouTube map; wrapper
   metadata is never accepted.

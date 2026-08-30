@@ -55,6 +55,12 @@ class _FakeStreamlit:
         self.calls.append(("code", message, kwargs))
 
 
+class _PreviewStreamlit(_FakeStreamlit):
+    def button(self, label, **kwargs):
+        self.calls.append(("button", label, kwargs))
+        return label == "Preview changes"
+
+
 class TranslationReviewTests(unittest.TestCase):
     @staticmethod
     def _result(*, wrote, is_valid=True, has_changes=True, issues=()):
@@ -105,6 +111,29 @@ class TranslationReviewTests(unittest.TestCase):
             state["draft"],
             expected_video=preview.video,
         )
+
+    def test_preview_forwards_fresh_video_to_cache_callback(self):
+        streamlit = _PreviewStreamlit()
+        state = {
+            "bound_video_id": "video-1",
+            "draft": {"de": {"title": "New", "description": "New"}},
+            "operation_status": "idle",
+        }
+        fresh = self._result(wrote=False)
+        service = Mock()
+        service.preview.return_value = fresh
+        on_video_refreshed = Mock()
+
+        with patch.dict(sys.modules, {"streamlit": streamlit}):
+            render_preview_publish(
+                state,
+                "video-1",
+                service,
+                ("de",),
+                on_video_refreshed=on_video_refreshed,
+            )
+
+        on_video_refreshed.assert_called_once_with(fresh.video)
 
     def test_preview_report_labels_include_code_name_and_status(self):
         streamlit = _FakeStreamlit()

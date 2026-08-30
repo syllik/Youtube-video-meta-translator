@@ -150,6 +150,12 @@ def _operation_spinner(st, message: str):
     return spinner(message) if spinner is not None else nullcontext()
 
 
+def _request_rerun(st) -> None:
+    rerun = getattr(st, "rerun", None)
+    if callable(rerun):
+        rerun()
+
+
 def _upload_context(video_resource, file_content: bytes):
     return (
         video_resource["id"],
@@ -260,20 +266,17 @@ def render_llm_translation_controls(
     with download_column:
         st.download_button(
             "Download JSON",
-            data=serialize_translation_draft(draft),
+            data=serialize_translation_draft(state.get("draft") or {}),
             file_name="{}-localizations.json".format(video_resource["id"]),
             mime="application/json",
             key="llm-download-localizations-{}".format(video_resource["id"]),
-            disabled=not bool(draft),
+            disabled=not bool(state.get("draft")),
             help="Download the current internal translation draft.",
         )
 
     if generate_clicked:
         state["operation_status"] = "generating"
         state["generation_error"] = None
-        batch_codes = tuple(remaining_codes[:LLM_BATCH_SIZE])
-        batch_number = state.get("generation_completed_batch_count", 0) + 1
-        total_batches = state.get("generation_total_batches", 0)
         callback_called = []
         try:
             with _operation_spinner(st, "Generating translations..."):
@@ -281,10 +284,15 @@ def render_llm_translation_controls(
                 progress_placeholder = st.empty()
 
                 def on_batch(index, total, codes):
+                    completed = state.get("generation_completed_batch_count", 0)
+                    total_display = max(
+                        state.get("generation_total_batches", 0),
+                        completed + total,
+                    )
                     progress_placeholder.info(
                         "Generating batch {} / {} — {}".format(
-                            batch_number,
-                            total_batches,
+                            completed + index,
+                            total_display,
                             ", ".join(
                                 format_language_label(code, catalog) for code in codes
                             ),
@@ -302,7 +310,7 @@ def render_llm_translation_controls(
                 generation_kwargs = {
                     "on_batch": on_batch,
                     "on_batch_completed": on_batch_completed,
-                    "target_codes": batch_codes,
+                    "target_codes": remaining_codes,
                     "batch_size": LLM_BATCH_SIZE,
                 }
                 if source_codes:
@@ -314,11 +322,13 @@ def render_llm_translation_controls(
             state["operation_status"] = "idle"
             state["generation_error"] = str(error)
             st.error(str(error))
+            _request_rerun(st)
             return
         except Exception as error:
             state["operation_status"] = "idle"
             state["generation_error"] = str(error)
             st.error("Automatic translation generation failed: {}".format(error))
+            _request_rerun(st)
             return
         state["operation_status"] = "idle"
 
@@ -329,13 +339,12 @@ def render_llm_translation_controls(
             if not parsed_generation.is_valid:
                 state["generation_error"] = "Generated localization output was invalid."
                 _render_issues(parsed_generation.issues)
+                _request_rerun(st)
                 return
-            _record_generation_checkpoint(state, batch_codes)
+            _record_generation_checkpoint(state, remaining_codes)
 
         if generated_document or callback_called:
-            rerun = getattr(st, "rerun", None)
-            if callable(rerun):
-                rerun()
+            _request_rerun(st)
         return
 
     st.markdown("**External LLM**")

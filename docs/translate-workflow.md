@@ -36,15 +36,20 @@ the selected video and is recalculated when the video or source selection
 changes. The supporting **LLM Translation prompt** page remains capped at ten
 targets.
 
+After the selected video's localization resource is initially loaded, source
+and target widget reruns reuse a video-scoped session cache and do not fetch the
+selected video again. **Refresh video list**, **Preview changes**, **Publish
+changes**, and **Reset languages** are meaningful fresh-state operations and
+retain their own network reads.
+
 ## 2. Generate or upload a translation draft
 
 Choose one of these paths on **Translate**:
 
 - **Generate missing translations with Codex** uses the locally authenticated
   Codex CLI, validates each batch, and merges each successful batch into the
-  internal translation draft before starting the next one. Each interaction
-  runs one batch of up to ten targets so the page returns to the user between
-  batches.
+  internal translation draft before starting the next one. One click processes
+  every remaining selected target in sequential batches of up to ten.
 - **Upload JSON from an external LLM or from an existing file** is available after
   selecting a video; using the **LLM Translation prompt** page is optional. Upload
   one UTF-8 JSON file containing any non-empty set of supported language codes.
@@ -58,12 +63,11 @@ draft unchanged.
 The **Download JSON** control is beside generation on **Translate**. It is
 disabled for an empty draft and downloads the whole current internal draft as
 `<video-id>-localizations.json`, not a raw Codex response or YouTube resource.
-After a successful Codex batch, the download is available immediately, before
-the remaining batches run. Click **Generate missing translations** again to
-continue. Retry work subtracts every valid selected target already present in
-the draft, whether it came from an earlier Codex checkpoint or an external
-upload. If a later batch fails, that failed batch is not merged and earlier
-checkpoints remain available for Preview and Download.
+Every successful batch is checkpointed before the next batch starts. Retry work
+subtracts every valid selected target already present in the draft, whether it
+came from an earlier Codex checkpoint or an external upload. If a later batch
+fails, that failed batch is not merged; earlier checkpoints remain available in
+the draft, Preview, and Download after the page rerenders.
 
 Each localization value must contain only `title` and `description`. Titles may
 contain at most 100 characters and descriptions at most 5,000 characters. Do

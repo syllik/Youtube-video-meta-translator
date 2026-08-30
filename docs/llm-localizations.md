@@ -140,12 +140,13 @@ codex login status
 The app starts Codex child processes with an explicit runtime/auth environment
 allowlist, uses ephemeral read-only execution, bounds login and batch execution
 time, validates every batch, retries a failed batch once, and passes a
-post-validation completion checkpoint to Translate. The page runs one bounded
-batch per interaction, merges it into the same draft immediately, and exposes
-**Download JSON** before the next batch. Retry subtracts valid target entries
-already in the current draft; a failed later batch leaves earlier checkpoints
-available. Every batch receives the same selected primary/reference source
-context.
+post-validation completion checkpoint to Translate. One Generate click sends
+the full remaining queue to the sequential generator, which processes batches
+of up to ten and merges each successful batch into the same draft immediately.
+Retry subtracts valid target entries already in the current draft; a failed
+later batch leaves earlier checkpoints available for Preview and Download after
+the page rerenders. Every batch receives the same selected primary/reference
+source context.
 
 Run a small generation-only smoke test:
 

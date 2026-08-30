@@ -82,8 +82,11 @@ draft workflow state. On **Translate**, **Target languages** defaults to every
 currently missing metadata language and can be narrowed to a subset. The
 external-LLM path creates a source-aware prompt and validates the downloaded
 JSON file when you upload it; the automatic Codex path additionally uses the
-local Codex login and checkpoints successful batches into the draft. Neither
-path requires a provider API key.
+local Codex login, processes all remaining targets in sequential batches of up
+to ten, and checkpoints each successful batch into the draft. Source and target
+widget reruns use the selected video's session cache; explicit Refresh, Preview,
+Publish, and Reset operations retain their fresh-state behavior. Neither path
+requires a provider API key.
 
 ## 4️⃣ Check the environment
 

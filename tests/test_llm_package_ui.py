@@ -1,3 +1,4 @@
+import json
 import sys
 import types
 import unittest
@@ -117,7 +118,7 @@ class LlmPackageUiTests(unittest.TestCase):
             "streamlit.components.v1": components_v1,
         }
 
-    def test_one_click_checkpoints_one_batch_and_returns_to_ui(self):
+    def test_one_click_passes_all_selected_targets_to_generator(self):
         state = init_translation_state({})
         fake = _FakeStreamlit(clicked=True)
         calls = []
@@ -146,12 +147,167 @@ class LlmPackageUiTests(unittest.TestCase):
         self.assertEqual(len(calls), 1)
         self.assertEqual(
             tuple(calls[0]["target_codes"]),
-            tuple("code-{}".format(index) for index in range(10)),
+            tuple("code-{}".format(index) for index in range(12)),
         )
-        self.assertEqual(len(state["draft"]), 10)
+        self.assertEqual(len(state["draft"]), 12)
         self.assertEqual(state["generation_completed_batch_count"], 1)
         self.assertTrue(fake.rerun_called)
         self.assertTrue(fake.downloads[0][1]["disabled"])
+
+    def test_one_generate_click_processes_all_remaining_batches(self):
+        codes = tuple("code-{}".format(index) for index in range(25))
+        catalog = YouTubeLanguageCatalog(
+            source="test",
+            fetched_at="2026-08-29T00:00:00Z",
+            hl="en",
+            languages=tuple(
+                [YouTubeLanguage("en", "en", "English")]
+                + [YouTubeLanguage(code, code, code) for code in codes]
+            ),
+        )
+        state = init_translation_state({})
+        fake = _FakeStreamlit(clicked=True)
+        calls = []
+        callback_batches = []
+
+        def generate(video, catalog, **kwargs):
+            calls.append(tuple(kwargs["target_codes"]))
+            selected = tuple(kwargs["target_codes"])
+            cumulative = {}
+            for batch_index, start in enumerate(range(0, len(selected), 10), start=1):
+                batch_codes = selected[start:start + 10]
+                document = {
+                    code: {"title": code, "description": code}
+                    for code in batch_codes
+                }
+                cumulative.update(document)
+                callback_batches.append(batch_codes)
+                kwargs["on_batch_completed"](
+                    batch_index,
+                    3,
+                    batch_codes,
+                    document,
+                    cumulative,
+                )
+            return cumulative
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                catalog,
+                login_checker=lambda: None,
+                generate_localizations=generate,
+                prompt_state={},
+                target_codes=codes,
+            )
+
+        self.assertEqual(calls, [codes])
+        self.assertEqual(
+            callback_batches,
+            [codes[:10], codes[10:20], codes[20:]],
+        )
+        self.assertEqual(tuple(state["draft"]), codes)
+        self.assertEqual(state["generation_completed_batch_count"], 3)
+
+    def test_late_batch_failure_rerenders_last_checkpoint_for_download_and_retry(self):
+        codes = tuple("code-{}".format(index) for index in range(25))
+        catalog = YouTubeLanguageCatalog(
+            source="test",
+            fetched_at="2026-08-29T00:00:00Z",
+            hl="en",
+            languages=tuple(
+                [YouTubeLanguage("en", "en", "English")]
+                + [YouTubeLanguage(code, code, code) for code in codes]
+            ),
+        )
+        state = init_translation_state({})
+        state["preview_result"] = object()
+        state["preview_fingerprint"] = ("video-1", "stale")
+        first_fake = _FakeStreamlit(clicked=True)
+        calls = []
+
+        def failed_generation(video, catalog, **kwargs):
+            selected = tuple(kwargs["target_codes"])
+            calls.append(selected)
+            cumulative = {}
+            for batch_index, start in enumerate((0, 10), start=1):
+                batch_codes = selected[start:start + 10]
+                document = {
+                    code: {"title": code, "description": code}
+                    for code in batch_codes
+                }
+                cumulative.update(document)
+                kwargs["on_batch_completed"](
+                    batch_index,
+                    3,
+                    batch_codes,
+                    document,
+                    cumulative,
+                )
+            raise CodexGenerationError(
+                "Codex batch 3 / 3 failed for [code-20]."
+            )
+
+        with patch.dict(sys.modules, self._streamlit_modules(first_fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                catalog,
+                login_checker=lambda: None,
+                generate_localizations=failed_generation,
+                prompt_state={},
+                target_codes=codes,
+            )
+
+        self.assertEqual(tuple(state["draft"]), codes[:20])
+        self.assertEqual(state["generation_completed_batch_count"], 2)
+        self.assertIsNone(state["preview_result"])
+        self.assertEqual(state["operation_status"], "idle")
+        self.assertTrue(first_fake.rerun_called)
+
+        after_failure = _FakeStreamlit(clicked=False)
+        with patch.dict(sys.modules, self._streamlit_modules(after_failure)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                catalog,
+                login_checker=lambda: None,
+                generate_localizations=failed_generation,
+                prompt_state={},
+                target_codes=codes,
+            )
+
+        self.assertEqual(
+            json.loads(after_failure.downloads[0][1]["data"]),
+            state["draft"],
+        )
+
+        retry_fake = _FakeStreamlit(clicked=True)
+
+        def retry_generation(video, catalog, **kwargs):
+            remaining = tuple(kwargs["target_codes"])
+            calls.append(remaining)
+            document = {
+                code: {"title": code, "description": code}
+                for code in remaining
+            }
+            kwargs["on_batch_completed"](1, 1, remaining, document, document)
+            return document
+
+        with patch.dict(sys.modules, self._streamlit_modules(retry_fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                catalog,
+                login_checker=lambda: None,
+                generate_localizations=retry_generation,
+                prompt_state={},
+                target_codes=codes,
+            )
+
+        self.assertEqual(calls, [codes, codes[20:]])
+        self.assertEqual(tuple(state["draft"]), codes)
 
     def test_checkpoint_is_downloadable_and_retry_skips_it(self):
         state = init_translation_state({})
@@ -206,8 +362,7 @@ class LlmPackageUiTests(unittest.TestCase):
         self.assertEqual(
             calls,
             [
-                tuple("code-{}".format(index) for index in range(10)),
-                ("code-10", "code-11"),
+                tuple("code-{}".format(index) for index in range(12)),
             ],
         )
         self.assertEqual(len(state["draft"]), 12)

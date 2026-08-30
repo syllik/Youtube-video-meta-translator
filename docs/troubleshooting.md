@@ -251,14 +251,18 @@ ten.
 
 ## ⏸️ Codex generation stopped after a batch
 
-Codex generation on **Translate** runs one batch of up to ten targets per page
-interaction. A validated batch is merged into the internal draft immediately;
-use **Download JSON** to save it before continuing with **Generate missing
-translations**. If a later batch fails, that failed batch was not merged but
-earlier checkpoints remain in the draft. Retry skips valid selected target
-entries already present in the draft. The download contains the direct
-localization map from the current draft and is disabled only while that draft
-is empty.
+Codex generation on **Translate** processes all remaining selected targets from
+one click in sequential batches of up to ten. Each validated batch is merged
+into the internal draft immediately. If a later batch fails, that failed batch
+is not merged but earlier checkpoints remain in the draft and Download after
+the page rerenders. Retry skips valid selected target entries already present
+in the draft. The download contains the direct localization map from the
+current draft and is disabled only while that draft is empty.
+
+Changing source or target widgets after the initial selected-video load does not
+fetch that video again; those reruns use the video-scoped session cache. Use
+**Refresh video list**, **Preview changes**, **Publish changes**, or **Reset
+languages** when a fresh YouTube read is required.
 
 ## ⚠️ Preview asks you to Preview again
 

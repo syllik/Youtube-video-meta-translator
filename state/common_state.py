@@ -1,6 +1,7 @@
 """Shared Streamlit state for channel data and cursor-backed video pages."""
 
-from typing import Any, MutableMapping, Optional
+import copy
+from typing import Any, Mapping, MutableMapping, Optional
 
 from models import PageLimit, YouTubePage
 from ui.pagination import PaginationSelection, total_pages
@@ -21,7 +22,65 @@ def init_common_state(state: MutableMapping[str, Any]) -> MutableMapping[str, An
     state.setdefault("common.pending_sidebar_feedback", None)
     state.setdefault("common.pending_reset_video_id", None)
     state.setdefault("common.last_reset_event", None)
+    state.setdefault("common.selected_video_resource", None)
     return state
+
+
+def get_selected_video_resource(
+    service: Any,
+    state: MutableMapping[str, Any],
+    video_id: Optional[str],
+) -> Optional[Mapping[str, Any]]:
+    """Return one video resource without refetching on harmless reruns."""
+    init_common_state(state)
+    if not video_id:
+        return None
+
+    cached = state.get("common.selected_video_resource")
+    if isinstance(cached, Mapping) and cached.get("video_id") == video_id:
+        resource = cached.get("resource")
+        if isinstance(resource, Mapping) and resource.get("id") == video_id:
+            return copy.deepcopy(resource)
+
+    resource = service.get_video_with_localizations(video_id)
+    if not isinstance(resource, Mapping) or resource.get("id") != video_id:
+        raise ValueError(
+            "YouTube returned a different video while loading the selected video."
+        )
+    state["common.selected_video_resource"] = {
+        "video_id": video_id,
+        "resource": copy.deepcopy(resource),
+    }
+    return copy.deepcopy(resource)
+
+
+def update_selected_video_resource(
+    state: MutableMapping[str, Any], resource: Optional[Mapping[str, Any]]
+) -> None:
+    """Store a fresh resource only when it is identified for one video."""
+    init_common_state(state)
+    if not isinstance(resource, Mapping):
+        return
+    video_id = resource.get("id")
+    if not isinstance(video_id, str) or not video_id:
+        return
+    state["common.selected_video_resource"] = {
+        "video_id": video_id,
+        "resource": copy.deepcopy(resource),
+    }
+
+
+def invalidate_selected_video_resource(
+    state: MutableMapping[str, Any], video_id: Optional[str] = None
+) -> None:
+    """Invalidate the cached selected resource, optionally by video ID."""
+    init_common_state(state)
+    cached = state.get("common.selected_video_resource")
+    if video_id is None or not isinstance(cached, Mapping):
+        state["common.selected_video_resource"] = None
+        return
+    if cached.get("video_id") == video_id:
+        state["common.selected_video_resource"] = None
 
 
 def sync_source_selection(
@@ -155,6 +214,7 @@ def reset_video_cache(state: MutableMapping[str, Any]) -> None:
     state["common.video_pages_by_limit"] = {}
     state["common.load_error"] = None
     state["common.video_accumulation"] = None
+    invalidate_selected_video_resource(state)
 
 
 def _page_state(state: MutableMapping[str, Any], limit: PageLimit):

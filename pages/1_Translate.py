@@ -1,9 +1,15 @@
 """Unified YouTube localization workflow page."""
 
+from typing import Mapping
+
 import streamlit as st
 
 from services.localization_service import LocalizationService
-from state.common_state import reset_video_cache
+from state.common_state import (
+    get_selected_video_resource,
+    reset_video_cache,
+    update_selected_video_resource,
+)
 from state.llm_state import clear_llm_prompt, init_llm_state, sync_llm_video
 from state.translation_state import init_translation_state, sync_translation_video
 from streamlit_app import bootstrap_app_context, configure_page
@@ -35,8 +41,8 @@ def render_translate_page() -> None:
     try:
         with st.spinner("Loading selected video and metadata language catalog..."):
             catalog = context.metadata_language_catalog
-            video_resource = context.service.get_video_with_localizations(
-                context.selected_video_id
+            video_resource = get_selected_video_resource(
+                context.service, st.session_state, context.selected_video_id
             )
     except Exception as error:
         render_service_error(error)
@@ -63,6 +69,13 @@ def render_translate_page() -> None:
         clear_llm_prompt(prompt_state)
         st.rerun()
 
+    def cache_fresh_video(resource) -> None:
+        if (
+            isinstance(resource, Mapping)
+            and resource.get("id") == context.selected_video_id
+        ):
+            update_selected_video_resource(st.session_state, resource)
+
     render_preview_publish(
         translation_state,
         context.selected_video_id,
@@ -71,6 +84,7 @@ def render_translate_page() -> None:
         widget_prefix="translate",
         on_published=refresh_after_publish,
         language_catalog=catalog,
+        on_video_refreshed=cache_fresh_video,
     )
 
 

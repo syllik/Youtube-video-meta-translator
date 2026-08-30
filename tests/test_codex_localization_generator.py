@@ -165,6 +165,40 @@ class CodexLocalizationGeneratorTests(unittest.TestCase):
         self.assertEqual(len(calls[1]), 2)
         self.assertEqual(tuple(result), tuple("code-{}".format(index) for index in range(12)))
 
+    def test_twenty_five_targets_make_ten_ten_five_calls_in_order(self):
+        codes = tuple("code-{}".format(index) for index in range(25))
+        catalog = YouTubeLanguageCatalog(
+            source="test",
+            fetched_at="2026-08-29T00:00:00Z",
+            hl="en",
+            languages=tuple(
+                [YouTubeLanguage("en", "en", "English")]
+                + [YouTubeLanguage(code, code, code) for code in codes]
+            ),
+        )
+        video = {
+            "snippet": {
+                "defaultLanguage": "en",
+                "title": "Waterfall",
+                "description": "Wind above the falls.",
+            },
+            "localizations": {},
+        }
+        calls = []
+
+        def run_batch(package, schema):
+            calls.append(tuple(package["expectedLanguageCodes"]))
+            return self._success_batch(package, schema)
+
+        generator_module.generate_missing_localizations(
+            video,
+            catalog,
+            target_codes=codes,
+            run_batch=run_batch,
+        )
+
+        self.assertEqual(calls, [codes[:10], codes[10:20], codes[20:]])
+
     def test_completion_callback_receives_validated_batch_and_cumulative_document(self):
         callbacks = []
 

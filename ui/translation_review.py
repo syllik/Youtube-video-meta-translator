@@ -75,6 +75,7 @@ def render_preview_publish(
     widget_prefix: str = "translate",
     on_published: Optional[Callable[[], None]] = None,
     language_catalog: Any = None,
+    on_video_refreshed: Optional[Callable[[Any], None]] = None,
 ) -> None:
     """Render read-only review controls for one internal translation draft."""
     import streamlit as st
@@ -116,11 +117,17 @@ def render_preview_publish(
         service_error_rendered = False
         no_changes_rendered = False
 
+        def notify_fresh_video(result: Any) -> None:
+            if on_video_refreshed is not None and getattr(result, "video", None) is not None:
+                on_video_refreshed(result.video)
+
         if preview_clicked:
             state["operation_status"] = "previewing"
             try:
                 with st.spinner("Comparing with the current YouTube state..."):
-                    store_translation_preview(state, service.preview(video_id, draft))
+                    result = service.preview(video_id, draft)
+                    store_translation_preview(state, result)
+                    notify_fresh_video(result)
                 state["operation_status"] = "idle"
                 st.rerun()
             except Exception as error:
@@ -141,6 +148,7 @@ def render_preview_publish(
                             draft,
                             expected_video=state["preview_result"].video,
                         )
+                    notify_fresh_video(result)
                     if result.wrote:
                         clear_translation_draft(state)
                         st.success("Localization changes published successfully.")

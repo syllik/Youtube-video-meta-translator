@@ -143,3 +143,46 @@ class TargetSelectionTests(unittest.TestCase):
         )
 
         self.assertEqual(selected, ("fr",))
+
+    def test_empty_selection_is_authoritative_after_initial_default(self):
+        state = init_translation_state({})
+        progress = type("Progress", (), {
+            "missing": (
+                YouTubeLanguage("de", "de", "German"),
+                YouTubeLanguage("fr", "fr", "French"),
+            )
+        })()
+
+        self.assertEqual(
+            sync_translation_target_selection(state, "video-1", progress),
+            ("de", "fr"),
+        )
+        state["selected_target_codes"] = ()
+
+        self.assertEqual(
+            sync_translation_target_selection(state, "video-1", progress),
+            (),
+        )
+
+    def test_source_change_does_not_restore_another_removed_target(self):
+        state = init_translation_state({})
+        progress_before = type("Progress", (), {
+            "missing": (
+                YouTubeLanguage("de", "de", "German"),
+                YouTubeLanguage("es", "es", "Spanish"),
+                YouTubeLanguage("fr", "fr", "French"),
+            )
+        })()
+        progress_after = type("Progress", (), {
+            "missing": (
+                YouTubeLanguage("fr", "fr", "French"),
+            )
+        })()
+
+        sync_translation_target_selection(state, "video-1", progress_before)
+        state["selected_target_codes"] = ("fr",)
+
+        self.assertEqual(
+            sync_translation_target_selection(state, "video-1", progress_after),
+            ("fr",),
+        )

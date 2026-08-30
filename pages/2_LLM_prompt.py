@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from state.common_state import get_selected_video_resource
 from state.llm_state import init_llm_state, sync_llm_video
 from streamlit_app import bootstrap_app_context, configure_page
 from ui.feedback import render_service_error
@@ -41,8 +42,8 @@ data to linked LLM websites or require an LLM API key.
 
     try:
         with st.spinner("Loading selected video and metadata language catalog..."):
-            video_resource = context.service.get_video_with_localizations(
-                context.selected_video_id
+            video_resource = get_selected_video_resource(
+                context.service, st.session_state, context.selected_video_id
             )
             catalog = context.metadata_language_catalog
     except Exception as error:
