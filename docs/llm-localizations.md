@@ -143,10 +143,13 @@ time, validates every batch, retries a failed batch once, and passes a
 post-validation completion checkpoint to Translate. One Generate click sends
 the full remaining queue to the sequential generator, which processes batches
 of up to ten and merges each successful batch into the same draft immediately.
-Retry subtracts valid target entries already in the current draft; a failed
-later batch leaves earlier checkpoints available for Preview and Download after
-the page rerenders. Every batch receives the same selected primary/reference
-source context.
+The job runs in the background: the active batch status keeps a stable
+job-local `index / total`, Generate is disabled, and **STOP** terminates the
+active Codex process without waiting for the batch timeout. Retry subtracts
+valid target entries already in the current draft; a failed or stopped later
+batch leaves earlier checkpoints available for Preview and Download after the
+page rerenders. Every batch receives the same selected primary/reference source
+context.
 
 Run a small generation-only smoke test:
 

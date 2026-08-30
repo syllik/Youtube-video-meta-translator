@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import json
+import uuid
 from typing import Any, Mapping, MutableMapping, Optional, Tuple
 
 from llm_localization_package import build_selected_llm_languages
@@ -12,6 +13,13 @@ TRANSLATION_DEFAULTS = {
     "bound_video_id": None,
     "target_video_id": None,
     "selected_target_codes": (),
+    "generation_owner_id": None,
+    "generation_job_id": None,
+    "generation_status": "idle",
+    "generation_current_batch_index": 0,
+    "generation_current_batch_total": 0,
+    "generation_current_batch_codes": (),
+    "generation_committed_batch_keys": (),
     "generation_video_id": None,
     "generation_target_codes": (),
     "generation_completed_codes": (),
@@ -35,6 +43,8 @@ def init_translation_state(
     state = session_state.setdefault("translation", {})
     for key, default in TRANSLATION_DEFAULTS.items():
         state.setdefault(key, copy.deepcopy(default))
+    if not state.get("generation_owner_id"):
+        state["generation_owner_id"] = uuid.uuid4().hex
     return state
 
 
@@ -57,6 +67,19 @@ def clear_translation_draft(state: MutableMapping[str, Any]) -> None:
 
 def clear_translation_generation(state: MutableMapping[str, Any]) -> None:
     """Clear resumable Codex checkpoints for the active video."""
+    owner_id = state.get("generation_owner_id")
+    job_id = state.get("generation_job_id")
+    if owner_id and job_id:
+        from generation_controller import get_generation_controller
+
+        get_generation_controller().stop(owner_id, job_id)
+    state["generation_owner_id"] = uuid.uuid4().hex
+    state["generation_job_id"] = None
+    state["generation_status"] = "idle"
+    state["generation_current_batch_index"] = 0
+    state["generation_current_batch_total"] = 0
+    state["generation_current_batch_codes"] = ()
+    state["generation_committed_batch_keys"] = ()
     state["generation_video_id"] = None
     state["generation_target_codes"] = ()
     state["generation_completed_codes"] = ()

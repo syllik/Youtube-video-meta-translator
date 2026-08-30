@@ -4,6 +4,7 @@ from typing import Any, Mapping, MutableMapping, Sequence, Tuple
 
 from language_labels import format_language_label
 from llm_localization_package import calculate_llm_translation_progress
+from generation_controller import ACTIVE_GENERATION_STATUSES
 from state.translation_state import (
     set_translation_target_selection,
     sync_translation_target_selection,
@@ -47,6 +48,9 @@ def render_target_selection(
                 default=current,
                 format_func=lambda code: labels_by_code[code],
                 key=widget_key,
+                disabled=session_state.get("translation", {}).get(
+                    "operation_status"
+                ) in ACTIVE_GENERATION_STATUSES,
             )
         )
         normalized = set_translation_target_selection(

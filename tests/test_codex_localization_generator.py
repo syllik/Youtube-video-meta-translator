@@ -361,6 +361,23 @@ class CodexLocalizationGeneratorTests(unittest.TestCase):
 
         self.assertEqual(attempts, 2)
 
+    def test_cancellation_is_not_retried(self):
+        attempts = []
+
+        def run_batch(package, schema):
+            attempts.append(tuple(package["expectedLanguageCodes"]))
+            raise generator_module.CodexLocalizationCancelled("Generation stopped.")
+
+        with self.assertRaises(generator_module.CodexLocalizationCancelled):
+            generator_module.generate_missing_localizations(
+                self.video_resource,
+                self.catalog,
+                run_batch=run_batch,
+                retry_count=1,
+            )
+
+        self.assertEqual(attempts, [("fr", "es", "ja")])
+
     def test_batch_failure_explains_scope_retry_and_no_partial_merge(self):
         def run_batch(package, schema):
             raise CodexLocalizationError("temporary Codex failure")

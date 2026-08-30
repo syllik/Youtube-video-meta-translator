@@ -1,5 +1,6 @@
 import unittest
 from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 from state.translation_state import (
     init_translation_state,
@@ -54,6 +55,29 @@ class TranslationStateTests(unittest.TestCase):
         self.assertEqual(
             state["draft"], {"de": {"title": "DE", "description": "DE"}}
         )
+
+    def test_switching_video_requests_active_generation_stop_and_rotates_owner(self):
+        state = init_translation_state({})
+        old_owner = state["generation_owner_id"]
+        state.update(
+            {
+                "bound_video_id": "video-1",
+                "generation_job_id": "job-1",
+                "generation_status": "generating",
+            }
+        )
+        controller = Mock()
+
+        with patch(
+            "generation_controller.get_generation_controller",
+            return_value=controller,
+        ):
+            sync_translation_video(state, "video-2")
+
+        controller.stop.assert_called_once_with(old_owner, "job-1")
+        self.assertNotEqual(state["generation_owner_id"], old_owner)
+        self.assertEqual(state["generation_status"], "idle")
+        self.assertIsNone(state["generation_job_id"])
 
     def test_generated_and_uploaded_entries_merge_into_one_draft(self):
         state = init_translation_state({})

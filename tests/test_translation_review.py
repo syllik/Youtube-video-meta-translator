@@ -268,6 +268,28 @@ class TranslationReviewTests(unittest.TestCase):
             [call[0] for call in streamlit.calls if call[0] == "error"], ["error"]
         )
 
+    def test_preview_and_publish_are_disabled_while_generation_is_active(self):
+        streamlit = _FakeStreamlit()
+        state = {
+            "bound_video_id": "video-1",
+            "draft": {"de": {"title": "New", "description": "New"}},
+            "operation_status": "generating",
+        }
+        service = Mock()
+
+        with patch.dict(sys.modules, {"streamlit": streamlit}):
+            render_preview_publish(state, "video-1", service, ("de",))
+
+        button_calls = {
+            call[1]: call[2]
+            for call in streamlit.calls
+            if call[0] == "button"
+        }
+        self.assertTrue(button_calls["Preview changes"]["disabled"])
+        self.assertTrue(button_calls["Publish changes"]["disabled"])
+        service.preview.assert_not_called()
+        service.publish.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

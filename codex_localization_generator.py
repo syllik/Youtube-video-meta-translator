@@ -14,8 +14,11 @@ from llm_localization_package import (
     calculate_llm_translation_progress,
     parse_llm_upload_json,
 )
-from codex_localization_runner import CodexLocalizationError, run_codex_batch
-
+from codex_localization_runner import (
+    CodexLocalizationCancelled,
+    CodexLocalizationError,
+    run_codex_batch,
+)
 
 class CodexGenerationError(RuntimeError):
     """Raised when requested Codex localization generation cannot complete."""
@@ -95,6 +98,8 @@ def generate_missing_localizations(
             try:
                 result = run_batch(package, schema)
                 break
+            except CodexLocalizationCancelled:
+                raise
             except CodexLocalizationError as error:
                 last_error = error
 

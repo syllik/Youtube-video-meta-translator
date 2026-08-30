@@ -105,7 +105,11 @@ currently missing languages from the checked-in
 by default, allows at most ten targets, and never includes selected source
 languages as targets. **Download JSON** always contains the current internal
 draft as a direct localization map; a later failed Codex batch does not remove
-earlier checkpoints.
+earlier checkpoints. One **Generate missing translations** click processes the
+full current remaining queue in sequential batches. While it is active,
+**Generate** is disabled and **STOP** can terminate the current Codex job;
+completed checkpoints remain in the draft and a later click resumes only the
+remaining targets.
 
 After the selected video resource is initially loaded, source and target widget
 reruns use its video-scoped session cache and do not issue another selected-video
@@ -114,7 +118,7 @@ or **Reset languages** when a fresh YouTube state is required.
 
 The persistent sidebar shows compact channel details, YouTube/RSS links,
 refresh, page-size controls, pagination, and compact video cards. Cards show
-metadata-catalog localization counts as `done / undone` and full-width
+metadata-catalog localization counts as `current / total` and full-width
 Select/Selected controls. Use **Load more** to append the next cursor-backed
 batch; changing the page starts a new visible batch. Click a thumbnail to open
 the video on YouTube. Destructive **Reset languages** appears only in the

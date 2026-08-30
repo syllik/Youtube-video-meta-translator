@@ -186,3 +186,12 @@ class TargetSelectionTests(unittest.TestCase):
             sync_translation_target_selection(state, "video-1", progress_after),
             ("fr",),
         )
+
+    def test_target_selection_is_disabled_during_generation(self):
+        fake = _FakeStreamlit()
+        state = {"translation": {"operation_status": "generating"}}
+
+        with patch.dict(sys.modules, {"streamlit": fake}):
+            render_target_selection(state, self.video, self.catalog, source_codes=("en",))
+
+        self.assertTrue(fake.multiselect_calls[0][2]["disabled"])

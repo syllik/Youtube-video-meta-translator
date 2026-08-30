@@ -3,9 +3,11 @@ import sys
 import types
 import unittest
 from contextlib import nullcontext
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from codex_localization_generator import CodexGenerationError
+from generation_controller import GenerationEvent, GenerationSnapshot
 from language_catalog import YouTubeLanguage, YouTubeLanguageCatalog
 from state.translation_state import init_translation_state
 from ui.llm_package import render_llm_translation_controls
@@ -45,8 +47,8 @@ class _FakeStreamlit:
     def page_link(self, *_args, **_kwargs):
         return None
 
-    def columns(self, _count):
-        return (_Column(), _Column())
+    def columns(self, count):
+        return tuple(_Column() for _ in range(count))
 
     def button(self, label, **kwargs):
         self.buttons.append((label, kwargs))
@@ -74,6 +76,40 @@ class _FakeStreamlit:
 
     def info(self, message):
         self.messages.append(("info", message))
+
+
+class _FakeGenerationController:
+    def __init__(self, snapshot=None, events=()):
+        self.snapshot = snapshot
+        self.events = tuple(events)
+        self.started = []
+        self.stopped = []
+        self.cleaned = []
+
+    def poll(self, owner_id, job_id):
+        return self.snapshot, self.events
+
+    def start(self, owner_id, video_resource, catalog, target_codes, source_codes):
+        self.started.append(
+            (owner_id, video_resource["id"], tuple(target_codes), tuple(source_codes))
+        )
+        return self.snapshot or SimpleNamespace(
+            job_id="new-job",
+            video_id=video_resource["id"],
+            status="starting",
+            current_batch_index=0,
+            total_batches=0,
+            current_batch_codes=(),
+            completed_codes=(),
+            error=None,
+        )
+
+    def stop(self, owner_id, job_id):
+        self.stopped.append((owner_id, job_id))
+        return True
+
+    def cleanup(self, owner_id, job_id):
+        self.cleaned.append((owner_id, job_id))
 
 
 class LlmPackageUiTests(unittest.TestCase):
@@ -209,6 +245,503 @@ class LlmPackageUiTests(unittest.TestCase):
         )
         self.assertEqual(tuple(state["draft"]), codes)
         self.assertEqual(state["generation_completed_batch_count"], 3)
+
+    def test_active_batch_status_uses_current_run_coordinates_without_double_counting(self):
+        state = init_translation_state({})
+        fake = _FakeStreamlit(clicked=True)
+        codes = tuple("code-{}".format(index) for index in range(25))
+        catalog = YouTubeLanguageCatalog(
+            source="test",
+            fetched_at="2026-08-29T00:00:00Z",
+            hl="en",
+            languages=tuple(
+                [YouTubeLanguage("en", "en", "English")]
+                + [YouTubeLanguage(code, code, code) for code in codes]
+            ),
+        )
+
+        def generate(video, catalog, **kwargs):
+            for batch_index, start in enumerate(range(0, len(codes), 10), start=1):
+                batch_codes = codes[start:start + 10]
+                document = {
+                    code: {"title": code, "description": code}
+                    for code in batch_codes
+                }
+                kwargs["on_batch"](batch_index, 3, batch_codes)
+                kwargs["on_batch_completed"](
+                    batch_index, 3, batch_codes, document, document
+                )
+            return document
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                catalog,
+                login_checker=lambda: None,
+                generate_localizations=generate,
+                prompt_state={},
+                target_codes=codes,
+            )
+
+        statuses = [
+            message
+            for name, message in fake.messages
+            if name == "info" and message.startswith("Generating batch")
+        ]
+        self.assertEqual(
+            [message.split(" — ", 1)[0] for message in statuses],
+            ["Generating batch 1 / 3", "Generating batch 2 / 3", "Generating batch 3 / 3"],
+        )
+
+    def test_static_codex_batch_counter_is_not_rendered(self):
+        state = init_translation_state({})
+        fake = _FakeStreamlit(clicked=False)
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+            )
+
+        self.assertFalse(
+            any("Codex batches:" in message for _name, message in fake.messages)
+        )
+
+    def test_idle_controls_enable_generate_and_disable_stop(self):
+        state = init_translation_state({})
+        fake = _FakeStreamlit(clicked=False)
+        controller = _FakeGenerationController()
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+                generation_controller=controller,
+            )
+
+        self.assertEqual(
+            [(label, kwargs["disabled"]) for label, kwargs in fake.buttons[:2]],
+            [("Generate missing translations", False), ("STOP", True)],
+        )
+
+    def test_active_controls_disable_generate_and_enable_stop(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0",)
+        snapshot = GenerationSnapshot(
+            job_id="job-1",
+            video_id="video-1",
+            target_codes=("code-0",),
+            source_codes=(),
+            status="generating",
+            current_batch_index=1,
+            total_batches=1,
+            current_batch_codes=("code-0",),
+        )
+        fake = _FakeStreamlit(clicked=False)
+        controller = _FakeGenerationController(snapshot=snapshot)
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+                generation_controller=controller,
+            )
+
+        self.assertEqual(
+            [(label, kwargs["disabled"]) for label, kwargs in fake.buttons[:2]],
+            [("Generate missing translations", True), ("STOP", False)],
+        )
+        self.assertTrue(
+            any(message.startswith("Generating batch 1 / 1") for name, message in fake.messages if name == "info")
+        )
+
+    def test_checkpoint_event_updates_derived_remaining_targets(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0", "code-1")
+        snapshot = GenerationSnapshot(
+            job_id="job-1",
+            video_id="video-1",
+            target_codes=("code-0", "code-1"),
+            source_codes=(),
+            status="generating",
+            current_batch_index=1,
+            total_batches=2,
+            current_batch_codes=("code-0",),
+        )
+        event = GenerationEvent(
+            job_id="job-1",
+            video_id="video-1",
+            kind="batch_completed",
+            index=1,
+            total=2,
+            codes=("code-0",),
+            batch_document={"code-0": {"title": "DE", "description": "DE"}},
+        )
+        fake = _FakeStreamlit(clicked=False)
+        controller = _FakeGenerationController(snapshot=snapshot, events=(event,))
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0", "code-1"),
+                generation_controller=controller,
+            )
+
+        remaining_messages = [
+            message for name, message in fake.messages if name == "caption" and message.startswith("Remaining")
+        ]
+        self.assertEqual(len(remaining_messages), 1)
+        self.assertIn("code-1", remaining_messages[0])
+        self.assertNotIn("code-0", remaining_messages[0])
+        self.assertEqual(tuple(state["draft"]), ("code-0",))
+
+    def test_stopping_status_disables_both_controls(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0",)
+        snapshot = GenerationSnapshot(
+            job_id="job-1",
+            video_id="video-1",
+            target_codes=("code-0",),
+            source_codes=(),
+            status="stopping",
+        )
+        fake = _FakeStreamlit(clicked=False)
+        controller = _FakeGenerationController(snapshot=snapshot)
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+                generation_controller=controller,
+            )
+
+        self.assertEqual(
+            [(label, kwargs["disabled"]) for label, kwargs in fake.buttons[:2]],
+            [("Generate missing translations", True), ("STOP", True)],
+        )
+        self.assertIn(("info", "Stopping Codex generation..."), fake.messages)
+
+    def test_generate_starts_one_background_job_for_the_full_remaining_queue(self):
+        state = init_translation_state({})
+        fake = _FakeStreamlit(clicked=True)
+        controller = _FakeGenerationController(
+            snapshot=SimpleNamespace(
+                job_id="new-job",
+                video_id="video-1",
+                status="starting",
+                current_batch_index=0,
+                total_batches=3,
+                current_batch_codes=(),
+                completed_codes=(),
+                error=None,
+            )
+        )
+        codes = tuple("code-{}".format(index) for index in range(25))
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=codes[:12],
+                generation_controller=controller,
+            )
+
+        self.assertEqual(controller.started[0][2], codes[:12])
+        self.assertEqual(state["generation_job_id"], "new-job")
+        self.assertTrue(fake.rerun_called)
+
+    def test_stop_requests_controller_cancellation(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0",)
+        snapshot = GenerationSnapshot(
+            job_id="job-1",
+            video_id="video-1",
+            target_codes=("code-0",),
+            source_codes=(),
+            status="generating",
+            current_batch_index=1,
+            total_batches=1,
+            current_batch_codes=("code-0",),
+        )
+        fake = _FakeStreamlit(clicked=True)
+        controller = _FakeGenerationController(snapshot=snapshot)
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+                generation_controller=controller,
+            )
+
+        self.assertEqual(controller.stopped, [(state["generation_owner_id"], "job-1")])
+        self.assertEqual(state["generation_status"], "stopping")
+
+    def test_stop_requested_state_is_not_overwritten_by_last_active_snapshot(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0",)
+        snapshot = GenerationSnapshot(
+            job_id="job-1",
+            video_id="video-1",
+            target_codes=("code-0",),
+            source_codes=(),
+            status="generating",
+            current_batch_index=1,
+            total_batches=1,
+            current_batch_codes=("code-0",),
+        )
+        controller = _FakeGenerationController(snapshot=snapshot)
+        first_fake = _FakeStreamlit(clicked=True)
+
+        with patch.dict(sys.modules, self._streamlit_modules(first_fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+                generation_controller=controller,
+            )
+
+        second_fake = _FakeStreamlit(clicked=False)
+        with patch.dict(sys.modules, self._streamlit_modules(second_fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+                generation_controller=controller,
+            )
+
+        self.assertEqual(state["generation_status"], "stopping")
+        self.assertEqual(
+            [(label, kwargs["disabled"]) for label, kwargs in second_fake.buttons[:2]],
+            [("Generate missing translations", True), ("STOP", True)],
+        )
+
+    def test_stopped_generation_resumes_only_remaining_targets(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0", "code-1")
+        state["draft"] = {
+            "code-0": {"title": "Done", "description": "Done"}
+        }
+        snapshot = GenerationSnapshot(
+            job_id="job-1",
+            video_id="video-1",
+            target_codes=("code-0", "code-1"),
+            source_codes=(),
+            status="stopped",
+            completed_codes=("code-0",),
+        )
+        fake = _FakeStreamlit(clicked=True)
+        controller = _FakeGenerationController(snapshot=snapshot)
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0", "code-1"),
+                generation_controller=controller,
+            )
+
+        self.assertEqual(
+            controller.started,
+            [
+                (
+                    state["generation_owner_id"],
+                    "video-1",
+                    ("code-1",),
+                    (),
+                )
+            ],
+        )
+
+    def test_stale_checkpoint_event_does_not_merge_into_current_context(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0",)
+        snapshot = GenerationSnapshot(
+            job_id="job-1",
+            video_id="video-1",
+            target_codes=("code-0",),
+            source_codes=(),
+            status="generating",
+        )
+        event = GenerationEvent(
+            job_id="old-job",
+            video_id="video-1",
+            kind="batch_completed",
+            index=1,
+            total=1,
+            codes=("code-0",),
+            batch_document={"code-0": {"title": "stale", "description": "stale"}},
+        )
+        fake = _FakeStreamlit(clicked=False)
+        controller = _FakeGenerationController(snapshot=snapshot, events=(event,))
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+                generation_controller=controller,
+            )
+
+        self.assertEqual(state["draft"], {})
+
+    def test_stale_generation_snapshot_does_not_update_current_context(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0",)
+        snapshot = GenerationSnapshot(
+            job_id="old-job",
+            video_id="video-1",
+            target_codes=("code-0",),
+            source_codes=(),
+            status="completed",
+            completed_codes=("code-0",),
+        )
+        event = GenerationEvent(
+            job_id="old-job",
+            video_id="video-1",
+            kind="batch_completed",
+            index=1,
+            total=1,
+            codes=("code-0",),
+            batch_document={"code-0": {"title": "stale", "description": "stale"}},
+        )
+        fake = _FakeStreamlit(clicked=False)
+        controller = _FakeGenerationController(snapshot=snapshot, events=(event,))
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+                generation_controller=controller,
+            )
+
+        self.assertEqual(state["generation_status"], "idle")
+        self.assertEqual(state["draft"], {})
+
+    def test_terminal_generation_is_cleaned_up_after_events_are_applied(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0",)
+        snapshot = GenerationSnapshot(
+            job_id="job-1",
+            video_id="video-1",
+            target_codes=("code-0",),
+            source_codes=(),
+            status="completed",
+            total_batches=1,
+            completed_codes=("code-0",),
+        )
+        event = GenerationEvent(
+            job_id="job-1",
+            video_id="video-1",
+            kind="terminal",
+        )
+        fake = _FakeStreamlit(clicked=False)
+        controller = _FakeGenerationController(snapshot=snapshot, events=(event,))
+
+        with patch.dict(sys.modules, self._streamlit_modules(fake)):
+            render_llm_translation_controls(
+                state,
+                self.video,
+                self.catalog,
+                prompt_state={},
+                target_codes=("code-0",),
+                generation_controller=controller,
+            )
+
+        self.assertEqual(controller.cleaned, [(state["generation_owner_id"], "job-1")])
+
+    def test_duplicate_checkpoint_event_is_applied_to_draft_only_once(self):
+        state = init_translation_state({})
+        state["generation_job_id"] = "job-1"
+        state["generation_video_id"] = "video-1"
+        state["generation_target_codes"] = ("code-0",)
+        snapshot = GenerationSnapshot(
+            job_id="job-1",
+            video_id="video-1",
+            target_codes=("code-0",),
+            source_codes=(),
+            status="generating",
+        )
+        event = GenerationEvent(
+            job_id="job-1",
+            video_id="video-1",
+            kind="batch_completed",
+            index=1,
+            total=1,
+            codes=("code-0",),
+            batch_document={
+                "code-0": {"title": "Generated", "description": "Generated"}
+            },
+        )
+        controller = _FakeGenerationController(snapshot=snapshot, events=(event,))
+
+        with patch("ui.llm_package.merge_translation_draft") as merge_draft:
+            for _ in range(2):
+                fake = _FakeStreamlit(clicked=False)
+                with patch.dict(sys.modules, self._streamlit_modules(fake)):
+                    render_llm_translation_controls(
+                        state,
+                        self.video,
+                        self.catalog,
+                        prompt_state={},
+                        target_codes=("code-0",),
+                        generation_controller=controller,
+                    )
+
+        merge_draft.assert_called_once_with(
+            state,
+            {"code-0": {"title": "Generated", "description": "Generated"}},
+        )
+        self.assertEqual(state["generation_completed_batch_count"], 1)
 
     def test_late_batch_failure_rerenders_last_checkpoint_for_download_and_retry(self):
         codes = tuple("code-{}".format(index) for index in range(25))

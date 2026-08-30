@@ -28,6 +28,7 @@ Youtube-video-meta-translator/
 ├── llm_localization_package.py      # Source context, prompt, schema, validation
 ├── codex_localization_runner.py      # Isolated non-interactive Codex batch call
 ├── codex_localization_generator.py   # Missing-target batching/retry/merge
+├── generation_controller.py          # Background generation lifecycle/cancellation
 ├── generate_codex_localizations.py   # Optional local CLI entry point
 ├── youtube_account.py               # YouTube OAuth, listing, and publishing
 ├── localizations.py                 # JSON validation, diff, and merge logic
@@ -55,9 +56,14 @@ verified references with real title/description metadata. Source and target
 selection reset or normalize when the selected video or sources change.
 Translate passes its complete remaining queue to the sequential Codex generator,
 merges each validated checkpoint into the draft, and downloads that direct map
-after each rerender. Source and target widget reruns reuse the selected video's
-session resource cache; Preview, Publish, Refresh, and Reset retain explicit
-fresh-state boundaries. The persistent sidebar renders compact cards,
+after each rerender. The Streamlit-facing generation controller owns one
+process-local background job per translation owner. Worker threads never import
+Streamlit or mutate session state; they emit only immutable snapshots and
+validated batch events. The UI stores serializable job metadata and derives
+remaining targets from the current committed draft. Source and target widget
+reruns reuse the selected video's session resource cache; Preview, Publish,
+Refresh, and Reset retain explicit fresh-state boundaries. The persistent
+sidebar renders compact cards,
 metadata-catalog counts, cursor-backed Load more, and destructive Reset
 languages only in the selected-video Danger zone.
 Reset uses fresh ETag conditional writes and post-write verification.
@@ -84,7 +90,7 @@ run them as part of the credential-free suite.
 ## 🧹 Run local checks
 
 ```bash
-python -m compileall -q streamlit_app.py pages models.py language_catalog.py language_labels.py llm_localization_package.py codex_localization_runner.py codex_localization_generator.py generate_codex_localizations.py services state ui youtube_account.py localizations.py localization_service.py tests
+python -m compileall -q streamlit_app.py pages models.py language_catalog.py language_labels.py llm_localization_package.py codex_localization_runner.py codex_localization_generator.py generation_controller.py generate_codex_localizations.py services state ui youtube_account.py localizations.py localization_service.py tests
 git diff --check
 git diff --cached --check
 python -m pip check
@@ -119,7 +125,9 @@ success result is `No broken requirements found.`
   by `LLM_BATCH_SIZE`, and emits a completion callback only after exact JSON
   validation and merge. One Translate interaction processes the full remaining
   queue sequentially, skips valid draft entries on retry, and exposes the direct
-  current draft through **Download JSON** even after a later batch failure.
+  current draft through **Download JSON** even after a later batch failure. Its
+  controller uses `start → poll → cancel → cleanup`; cancellation terminates
+  the active process and never enters the retry path.
 - Codex and external prompts receive the same primary/reference source model.
   An uploaded file must be an exact direct language-keyed YouTube map; wrapper
   metadata is never accepted.
@@ -128,6 +136,24 @@ success result is `No broken requirements found.`
   available, merges omitted localizations, and refreshes the displayed YouTube
   progress. Any draft mutation invalidates Preview.
 - `FAQ` can render without YouTube service construction, OAuth, or API access.
+
+## ⏯️ Background generation lifecycle
+
+The Translate Codex path is intentionally asynchronous so **STOP** can act on
+the active `codex exec` process. `generation_controller.py` keeps live runtime
+handles in a process-local registry rather than in `st.session_state`. The
+runner uses `subprocess.Popen` with a new process group/session, the existing
+environment allowlist, ephemeral read-only execution, temporary schema/output
+files, bounded timeouts, redacted diagnostics, and exact localization JSON
+validation. A batch becomes committed only after the process exits
+successfully, the output file exists, and parsing plus validation succeed.
+
+The UI accepts only matching, validated batch events for the selected video and
+job. It applies each checkpoint once, invalidates Preview through the normal
+draft merge, and recalculates **Remaining selected targets** from that draft.
+The active fragment uses `st.fragment` when available and falls back to
+`st.experimental_fragment`; the synchronous generator API remains available to
+the CLI and credential-free tests.
 
 Read [Translate workflow](translate-workflow.md) and
 [LLM Translation prompt](llm-localizations.md) for the product constraints.

@@ -3,6 +3,7 @@
 from typing import Any, Mapping, MutableMapping, Tuple
 
 from llm_localization_package import build_translation_source_candidates
+from generation_controller import ACTIVE_GENERATION_STATUSES
 from language_labels import format_language_label
 from state.common_state import set_source_selection, sync_source_selection
 
@@ -80,6 +81,9 @@ def render_source_selection(
                     format_func=lambda code: labels_by_code[code],
                     key=widget_key,
                     on_change=restore_primary_source,
+                    disabled=session_state.get("translation", {}).get(
+                        "operation_status"
+                    ) in ACTIVE_GENERATION_STATUSES,
                 )
             )
         return set_source_selection(

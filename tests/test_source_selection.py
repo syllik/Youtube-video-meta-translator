@@ -93,6 +93,15 @@ class SourceSelectionTests(unittest.TestCase):
 
         self.assertEqual(selected, ("en",))
 
+    def test_reference_selection_is_disabled_during_generation(self):
+        fake = _FakeStreamlit(selected_codes=("de",))
+        state = {"translation": {"operation_status": "generating"}}
+
+        with patch.dict(sys.modules, {"streamlit": fake}):
+            render_source_selection(state, self.video, self.catalog)
+
+        self.assertTrue(fake.multiselect_calls[0][2]["disabled"])
+
 
 if __name__ == "__main__":
     unittest.main()

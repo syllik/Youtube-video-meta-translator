@@ -256,8 +256,13 @@ one click in sequential batches of up to ten. Each validated batch is merged
 into the internal draft immediately. If a later batch fails, that failed batch
 is not merged but earlier checkpoints remain in the draft and Download after
 the page rerenders. Retry skips valid selected target entries already present
-in the draft. The download contains the direct localization map from the
-current draft and is disabled only while that draft is empty.
+in the draft. During an active job, **STOP** terminates the current Codex
+process; it does not wait for the normal batch timeout. The current incomplete
+batch is not merged, while earlier checkpoints remain. After the job reaches
+**stopped** or **failed**, click **Generate missing translations** again to
+process only the remaining selected targets. The download contains the direct
+localization map from the current committed draft and is disabled only while
+that draft is empty.
 
 Changing source or target widgets after the initial selected-video load does not
 fetch that video again; those reruns use the video-scoped session cache. Use

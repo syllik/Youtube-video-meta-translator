@@ -119,7 +119,7 @@ class SidebarTests(unittest.TestCase):
         self.assertIn("First video", text)
         self.assertIn("video-1", text)
         self.assertIn("Default language: en", text)
-        self.assertIn("Localizations: 2 / 0", text)
+        self.assertIn("Localizations: 2 / 2", text)
         self.assertNotIn("First description", text)
         self.assertNotIn("Open " + "on YouTube", text)
         refresh_calls = [

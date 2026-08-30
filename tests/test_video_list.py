@@ -59,7 +59,7 @@ class VideoListTests(unittest.TestCase):
 
         self.assertEqual(
             video_localization_counts(video, ("en", "de", "fr", "ja")),
-            (1, 2),
+            (1, 3),
         )
 
     def test_localization_counts_do_not_count_out_of_catalog_existing_codes(self):
@@ -74,7 +74,7 @@ class VideoListTests(unittest.TestCase):
 
         self.assertEqual(
             video_localization_counts(video, ("en", "de", "fr")),
-            (1, 1),
+            (1, 2),
         )
 
     def test_widget_keys_are_stable_by_video_id(self):
@@ -165,7 +165,7 @@ class VideoListTests(unittest.TestCase):
 
         text = "\n".join(args[0] for args, _kwargs in streamlit.markdown_calls)
         self.assertIn("Default language: en — English", text)
-        self.assertIn("Localizations: 1 / 2", text)
+        self.assertIn("Localizations: 1 / 3", text)
         self.assertIn("Video ID: video-2", text)
         self.assertNotIn("This description must not render", text)
         self.assertNotIn("localization-badge", text)

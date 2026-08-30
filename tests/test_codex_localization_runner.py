@@ -2,7 +2,10 @@ import importlib
 import json
 import os
 import subprocess
+import threading
+import time
 import unittest
+from unittest.mock import call, patch
 
 
 try:
@@ -299,6 +302,172 @@ class CodexLocalizationRunnerTests(unittest.TestCase):
             runner_module.CodexLocalizationError, "Missing required language code"
         ):
             runner_module.run_codex_batch(package, SCHEMA, run=fake_run, environ={})
+
+    def test_cancellable_batch_terminates_the_active_process(self):
+        cancel_event = threading.Event()
+        processes = []
+
+        class BlockingProcess:
+            def __init__(self, command, **kwargs):
+                self.command = command
+                self.kwargs = kwargs
+                self.returncode = None
+                self.terminated = False
+                self.killed = False
+                processes.append(self)
+
+            def communicate(self, **_kwargs):
+                if self.returncode is not None:
+                    return "", ""
+                raise subprocess.TimeoutExpired(self.command, 0.01)
+
+            def terminate(self):
+                self.terminated = True
+                self.returncode = -15
+
+            def kill(self):
+                self.killed = True
+                self.returncode = -9
+
+            def wait(self, **_kwargs):
+                return self.returncode
+
+        def cancel():
+            time.sleep(0.03)
+            cancel_event.set()
+
+        thread = threading.Thread(target=cancel)
+        thread.start()
+        with self.assertRaisesRegex(
+            runner_module.CodexLocalizationCancelled, "stopped"
+        ):
+            runner_module.run_codex_batch_cancellable(
+                PACKAGE,
+                SCHEMA,
+                cancel_event=cancel_event,
+                popen=BlockingProcess,
+                poll_interval=0.01,
+            )
+        thread.join()
+
+        self.assertEqual(len(processes), 1)
+        self.assertTrue(processes[0].terminated or processes[0].killed)
+
+    def test_cancellable_batch_timeout_terminates_the_active_process(self):
+        processes = []
+
+        class BlockingProcess:
+            def __init__(self, command, **kwargs):
+                self.command = command
+                self.returncode = None
+                self.terminated = False
+                self.killed = False
+                processes.append(self)
+
+            def communicate(self, **_kwargs):
+                raise subprocess.TimeoutExpired(self.command, 0.01)
+
+            def terminate(self):
+                self.terminated = True
+                self.returncode = -15
+
+            def kill(self):
+                self.killed = True
+                self.returncode = -9
+
+            def wait(self, **_kwargs):
+                return self.returncode
+
+        with self.assertRaisesRegex(
+            runner_module.CodexLocalizationError, "timed out"
+        ):
+            runner_module.run_codex_batch_cancellable(
+                PACKAGE,
+                SCHEMA,
+                cancel_event=threading.Event(),
+                popen=BlockingProcess,
+                timeout_seconds=0.03,
+                poll_interval=0.01,
+            )
+
+        self.assertEqual(len(processes), 1)
+        self.assertTrue(processes[0].terminated or processes[0].killed)
+
+    def test_process_group_is_killed_after_graceful_termination_times_out(self):
+        class SlowProcess:
+            pid = 123
+
+            def __init__(self):
+                self.returncode = None
+                self.killed = False
+                self.wait_calls = 0
+
+            def poll(self):
+                return self.returncode
+
+            def wait(self, **_kwargs):
+                self.wait_calls += 1
+                if self.wait_calls == 1:
+                    raise subprocess.TimeoutExpired(["codex"], 1)
+                self.returncode = -9
+                return self.returncode
+
+            def kill(self):
+                self.killed = True
+                self.returncode = -9
+
+        process = SlowProcess()
+        with patch.object(
+            runner_module.os, "getpgid", return_value=456
+        ) as getpgid, patch.object(
+            runner_module.os, "killpg"
+        ) as killpg:
+            runner_module._terminate_process(process, grace_period=0)
+
+        getpgid.assert_called_once_with(123)
+        self.assertEqual(
+            killpg.call_args_list,
+            [
+                call(456, runner_module.signal.SIGTERM),
+                call(456, runner_module.signal.SIGKILL),
+            ],
+        )
+
+    def test_cancellable_batch_validates_structured_output_before_returning(self):
+        processes = []
+
+        class SuccessfulProcess:
+            def __init__(self, command, **kwargs):
+                self.command = command
+                self.kwargs = kwargs
+                self.returncode = 0
+                processes.append(self)
+
+            def communicate(self, **_kwargs):
+                output_path = self.command[self.command.index("-o") + 1]
+                with open(output_path, "w", encoding="utf-8") as handle:
+                    json.dump(
+                        {"fr": {"title": "Cascade", "description": "Texte"}},
+                        handle,
+                    )
+                return "", ""
+
+            def poll(self):
+                return self.returncode
+
+        result = runner_module.run_codex_batch_cancellable(
+            PACKAGE,
+            SCHEMA,
+            cancel_event=threading.Event(),
+            popen=SuccessfulProcess,
+        )
+
+        self.assertEqual(
+            result,
+            {"fr": {"title": "Cascade", "description": "Texte"}},
+        )
+        self.assertEqual(len(processes), 1)
+        self.assertTrue(processes[0].kwargs["start_new_session"])
 
 
 if __name__ == "__main__":

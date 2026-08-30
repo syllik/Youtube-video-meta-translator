@@ -32,6 +32,19 @@ class TranslationDraftHandoffTests(unittest.TestCase):
 
         self.assertEqual(remaining, ("fr",))
 
+    def test_retry_remaining_targets_skip_external_upload_and_unknown_draft_entries(self):
+        remaining = remaining_translation_target_codes(
+            ("de", "fr", "es"),
+            {
+                "DE": {"title": "DE", "description": "DE"},
+                "fr": {"title": "FR", "description": "FR"},
+                "unknown": {"title": "Ignore", "description": "Ignore"},
+            },
+            ("de", "fr", "es"),
+        )
+
+        self.assertEqual(remaining, ("es",))
+
     def test_valid_upload_becomes_internal_draft_without_editable_json(self):
         state = {
             "draft": {"fr": {"title": "FR", "description": "FR"}}

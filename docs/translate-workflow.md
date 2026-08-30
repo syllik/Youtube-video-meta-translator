@@ -47,9 +47,11 @@ retain their own network reads.
 Choose one of these paths on **Translate**:
 
 - **Generate missing translations with Codex** uses the locally authenticated
-  Codex CLI, validates each batch, and merges each successful batch into the
-  internal translation draft before starting the next one. One click processes
-  every remaining selected target in sequential batches of up to ten.
+  Codex CLI in a cancellable background job, validates each batch, and merges
+  each successful batch into the internal translation draft before starting the
+  next one. One click processes every remaining selected target in sequential
+  batches of up to ten. The active status uses the job-local batch index and
+  stable total, for example `Generating batch 2 / 3`.
 - **Upload JSON from an external LLM or from an existing file** is available after
   selecting a video; using the **LLM Translation prompt** page is optional. Upload
   one UTF-8 JSON file containing any non-empty set of supported language codes.
@@ -68,6 +70,14 @@ subtracts every valid selected target already present in the draft, whether it
 came from an earlier Codex checkpoint or an external upload. If a later batch
 fails, that failed batch is not merged; earlier checkpoints remain available in
 the draft, Preview, and Download after the page rerenders.
+
+While a job is starting or generating, **Generate missing translations** and
+the source/target selectors are disabled and **STOP** is enabled. **STOP**
+terminates the active Codex process, preserves completed checkpoints, and
+leaves the incomplete batch in the remaining queue. During termination both
+generation controls are disabled. After the job is stopped or fails, the next
+Generate click starts the full current remaining queue and skips every valid
+entry already in the draft, including entries from an external upload.
 
 Each localization value must contain only `title` and `description`. Titles may
 contain at most 100 characters and descriptions at most 5,000 characters. Do

@@ -61,15 +61,20 @@
 - Codex and valid external-LLM uploads merge into the current translation draft.
   Overlapping language codes replace only that entry; existing YouTube
   localizations omitted from the draft remain preserved during normal Publish.
-  Changing the selected video clears its draft and Preview state.
+  Changing the selected video clears its draft and Preview state. Codex
+  generation runs through a cancellable background controller; worker runtime
+  handles stay outside Streamlit session state, and only validated batch events
+  may update the draft.
 - Reset languages is a separate destructive service operation. Its local
   component requires native browser confirmation, sends only the canonical
   default-language localization with current default title/description as the
   YouTube API workaround, verifies the fresh post-write resource, invalidates
   related state without changing URL parameters, and never uses normal Publish
   merge semantics.
-- Sidebar video cards are compact and use metadata-catalog counts: `done` is
-  existing known non-default localizations and `undone` is missing non-default
-  codes from the checked-in catalog. Numeric Load more appends cursor-backed
-  batches; URL page changes reset only the accumulated visible list.
+- Sidebar video cards are compact and use metadata-catalog counts: `current` is
+  existing known non-default localizations and `total` is every non-default
+  code from the checked-in catalog. Unknown existing localization codes and the
+  default language are excluded from both values. Numeric Load more appends
+  cursor-backed batches; URL page changes reset only the accumulated visible
+  list.
 - `FAQ` is a static navigation page. It must not construct a YouTube service, start OAuth, fetch API data, or render the persistent video sidebar, so it remains available when YouTube access fails.
