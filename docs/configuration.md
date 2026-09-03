@@ -48,7 +48,7 @@ and publishing. See Google's
 Create the folder if needed and place the downloaded file here:
 
 ```text
-Youtube-video-meta-translator/config/account_client_secrets_main.json
+youtube-metadata-translator/config/account_client_secrets_main.json
 ```
 
 The filename must be exactly `account_client_secrets_main.json`, not

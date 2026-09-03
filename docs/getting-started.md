@@ -24,8 +24,8 @@ and check the result in YouTube Studio before larger work.
 If you still need to clone the repository:
 
 ```bash
-git clone https://github.com/syllik/Youtube-video-meta-translator.git
-cd Youtube-video-meta-translator
+git clone https://github.com/syllik/youtube-metadata-translator.git
+cd youtube-metadata-translator
 ```
 
 Then run these commands from the project folder:
@@ -45,14 +45,14 @@ authenticated Codex session.
 For a later terminal session, activate the existing environment:
 
 ```bash
-cd /path/to/Youtube-video-meta-translator
+cd /path/to/youtube-metadata-translator
 source .venv/bin/activate
 ```
 
 ## 2️⃣ Install on Windows PowerShell
 
 ```powershell
-cd C:\path\to\Youtube-video-meta-translator
+cd C:\path\to\youtube-metadata-translator
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
@@ -105,7 +105,7 @@ deprecated` warning from an older Google dependency is not a fatal error.
 ### macOS or Linux
 
 ```bash
-cd /path/to/Youtube-video-meta-translator
+cd /path/to/youtube-metadata-translator
 source .venv/bin/activate
 streamlit run streamlit_app.py
 ```
@@ -113,7 +113,7 @@ streamlit run streamlit_app.py
 ### Windows PowerShell
 
 ```powershell
-cd C:\path\to\Youtube-video-meta-translator
+cd C:\path\to\youtube-metadata-translator
 .\.venv\Scripts\Activate.ps1
 streamlit run streamlit_app.py
 ```

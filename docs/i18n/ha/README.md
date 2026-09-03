@@ -15,8 +15,8 @@ Ana buƙatar Google account mai damar channel, Python 3.12, browser a kwamfutar 
 ### macOS / Linux
 
 ~~~bash
-git clone https://github.com/syllik/Youtube-video-meta-translator.git
-cd Youtube-video-meta-translator
+git clone https://github.com/syllik/youtube-metadata-translator.git
+cd youtube-metadata-translator
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -26,7 +26,7 @@ python -m pip install -r requirements.txt
 ### Windows PowerShell
 
 ~~~powershell
-cd C:\path\to\Youtube-video-meta-translator
+cd C:\path\to\youtube-metadata-translator
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
