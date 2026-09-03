@@ -8,7 +8,7 @@ calling the live YouTube API.
 ## 🧱 Project structure
 
 ```text
-Youtube-video-meta-translator/
+youtube-metadata-translator/
 ├── streamlit_app.py                 # Streamlit entry point and common bootstrap
 ├── pages/                           # Translate, prompt, and static FAQ pages
 ├── services/                        # YouTube and localization boundaries
