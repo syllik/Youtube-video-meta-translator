@@ -152,7 +152,7 @@ Never commit OAuth JSON, `.env`, `token.json`, or `token.pickle`. See
 
 ## 📜 License
 
-See [LICENSE](LICENSE).
+See [LICENSE](LICENSE). This repository is a fork of Jordi Cor's original YouTube Video Metadata Translator and includes additional contributions by syllik.
 
 ## Support
 
